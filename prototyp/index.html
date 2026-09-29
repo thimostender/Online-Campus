@@ -13,15 +13,25 @@
   <div id="app"></div>
   <div class="toasts" id="toasts" aria-live="polite"></div>
   <dialog id="dialog"></dialog>
+  <div id="assistent"></div>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="material-texte.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script src="dateien.js"></script>
   <script src="ansichten-studierende.js"></script>
   <script src="ansichten-personal.js"></script>
+  <script src="assistent.js"></script>
   <script>
-    db = laden();
-    if (!db) neuAufsetzen();
-    fristErinnerungen();
-    render();
+    (async () => {
+      db = laden();
+      if (!db) neuAufsetzen();
+      render();
+      // Beim ersten Start echte PDF-Dateien für alle Beispielmaterialien und -abgaben erzeugen
+      await beispielDateienErzeugen();
+      fristErinnerungen();
+      render();
+    })();
   </script>
 </body>
 </html>

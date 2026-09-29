@@ -27,6 +27,7 @@ flowchart LR
   LE --> LE1["Alle Abgaben<br/>offen · eingereicht · bewertet"]
   LE --> LE2["Noten und ECTS-Stand"]
   LE --> LE3["Bescheinigungen<br/>herunterladen"]
+  LE --> LE4["Studienverlauf<br/>6 Semester · Wahlfach wählen"]
 
   C --> SV["5 · Service"]
   SV --> SV1["Lageplan und Räume"]
@@ -44,7 +45,10 @@ flowchart LR
   PR -.-> PR1["Persönliche Daten"]
   PR -.-> PR2["Benachrichtigungen<br/>je Anlass und Kanal"]
   PR -.-> PR3["Abmelden"]
-  K -.-> HI["Suche und Hilfe-Chatbot<br/>(optional)"]
+  K -.-> HI["Suche"]
+  C -.-> AS["Hilfe-Assistent<br/>auf jeder Seite"]
+  AS -.-> AS1["Persönlich: Fristen, Termine,<br/>Noten, ECTS"]
+  AS -.-> AS2["Fachlich: aus Lehrmaterialien<br/>mit Quelle und Seite"]
 
   classDef root fill:#fecdd3,stroke:#e11d48,color:#111
   classDef main fill:#ddd6fe,stroke:#7c3aed,color:#111,font-weight:bold
@@ -55,4 +59,4 @@ flowchart LR
   class U,SP,M,LE,SV main
   class MS,M1,SV3 sub
   class U1,U2,U3,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,LOGIN fn
-  class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI head
+  class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI,AS,AS1,AS2 head

@@ -14,7 +14,8 @@ erDiagram
   STUDIENGANG {
     int id PK
     string name "z. B. Betriebswirtschaft"
-    string abschluss "VWA-Diplom oder Bachelor"
+    string abschluss "z. B. Bachelor of Arts"
+    int ects_gesamt
   }
   STUDIENGRUPPE {
     int id PK
@@ -43,10 +44,21 @@ erDiagram
   }
   MODUL {
     int id PK
+    string nr "laut Modulstruktur, z. B. 25 (1)"
     string kuerzel
     string titel
+    string bereich "z. B. Wertschöpfung, Recht"
+    int plansemester "1 bis 6"
+    int ue "Unterrichtseinheiten"
+    int workload "Stunden"
     int ects
+    int wahlfach "leer = Pflicht, 1 Marketing, 2 Controlling"
     string beschreibung
+  }
+  WAHLPFLICHT_WAHL {
+    uuid user_id FK
+    int wahlfach
+    datetime gewaehlt_am
   }
   KURS {
     int id PK
@@ -88,3 +100,4 @@ erDiagram
   KURS ||--o{ TERMIN : "plant"
   RAUM |o--o{ TERMIN : "Ort von"
   USER |o--o{ TERMIN : "vertritt"
+  USER ||--o| WAHLPFLICHT_WAHL : "wählt"

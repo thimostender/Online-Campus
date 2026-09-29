@@ -94,7 +94,8 @@
 <tr><td>Lehrangebot</td><td>MODUL, SEMESTER, KURS, LEHRAUFTRAG</td><td>Das MODUL ist der Katalogeintrag, der KURS seine Durchführung für eine Gruppe in einem Semester. Er ersetzt ENROLLMENT und TEACHING.</td></tr>
 <tr><td>Zeit und Ort</td><td>TERMIN, RAUM, VORLESUNGSFREIE_ZEIT</td><td>Stundenplan und Ferien. Aus den Terminen entsteht das Kalender-Abo.</td></tr>
 <tr><td>Prüfen</td><td>PRUEFUNG, ABGABE, ABGABE_MITGLIED, ABGABEVERSION, NOTE</td><td>Vom Anlegen der Prüfung über den Upload bis zur freigegebenen Note</td></tr>
-<tr><td>Dateien</td><td>DATEI, MATERIAL</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme. Die Dateien selbst liegen im Objektspeicher, nicht in der Datenbank.</td></tr>
+<tr><td>Dateien und Material</td><td>DATEI, MATERIAL, MATERIAL_ABSCHNITT</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme; die Dateien selbst liegen im Objektspeicher. Hochgeladene Lehrmaterialien werden ausgelesen und in Abschnitte mit Seitenzahl zerlegt, aus denen der Hilfe-Assistent antwortet.</td></tr>
+<tr><td>Studienverlauf</td><td>MODUL (mit Nr., Bereich, Plansemester, UE, Workload), WAHLPFLICHT_WAHL</td><td>Bildet die Modulstruktur BWL (B.A.) mit 6 Semestern, 180 ECTS und den Wahlfächern WF 1 Marketing und WF 2 Controlling ab.</td></tr>
 <tr><td>Kommunikation</td><td>MITTEILUNG, ZUSTELLUNG, BENACHRICHTIGUNG_EINSTELLUNG</td><td>Was wurde gesendet, an wen, über welchen Kanal, und wurde es gelesen?</td></tr>
 </table>
 
@@ -108,6 +109,8 @@
 <li><b>Noten sind erst mit <code>freigegeben_am</code> sichtbar.</b> Erst dann wird die Mitteilung ausgelöst. Lehrende können also in Ruhe korrigieren.</li>
 <li><b>Nur eigene Daten</b>: Studierende sehen ausschließlich ihre eigenen Abgaben und Noten. Lehrende sehen nur Abgaben aus Kursen mit Lehrauftrag.</li>
 <li><b>Große Dateien</b> werden in Teilen hochgeladen und bei Abbruch fortgesetzt. Das ist das Problem, das heute zu fremden Plattformen führt.</li>
+<li><b>Bewertet wird erst ab Fristende.</b> Vorher können Studierende noch neue Versionen hochladen, danach steht fest, welche zählt.</li>
+<li><b>Der Assistent sieht nur, was die Person sehen darf:</b> Material der eigenen Kurse, erst ab dem Freigabedatum. Abgaben von Studierenden werden nie ausgelesen.</li>
 </ol>
 
 <h3>Unsere Annahmen</h3>
@@ -122,8 +125,10 @@
 <tr><td>Aufbewahrung</td><td>Abgaben und Noten bleiben 5&nbsp;Jahre nach Studienende erhalten, danach löscht das System sie automatisch. Die Frist ist als Einstellung hinterlegt.</td><td>Die DSGVO verlangt eine festgelegte Löschfrist. Den Wert muss eine echte Hochschule an ihre Prüfungsordnung anpassen, deshalb ist er einstellbar.</td></tr>
 </table>
 
+<h3>Hilfe-Assistent</h3>
+<p>Persönliche Fragen („Wann ist meine nächste Abgabe?“, „Was habe ich morgen?“) beantwortet er direkt aus den Daten. Fachfragen beantwortet er aus Lehrmaterialien, FAQ und Service-Texten: Eine Suche (BM25) findet die passenden Abschnitte, die Antwort nennt immer Quelle und Seite. Im Prototyp besteht die Antwort aus den passendsten Sätzen. Mit einem Sprachmodell (zum Beispiel Claude) auf dem eigenen Server formuliert er frei, bekommt aber nur die gefundenen Abschnitte, keine anderen Daten. Das Feld <code>embedding</code> ist für eine spätere Suche nach Bedeutung statt nach Wörtern vorgesehen.</p>
 <h3>Bewusst weggelassen</h3>
-<p>Nachrichten zwischen Personen (Messenger) und Chatbot. Beide sind im Briefing optional. Für den Messenger kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Der Chatbot braucht kein eigenes Datenmodell, er liest die bestehenden Daten. Beides erst nach dem MVP.</p>
+<p>Nachrichten zwischen Personen (Messenger). Er ist im Briefing optional; dafür kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Erst nach dem MVP.</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>

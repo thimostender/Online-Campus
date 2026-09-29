@@ -31,7 +31,7 @@ function sUebersicht() {
   const neu = meineMitteilungen(u.id).filter(m => !m.gelesen).slice(0, 4);
   const stand = ectsStand(u.id);
 
-  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(gruppeVon(u.id).name)} · ${esc(db.semester[0].bezeichnung)}`)}
+  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(gruppeVon(u.id).name)} · ${esc(aktSem().bezeichnung)}`)}
   ${aenderungen.length ? `<div class="hinweis warn" style="margin-bottom:16px">${I('warn')}<div><b>${plural(aenderungen.length, 'Änderung', 'Änderungen')} in deinem Stundenplan</b>
     <ul class="liste" style="margin-top:6px">${aenderungen.map(t => `<li style="padding:6px 0;border:0"><a href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul></div></div>` : ''}
   <div class="raster raster-2">
@@ -136,7 +136,7 @@ function stundenplan(q) {
 
   return `${kopfzeile('Stundenplan', rolle() === 'studierend' ? `Alle Vorlesungen und Abgabefristen von ${esc(gruppeVon(u.id).name)} in einer Ansicht.` : 'Deine Lehrveranstaltungen und Vertretungen.')}
     ${kopf}${inhalt}
-    <section class="karte abstand"><h2>Vorlesungsfreie Zeiten ${esc(db.semester[0].bezeichnung)}</h2>
+    <section class="karte abstand"><h2>Vorlesungsfreie Zeiten ${esc(aktSem().bezeichnung)}</h2>
       <ul class="liste">${db.vorlesungsfreie_zeit.map(v => `<li class="zeile dazwischen"><span>${esc(v.bezeichnung)}</span><span class="leise">${fmtDatumJ(v.beginn)} – ${fmtDatumJ(v.ende)}</span></li>`).join('')}</ul></section>`;
 }
 function ereignis(t) {
@@ -176,7 +176,7 @@ function sModule() {
   const u = ich();
   // Nach der nächsten Frist sortiert, nicht alphabetisch (Idee aus der ersten Sitemap)
   const kurse = kurseVon(u.id).sort((a, b) => (naechsteFrist(a.id) || Infinity) - (naechsteFrist(b.id) || Infinity));
-  return `${kopfzeile('Module', `${esc(db.semester[0].bezeichnung)} · sortiert nach der nächsten Frist`)}
+  return `${kopfzeile('Module', `${esc(aktSem().bezeichnung)} · sortiert nach der nächsten Frist · <a href="#/leistungen">frühere Semester im Studienverlauf</a>`)}
   <div class="raster raster-2">${kurse.map(k => {
     const m = modulVon(k), p = db.pruefung.find(x => x.kurs_id === k.id), s = p ? statusVon(p, u.id) : null;
     const c = p && D(p.frist) > new Date() ? countdown(p.frist) : null;
@@ -184,7 +184,7 @@ function sModule() {
     const neuMat = db.material.filter(x => x.kurs_id === k.id && tagDiff(x.sichtbar_ab) >= -7 && D(x.sichtbar_ab) <= new Date()).length;
     return `<a class="karte modul-karte" href="#/module/${k.id}">
       <div class="zeile oben"><span class="kuerzel" style="background:${farbeVon(k.id)}">${esc(m.kuerzel)}</span>
-        <div style="min-width:0;flex:1"><h3 style="margin:0">${esc(m.titel)}</h3><p class="klein leise" style="margin:0">${m.ects} ECTS · ${lehrendeVon(k.id).map(l => esc(name(l))).join(', ')}</p></div>
+        <div style="min-width:0;flex:1"><h3 style="margin:0">${esc(m.titel)}</h3><p class="klein leise" style="margin:0">${ectsText(m)} · ${lehrendeVon(k.id).map(l => esc(name(l))).join(', ')}</p></div>
         ${neuMat ? `<span class="marke-klein m-info">${neuMat} neu</span>` : ''}</div>
       <div class="zeile dazwischen abstand" style="flex-wrap:wrap;gap:6px">
         <span class="klein">${p ? esc(p.art) + (c ? ` · <b>${c.text}</b>` : '') : ''}</span>
@@ -196,12 +196,13 @@ function sModule() {
 
 function sModul(kid, tab) {
   const u = ich(), k = byId('kurs', kid);
-  if (!k || !kurseVon(u.id).some(x => x.id === kid)) throw new Error('kein Zugriff');
+  if (!k || !kurseVon(u.id, true).some(x => x.id === kid)) throw new Error('kein Zugriff');
   const m = modulVon(k), lehr = lehrendeVon(kid), p = db.pruefung.find(x => x.kurs_id === kid);
+  const frueher = k.semester_id !== aktSem().id;
   const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis']];
   const inhalt = {
     ueberblick: () => `<div class="raster raster-2">
-      <section class="karte"><h2>Worum es geht</h2><p>${esc(m.beschreibung)}</p><p class="klein leise">${m.ects} ECTS · Modulkürzel ${esc(m.kuerzel)}</p></section>
+      <section class="karte"><h2>Worum es geht</h2><p>${esc(m.beschreibung)}</p><p class="klein leise">${esc(BEREICHE[m.bereich])} · ${m.ue} Unterrichtseinheiten · ${m.workload ? m.workload + ' Stunden Workload · ' : ''}${ectsText(m)} · Kürzel ${esc(m.kuerzel)}</p></section>
       <section class="karte"><h2>Lehrende</h2><ul class="liste">${lehr.map(l => `<li class="zeile"><span class="avatar" style="width:36px;height:36px;font-size:13px">${initialen(l)}</span><span><b>${esc(name(l))}</b><br><a class="klein" href="mailto:${esc(l.email)}">${esc(l.email)}</a></span></li>`).join('')}</ul></section>
       <section class="karte"><h2>Prüfung</h2>${p ? `<p><b>${esc(p.art)}</b>: ${esc(p.titel)}</p><p class="klein leise">${p.mit_upload ? 'Abgabe' : 'Termin'} ${fmtDatum(p.frist)}, ${fmtZeit(p.frist)} Uhr</p><a class="knopf klein" href="#/module/${kid}/${p.mit_upload ? 'abgabe' : 'pruefung'}">${p.mit_upload ? 'Zur Abgabe' : 'Details'}</a>` : '<p class="leise">Keine Prüfung hinterlegt</p>'}</section>
       <section class="karte"><h2>Nächster Termin</h2>${(() => { const t = termineVon([kid]).find(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); return t ? terminGross(t) : '<p class="leise">Keine weiteren Termine</p>'; })()}</section>
@@ -224,9 +225,9 @@ function sModul(kid, tab) {
     ergebnis: () => sErgebnis(p),
   }[tab];
   if (!inhalt) throw new Error('unbekannter Reiter');
-  return `<a class="klein zeile" href="#/module" style="gap:4px;margin-bottom:10px">${I('zurueck')} Module</a>
+  return `<a class="klein zeile" href="${frueher ? '#/leistungen' : '#/module'}" style="gap:4px;margin-bottom:10px">${I('zurueck')} ${frueher ? 'Studienverlauf' : 'Module'}</a>
     <div class="zeile oben"><span class="kuerzel" style="background:${farbeVon(kid)};width:52px;height:52px">${esc(m.kuerzel)}</span>
-    <div><h1>${esc(m.titel)}</h1><p class="leise" style="margin:0">${m.ects} ECTS · ${lehr.map(l => esc(name(l))).join(', ')} · ${esc(gruppeVon(u.id).name)}</p></div></div>
+    <div><h1>${esc(m.titel)}</h1><p class="leise" style="margin:0">${m.nr ? 'Modul ' + esc(m.nr) + ' · ' : ''}${m.ects ? m.ects + ' ECTS · ' : ''}${lehr.map(l => esc(name(l))).join(', ')} · ${esc(byId('semester', k.semester_id).bezeichnung)}${frueher ? ' <span class="marke-klein">abgeschlossen</span>' : ''}</p></div></div>
     <nav class="reiter" aria-label="Bereiche des Moduls">${reiter.map(([k2, t2]) => `<a href="#/module/${kid}/${k2}" ${tab === k2 ? 'aria-current="page"' : ''}>${t2}</a>`).join('')}</nav>
     ${inhalt()}`;
 }
@@ -238,11 +239,13 @@ function materialListe(kid, lehrend) {
     const neu = tagDiff(x.sichtbar_ab) >= -7 && D(x.sichtbar_ab) <= jetzt;
     return `<li class="zeile"><span class="symbol m-info" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center">${I('datei')}</span>
       <span style="flex:1;min-width:0"><b>${esc(x.titel)}</b> ${neu ? '<span class="marke-klein m-info">neu</span>' : ''}${D(x.sichtbar_ab) > jetzt ? `<span class="marke-klein m-warn">sichtbar ab ${fmtDatum(x.sichtbar_ab)}, ${fmtZeit(x.sichtbar_ab)}</span>` : ''}<br>
-      <span class="klein leise">${esc(d.dateiname)} · ${bytes(d.groesse_bytes)} · ${fmtDatumJ(x.sichtbar_ab)}</span></span>
-      <button class="knopf klein" data-action="platzhalter" data-text="Materialien sind im Prototyp Platzhalter ohne Inhalt.">${I('download')}<span>Laden</span></button></li>`;
+      <span class="klein leise">${esc(d.dateiname)} · ${bytes(d.groesse_bytes)} · ${fmtDatumJ(x.sichtbar_ab)}</span>
+      ${lehrend ? `<br><span class="klein ${x.text_status === 'ausgelesen' ? 'leise' : x.text_status === 'wird ausgelesen' ? 'leise' : 'fehlertext'}">${I('chat', 'klein-svg')} Assistent: ${x.text_status === 'ausgelesen' ? plural(db.abschnitt.filter(a => a.material_id === x.id).length, 'Abschnitt', 'Abschnitte') + ' durchsuchbar' : esc(x.text_status || 'nicht ausgelesen')}</span>` : ''}</span>
+      <button class="knopf klein" data-action="datei-laden" data-id="${d.id}">${I('download')}<span>Laden</span></button></li>`;
   }).join('') || '<li class="leer">Noch keine Materialien</li>'}</ul></section>`;
 }
 AKTIONEN.platzhalter = el => toast(el.dataset.text || 'Im Prototyp nur angedeutet');
+AKTIONEN['datei-laden'] = (el, e) => { e.preventDefault(); dateiHerunterladen(el.dataset.id); };
 
 // ---------- Abgabe ----------
 const mb = p => p.max_mb >= 1000 ? (p.max_mb / 1000).toString().replace('.', ',') + ' GB' : p.max_mb + ' MB';
@@ -276,7 +279,7 @@ function sAbgabe(kid, p) {
     <thead><tr><th>Version</th><th>Datei</th><th>Hochgeladen</th><th>Prüfsumme (SHA-256)</th></tr></thead><tbody>
     ${vs.slice().reverse().map(v => { const d = byId('datei', v.datei_id); return `<tr>
       <td><b>${v.nummer}</b> ${zaehlt && zaehlt.id === v.id ? '<span class="marke-klein m-gut">zählt</span>' : ''}${D(v.hochgeladen_am) > D(p.frist) ? '<span class="marke-klein m-fehler">verspätet</span>' : ''}</td>
-      <td>${d.mime_typ.startsWith('video') ? I('video') : ''} ${esc(d.dateiname)}<br><span class="klein leise">${bytes(d.groesse_bytes)}</span></td>
+      <td><a href="#" data-action="datei-laden" data-id="${d.id}">${d.mime_typ.startsWith('video') ? I('video') : ''} ${esc(d.dateiname)}</a><br><span class="klein leise">${bytes(d.groesse_bytes)}</span></td>
       <td>${fmtDatum(v.hochgeladen_am)}, ${fmtZeit(v.hochgeladen_am)} Uhr<br><span class="klein leise">von ${esc(byId('user', d.hochgeladen_von).vorname)}</span></td>
       <td class="pruefsumme" title="${d.sha256}">${d.sha256.slice(0, 16)}…</td></tr>`; }).join('')}
     </tbody></table></div></section>` : ''}
@@ -328,12 +331,6 @@ AENDERUNGEN['datei-gewaehlt'] = el => {
   box.innerHTML = fehler ? `<div class="hinweis fehler" style="text-align:left">${I('warn')}<div>${fehler}</div></div>`
     : `<span class="marke-klein m-gut">${I('datei')} ${esc(f.name)} · ${bytes(f.size)}</span>`;
 };
-async function sha256(file) {
-  // Große Dateien würden im Browser viel Speicher brauchen; der echte Server rechnet die Prüfsumme selbst.
-  if (!crypto?.subtle || file.size > 300e6) return null;
-  const h = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
 FORMULARE.abgabe = async (form, fd) => {
   const u = ich(), p = byId('pruefung', Number(form.dataset.pid)), f = fd.get('datei');
   if (!f || !f.name) { toast('Bitte zuerst eine Datei auswählen'); return; }
@@ -362,6 +359,7 @@ FORMULARE.abgabe = async (form, fd) => {
     [u.id, ...fd.getAll('mitglied')].forEach(s => db.abgabe_mitglied.push({ abgabe_id: a.id, student_id: s }));
   }
   const datei = { id: 'd' + (db.datei.length + 1) + '-' + Date.now(), dateiname: f.name, mime_typ: f.type || 'application/octet-stream', groesse_bytes: f.size, sha256: hash, hochgeladen_von: u.id, hochgeladen_am: jetzt };
+  datei.ohne_inhalt = !(f.size <= MAX_GESPEICHERT && await inhaltSpeichern(datei.id, f));
   db.datei.push(datei);
   const version = { id: nextId('abgabeversion'), abgabe_id: a.id, nummer: versionenVon(a.id).length + 1, datei_id: datei.id, hochgeladen_am: jetzt };
   db.abgabeversion.push(version);
@@ -396,51 +394,97 @@ function sErgebnis(p) {
 
 // ---------- Leistungen ----------
 function ectsStand(uid) {
-  const ges = byId('studiengang', gruppeVon(uid).studiengang_id).ects_gesamt;
-  let endgueltig = 0, vorlaeufig = 0, summe = 0, gewichte = 0;
-  kurseVon(uid).forEach(k => {
+  const ges = byId('studiengang', gruppeVon(uid).studiengang_id).ects_gesamt, sem = aktSem().id;
+  let endgueltig = 0, vorlaeufig = 0, summe = 0, gewichte = 0, summeSem = 0, gewSem = 0;
+  kurseVon(uid, true).forEach(k => {
     const m = modulVon(k);
     db.pruefung.filter(p => p.kurs_id === k.id).forEach(p => {
       const n = noteVon(p.id, uid);
       if (!n || !n.freigegeben_am) return;
-      summe += n.wert * m.ects; gewichte += m.ects;
+      if (m.ects) { summe += n.wert * m.ects; gewichte += m.ects; }
+      if (m.ects && k.semester_id === sem) { summeSem += n.wert * m.ects; gewSem += m.ects; }
       if (n.wert <= 4) { if (n.bestaetigt_am) endgueltig += m.ects; else vorlaeufig += m.ects; }
     });
   });
-  // Bereits früher erworbene ECTS aus dem ersten Studienjahr (Beispiel)
-  const frueher = 55;
-  return { gesamt: ges, endgueltig: endgueltig + frueher, vorlaeufig, schnitt: gewichte ? summe / gewichte : null };
+  return { gesamt: ges, endgueltig, vorlaeufig, schnitt: gewSem ? summeSem / gewSem : null, schnittGesamt: gewichte ? summe / gewichte : null };
 }
+// Stand eines Moduls im Studienverlauf
+function modulStand(m, uid) {
+  const k = kurseVon(uid, true).find(x => x.modul_id === m.id);
+  if (!k) return { kl: '', text: 'geplant' };
+  const p = db.pruefung.find(x => x.kurs_id === k.id), n = p && noteVon(p.id, uid);
+  if (n && n.freigegeben_am) return { kurs: k, note: n, kl: n.wert > 4 ? 'm-fehler' : n.bestaetigt_am ? 'm-gut' : 'm-warn', text: `${noteFmt(n.wert)} · ${n.bestaetigt_am ? 'endgültig' : 'vorläufig'}` };
+  return k.semester_id === aktSem().id ? { kurs: k, kl: 'm-info', text: 'läuft' } : { kurs: k, kl: 'm-fehler', text: 'offen' };
+}
+function studienverlauf(u) {
+  const sg = byId('studiengang', gruppeVon(u.id).studiengang_id);
+  const wahl = db.wahlpflicht_wahl.find(w => w.user_id === u.id);
+  const semName = n => { const k = kurseVon(u.id, true).find(x => modulVon(x).plansemester === n); return k ? byId('semester', k.semester_id).bezeichnung : ''; };
+  const aktuellesPlansemester = Math.max(...kurseVon(u.id).map(k => modulVon(k).plansemester));
+  const zeile = m => { const st = modulStand(m, u.id); const inhalt = `<span class="kuerzel" style="width:34px;height:34px;font-size:10.5px;border-radius:9px;background:${FARBEN[(m.id - 1) % FARBEN.length]}">${esc(m.kuerzel)}</span>
+      <span style="flex:1;min-width:0"><span class="klein fett" style="display:block">${esc(m.kurztitel)}</span><span class="klein leise">${m.ects ? m.ects + ' ECTS' : m.ue + ' UE, ohne eigene ECTS'}</span></span>
+      <span class="marke-klein ${st.kl}">${esc(st.text)}</span>`;
+    return `<li>${st.kurs ? `<a class="zeile" href="#/module/${st.kurs.id}${st.note ? '/ergebnis' : ''}" style="color:var(--text);text-decoration:none">${inhalt}</a>` : `<div class="zeile" style="opacity:.75">${inhalt}</div>`}</li>`;
+  };
+  const wahlBox = sem => {
+    const opt = [1, 2].map(w => { const mods = db.modul.filter(m => m.wahlfach === w && m.plansemester === sem); return `<div style="flex:1;min-width:0"><b class="klein">${WAHLFAECHER[w]}</b><ul class="klein leise" style="padding-left:16px;margin:4px 0 8px">${mods.map(m => `<li>${esc(m.kurztitel)}</li>`).join('')}</ul></div>`; }).join('');
+    return `<li><div class="hinweis" style="display:block"><b class="klein">Wahlpflicht: noch nicht gewählt</b><div class="zeile oben" style="gap:12px;margin-top:6px">${opt}</div>
+      <div class="zeile" style="flex-wrap:wrap"><button class="knopf klein" data-action="wahlfach" data-wf="1">WF 1 wählen</button><button class="knopf klein" data-action="wahlfach" data-wf="2">WF 2 wählen</button></div></div></li>`;
+  };
+  const karten = [1, 2, 3, 4, 5, 6].map(n => {
+    const mods = db.modul.filter(m => m.plansemester === n && (!m.wahlfach || (wahl && m.wahlfach === wahl.wahlfach)));
+    const cp = db.modul.filter(m => m.plansemester === n && (!m.wahlfach || m.wahlfach === (wahl?.wahlfach || 1))).reduce((s, m) => s + m.ects, 0);
+    const hatWahl = db.modul.some(m => m.plansemester === n && m.wahlfach);
+    return `<section class="karte ${n === aktuellesPlansemester ? 'aktuell' : ''}" style="${n === aktuellesPlansemester ? 'border-color:var(--akzent);box-shadow:0 0 0 1px var(--akzent)' : ''}">
+      <div class="zeile dazwischen"><h3 style="margin:0">${n}. Semester</h3><span class="klein leise">${cp} ECTS</span></div>
+      <p class="klein leise" style="margin:0 0 8px">${esc(semName(n)) || (n > aktuellesPlansemester ? 'geplant' : '')}${n === aktuellesPlansemester ? ' · <b style="color:var(--akzent)">aktuell</b>' : ''}</p>
+      <ul class="liste">${mods.filter(m => m.bereich !== 'PTP').map(zeile).join('')}${hatWahl && !wahl ? wahlBox(n) : ''}${mods.filter(m => m.bereich === 'PTP').map(zeile).join('')}</ul></section>`;
+  }).join('');
+  return `<section class="abstand"><div class="zeile dazwischen" style="flex-wrap:wrap;margin:22px 0 10px"><h2 style="margin:0">Studienverlauf ${esc(sg.name)} (${esc(sg.abschluss)})</h2>
+    <span class="klein leise">${esc(sg.einrichtung)} · ${sg.semester} Semester · ${sg.ects_gesamt} ECTS${wahl ? ` · ${WAHLFAECHER[wahl.wahlfach]} <a href="#" data-action="wahlfach" data-wf="0">ändern</a>` : ''}</span></div>
+    <div class="raster raster-3">${karten}</div></section>`;
+}
+AKTIONEN.wahlfach = (el, e) => {
+  e.preventDefault();
+  const u = ich(), wf = Number(el.dataset.wf);
+  db.wahlpflicht_wahl = db.wahlpflicht_wahl.filter(w => w.user_id !== u.id);
+  if (wf) db.wahlpflicht_wahl.push({ user_id: u.id, wahlfach: wf, gewaehlt_am: new Date().toISOString() });
+  speichern(); render();
+  toast(wf ? `${WAHLFAECHER[wf]} gewählt` : 'Wahl zurückgesetzt', wf ? 'Änderbar bis zum Ende des 4. Semesters' : '');
+};
 function sLeistungen() {
   const u = ich(), kurse = kurseVon(u.id).map(k => k.id), st = ectsStand(u.id);
   const ps = pruefungenVon(kurse);
   const offen = ps.filter(p => ['offen', 'eingereicht', 'klausur'].includes(statusVon(p, u.id).code)).length;
-  return `${kopfzeile('Leistungen', 'Alle Abgaben, Prüfungen und Noten über alle Module.')}
+  return `${kopfzeile('Leistungen', 'Prüfungen dieses Semesters, Noten und der ganze Studienverlauf.')}
   <div class="raster raster-3">
     <section class="karte"><p class="klein leise" style="margin:0">ECTS endgültig</p><p class="gross-zahl" style="margin:4px 0 10px">${st.endgueltig} <span class="leise" style="font-size:15px">/ ${st.gesamt}</span></p><div class="balken"><i style="width:${(st.endgueltig / st.gesamt) * 100}%"></i></div>${st.vorlaeufig ? `<p class="klein leise" style="margin:8px 0 0">+ ${st.vorlaeufig} ECTS vorläufig</p>` : ''}</section>
-    <section class="karte"><p class="klein leise" style="margin:0">Durchschnitt dieses Semester</p><p class="gross-zahl" style="margin:4px 0 6px">${st.schnitt ? noteFmt(st.schnitt) : '–'}</p><p class="klein leise" style="margin:0">nach ECTS gewichtet, inklusive vorläufiger Noten</p></section>
-    <section class="karte"><p class="klein leise" style="margin:0">Noch offen</p><p class="gross-zahl" style="margin:4px 0 6px">${offen}</p><p class="klein leise" style="margin:0">Prüfungen in diesem Semester</p></section>
+    <section class="karte"><p class="klein leise" style="margin:0">Durchschnitt</p><p class="gross-zahl" style="margin:4px 0 6px">${st.schnittGesamt ? noteFmt(st.schnittGesamt) : '–'}</p><p class="klein leise" style="margin:0">über alle Semester, nach ECTS gewichtet${st.schnitt ? ` · dieses Semester ${noteFmt(st.schnitt)}` : ''}</p></section>
+    <section class="karte"><p class="klein leise" style="margin:0">Noch offen</p><p class="gross-zahl" style="margin:4px 0 6px">${offen}</p><p class="klein leise" style="margin:0">Prüfungen im ${esc(aktSem().bezeichnung)}</p></section>
   </div>
-  <section class="karte abstand"><h2>Alle Prüfungen</h2><div class="tabelle-huelle"><table>
+  <section class="karte abstand"><h2>Prüfungen ${esc(aktSem().bezeichnung)}</h2><div class="tabelle-huelle"><table>
     <thead><tr><th>Modul</th><th>Prüfung</th><th>Frist / Termin</th><th>Status</th><th>Note</th></tr></thead><tbody>
     ${ps.map(p => { const s = statusVon(p, u.id), n = noteVon(p.id, u.id), sichtbar = n && n.freigegeben_am; return `<tr>
       <td><a href="#/module/${p.kurs_id}" class="fett">${esc(kursName(p.kurs_id))}</a></td><td>${esc(p.art)}</td>
       <td>${fmtDatum(p.frist)}, ${fmtZeit(p.frist)}</td><td><span class="marke-klein ${s.kl}">${esc(s.text)}</span></td>
       <td>${sichtbar ? `<a href="#/module/${p.kurs_id}/ergebnis" class="note">${noteFmt(n.wert)}</a> <span class="klein leise">${n.bestaetigt_am ? 'endgültig' : 'vorläufig'}</span>` : '<span class="leise">–</span>'}</td></tr>`; }).join('')}
     </tbody></table></div></section>
-  <section class="karte"><h2>Bescheinigungen</h2><p class="leise">Werden sofort erzeugt und lassen sich als PDF speichern. Auf der Notenbescheinigung stehen nur endgültig bestätigte Noten.</p>
+  ${studienverlauf(u)}
+  <section class="karte abstand"><h2>Bescheinigungen</h2><p class="leise">Werden sofort erzeugt und lassen sich als PDF speichern. Auf der Notenbescheinigung stehen nur endgültig bestätigte Noten.</p>
     <div class="zeile" style="flex-wrap:wrap"><button class="knopf" data-action="bescheinigung" data-art="noten">${I('download')} Notenbescheinigung</button><button class="knopf" data-action="bescheinigung" data-art="studium">${I('download')} Studienbescheinigung</button></div></section>`;
 }
 AKTIONEN.bescheinigung = el => {
   const u = ich(), g = gruppeVon(u.id), sg = byId('studiengang', g.studiengang_id);
-  const noten = el.dataset.art === 'noten';
-  const zeilen = kurseVon(u.id).flatMap(k => db.pruefung.filter(p => p.kurs_id === k.id).map(p => ({ m: modulVon(k), p, n: noteVon(p.id, u.id) }))).filter(x => x.n && x.n.bestaetigt_am);
+  const noten = el.dataset.art === 'noten', st = ectsStand(u.id);
+  const zeilen = kurseVon(u.id, true).flatMap(k => db.pruefung.filter(p => p.kurs_id === k.id).map(p => ({ k, m: modulVon(k), p, n: noteVon(p.id, u.id) }))).filter(x => x.n && x.n.bestaetigt_am)
+    .sort((a, b) => a.k.semester_id - b.k.semester_id || (parseInt(a.m.nr) || 99) - (parseInt(b.m.nr) || 99));
   const html = `<!doctype html><html lang="de"><meta charset="utf-8"><title>${noten ? 'Notenbescheinigung' : 'Studienbescheinigung'}</title>
-  <style>body{font:12pt/1.5 Georgia,serif;max-width:640px;margin:40px auto;color:#111}h1{font-size:20pt}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ccc;padding:6px;text-align:left}.klein{font-size:9pt;color:#555}</style>
-  <p class="klein">Online-Campus · Studienbüro · Prototyp, nicht rechtsgültig</p>
+  <style>body{font:11pt/1.5 Georgia,serif;max-width:680px;margin:40px auto;color:#111}h1{font-size:20pt}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ccc;padding:5px;text-align:left}.klein{font-size:9pt;color:#555}</style>
+  <p class="klein">${esc(sg.einrichtung)} · Online-Campus · Prototyp, nicht rechtsgültig</p>
   <h1>${noten ? 'Notenbescheinigung' : 'Studienbescheinigung'}</h1>
-  <p>${esc(name(u))}, Matrikelnummer ${esc(u.matrikelnummer)}, ist im ${esc(db.semester[0].bezeichnung)} im Studiengang ${esc(sg.name)} (${esc(sg.abschluss)}), Studiengruppe ${esc(g.name)}, eingeschrieben.</p>
-  ${noten ? `<table><tr><th>Modul</th><th>ECTS</th><th>Prüfung</th><th>Note</th></tr>${zeilen.map(x => `<tr><td>${esc(x.m.titel)}</td><td>${x.m.ects}</td><td>${esc(x.p.art)}</td><td>${noteFmt(x.n.wert)}</td></tr>`).join('') || '<tr><td colspan="4">Keine endgültig bestätigten Noten</td></tr>'}</table>
+  <p>${esc(name(u))}, Matrikelnummer ${esc(u.matrikelnummer)}, ist im ${esc(aktSem().bezeichnung)} im Studiengang ${esc(sg.name)} (${esc(sg.abschluss)}), Studiengruppe ${esc(g.name)}, eingeschrieben.</p>
+  ${noten ? `<table><tr><th>Nr.</th><th>Modul</th><th>Semester</th><th>ECTS</th><th>Note</th></tr>${zeilen.map(x => `<tr><td>${esc(x.m.nr)}</td><td>${esc(x.m.titel)}</td><td>${esc(byId('semester', x.k.semester_id).bezeichnung)}</td><td>${x.m.ects || '–'}</td><td>${noteFmt(x.n.wert)}</td></tr>`).join('') || '<tr><td colspan="5">Keine endgültig bestätigten Noten</td></tr>'}</table>
+  <p>Erworbene ECTS: <b>${st.endgueltig} von ${st.gesamt}</b>${st.schnittGesamt ? ` · Durchschnitt ${noteFmt(st.schnittGesamt)}` : ''}</p>
   <p class="klein">Aufgeführt sind nur vom Prüfungsamt endgültig bestätigte Noten.</p>` : ''}
   <p class="klein">Erstellt am ${fmtDatumJ(new Date().toISOString())} · Prüfcode ${pseudoHash(u.id + Date.now()).slice(0, 12).toUpperCase()}</p>
   <script>print()<\/script></html>`;
@@ -541,7 +585,7 @@ AENDERUNGEN.einstellung = el => {
 // ---------- Suche (alle Rollen) ----------
 function suche(begriff) {
   const u = ich(), b = begriff.trim().toLowerCase();
-  const kurse = kurseVon(u.id);
+  const kurse = kurseVon(u.id, true);
   const passt = (...s) => s.some(x => String(x || '').toLowerCase().includes(b));
   const basis = rolle() === 'studierend' ? '#/module/' : '#/kurse/';
   const treffer = b.length < 2 ? [] : [

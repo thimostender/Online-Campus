@@ -8,8 +8,9 @@ body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-seri
 h1 { grid-column: 1 / -1; margin: 0; font-size: 24pt; color: #4c1d95; }
 h1 small { display: block; font-size: 12pt; color: #6b7280; font-weight: 500; margin-top: 2mm; }
 .bild { display: flex; align-items: center; justify-content: center; min-height: 0; }
-.bild svg { width: 100%; max-width: 100% !important; max-height: 150mm; height: auto; }
-aside { background: #f5f3ff; border-radius: 5mm; padding: 7mm; font-size: 12.5pt; line-height: 1.45; }
+.bild { overflow: hidden; }
+.bild svg { width: 100%; height: 146mm; max-width: 100% !important; }
+aside { background: #f5f3ff; border-radius: 5mm; padding: 6mm; font-size: 11.5pt; line-height: 1.4; align-self: start; }
 aside h2 { margin: 0 0 3mm; font-size: 14pt; color: #4c1d95; }
 aside ul { margin: 0; padding-left: 5mm; } aside li { margin-bottom: 3mm; }
 .grau { color: #6b7280; font-size: 10pt; margin-top: 5mm; }
@@ -21,7 +22,7 @@ aside ul { margin: 0; padding-left: 5mm; } aside li { margin-bottom: 3mm; }
 </style></head><body>
 
 <section class="folie titel">
-  <h1>Datenmodell Online-Campus<small>21 Tabellen in drei Bereichen</small></h1>
+  <h1>Datenmodell Online-Campus<small>23 Tabellen in drei Bereichen</small></h1>
   <div class="bloecke">
     <div class="block" style="background:#ede9fe"><b>1 · Personen und Lehrangebot</b>Wer studiert mit wem, welches Modul läuft wann in welchem Raum.</div>
     <div class="block" style="background:#dbeafe"><b>2 · Prüfen und Abgaben</b>Vom Upload über Versionen bis zur freigegebenen und bestätigten Note.</div>
@@ -37,17 +38,19 @@ aside ul { margin: 0; padding-left: 5mm; } aside li { margin-bottom: 3mm; }
     <li>Studierende gehören zu einer <b>Studiengruppe</b>, nicht einzeln zu Modulen.</li>
     <li>Ein <b>Kurs</b> ist ein Modul, das eine Gruppe in einem Semester belegt.</li>
     <li>Der persönliche Stundenplan entsteht automatisch: Person → Gruppe → Kurs → Termin.</li>
+    <li>Module folgen der Modulstruktur: Plansemester, Bereich, Wahlfach.</li>
     <li>Termine haben einen Status (geplant, verlegt, ausgefallen) und eine mögliche Vertretung.</li></ul></aside>
 </section>
 
 <section class="folie">
-  <h1>2 · Prüfen, Abgaben und Dateien</h1>
+  <h1>2 · Prüfen, Abgaben, Dateien und Material</h1>
   <div class="bild"><pre class="mermaid">%%TEIL2%%</pre></div>
   <aside><h2>Kernaussagen</h2><ul>
     <li>Jeder Upload wird eine neue <b>Version</b>, nichts wird überschrieben.</li>
     <li>Die <b>Prüfsumme</b> belegt, dass die Datei unverändert ist.</li>
     <li>Eine Abgabe kann mehrere Mitglieder haben, jede Person bekommt eine eigene Note.</li>
-    <li>Noten sind erst mit <b>freigegeben_am</b> sichtbar und erst mit <b>bestaetigt_am</b> endgültig.</li></ul></aside>
+    <li>Noten sind erst mit <b>freigegeben_am</b> sichtbar und erst mit <b>bestaetigt_am</b> endgültig.</li>
+    <li>Lehrmaterial wird in <b>Abschnitte</b> mit Seitenzahl zerlegt: die Wissensbasis des Assistenten.</li></ul></aside>
 </section>
 
 <section class="folie">

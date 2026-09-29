@@ -245,3 +245,39 @@ dialog::backdrop { background: rgba(15, 12, 35, .45); }
   .kopf-marke .logo { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, #7c5cff, #c26bff); display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; }
   .demo { font-size: 12px; }
 }
+
+/* Kleinteile */
+.klein-svg { width: 15px; height: 15px; vertical-align: -3px; }
+.fehlertext { color: var(--fehler); }
+details > summary { list-style: none; display: flex; align-items: center; gap: 8px; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* Hilfe-Assistent */
+.assistent-knopf { position: fixed; right: 24px; bottom: 24px; z-index: 50; display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px; border: 0; cursor: pointer; background: var(--akzent); color: var(--akzent-text); font-weight: 700; box-shadow: 0 8px 24px rgba(80, 50, 200, .35); }
+.assistent-knopf:hover { filter: brightness(1.06); }
+.assistent { position: fixed; right: 24px; bottom: 24px; z-index: 60; width: min(420px, calc(100vw - 32px)); height: min(640px, calc(100vh - 80px)); background: var(--flaeche); border: 1px solid var(--rand); border-radius: 20px; box-shadow: 0 20px 60px rgba(20, 16, 50, .25); display: flex; flex-direction: column; overflow: hidden; }
+.assistent-kopf { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 12px 18px; border-bottom: 1px solid var(--rand); }
+.assistent-kopf .svg { color: var(--akzent); }
+.assistent-verlauf { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.blase { max-width: 88%; padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.45; }
+.blase.bot { background: var(--flaeche-2); border-bottom-left-radius: 5px; align-self: flex-start; }
+.blase.ich { background: var(--akzent); color: var(--akzent-text); border-bottom-right-radius: 5px; align-self: flex-end; }
+.blase ul { margin: 6px 0 0; padding-left: 18px; }
+.blase li { margin: 3px 0; }
+.blase blockquote { margin: 6px 0 0; padding: 2px 0 2px 10px; border-left: 3px solid var(--akzent); }
+.quellen { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rand); font-size: 12.5px; }
+.quellen a { display: inline-flex; align-items: center; gap: 5px; }
+.quellen .svg { width: 14px; height: 14px; }
+.vorschlaege { display: flex; flex-wrap: wrap; gap: 6px; }
+.vorschlaege button { border: 1px solid var(--rand); background: var(--flaeche); border-radius: 999px; padding: 6px 11px; font-size: 13px; cursor: pointer; text-align: left; }
+.vorschlaege button:hover { border-color: var(--akzent); color: var(--akzent); }
+.assistent-eingabe { display: flex; gap: 8px; padding: 12px 14px 4px; border-top: 1px solid var(--rand); }
+.assistent-eingabe input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--rand); border-radius: 12px; background: var(--flaeche); }
+.assistent-eingabe .knopf { padding: 9px 12px; }
+.assistent-hinweis { font-size: 11.5px; color: var(--text-2); text-align: center; margin: 4px 14px 10px; }
+@media (max-width: 860px) {
+  .assistent-knopf { right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); padding: 11px 15px; }
+  .assistent { right: 0; bottom: 0; width: 100vw; height: 100dvh; border-radius: 0; border: 0; }
+}
+.raster > .karte + .karte { margin-top: 0; }
+.liste .fett, .liste b { overflow-wrap: anywhere; hyphens: auto; }

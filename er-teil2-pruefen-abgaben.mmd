@@ -1,5 +1,5 @@
 ---
-title: Teil 2: Prüfen, Abgaben und Dateien
+title: Teil 2: Prüfen, Abgaben, Dateien und Material
 ---
 erDiagram
   PRUEFUNG {
@@ -48,6 +48,14 @@ erDiagram
     uuid datei_id FK
     string titel
     datetime sichtbar_ab
+    string text_status "ausgelesen, wird ausgelesen, Fehler"
+  }
+  MATERIAL_ABSCHNITT {
+    int id PK
+    int material_id FK
+    int seite
+    string text "ausgelesener Text für den Hilfe-Assistenten"
+    vector embedding "später für semantische Suche"
   }
   NOTE {
     int id PK
@@ -77,3 +85,4 @@ erDiagram
   PRUEFUNG ||--o{ NOTE : "ergibt"
   USER ||--o{ NOTE : "erhält"
   ABGABE |o--o{ NOTE : "bewertet in"
+  MATERIAL ||--o{ MATERIAL_ABSCHNITT : "zerlegt in"

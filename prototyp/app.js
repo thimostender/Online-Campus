@@ -2,26 +2,42 @@
 // Kern: Speicher, Datenzugriff, Mitteilungen, Router, Layout, Aktionen.
 // Die Ansichten stehen in ansichten.js.
 
-const SPEICHER = 'online-campus-v1';
+const SPEICHER = 'online-campus-v2';
 let db;
 let panelOffen = false;
 let panelFilter = 'alle';
 let letzteBestaetigung = null; // { pid, versionId } nach einem Upload
 
 // ---------- Speicher ----------
-function heuteSchluessel() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+const mitternacht = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); };
 function laden() {
   try {
     const s = JSON.parse(localStorage.getItem(SPEICHER));
-    // Beispieldaten hängen am heutigen Tag. Am nächsten Tag neu erzeugen, damit Fristen stimmen.
-    if (s && s.version === 1 && s.erzeugt === heuteSchluessel()) return s;
+    if (!s || s.version !== 2) return null;
+    // Beispieldaten hängen am Erzeugungstag. An jedem neuen Tag wandern alle Zeitpunkte mit,
+    // damit Fristen und Termine passen und eigene Änderungen trotzdem erhalten bleiben.
+    const tage = Math.round((mitternacht() - s.stichtag) / 864e5);
+    if (tage) { datumVerschieben(s, tage); s.stichtag = mitternacht(); }
+    return s;
   } catch { /* privat oder gesperrt: dann ohne Speicher */ }
   return null;
+}
+function datumVerschieben(daten, tage) {
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+  Object.values(daten).forEach(tabelle => {
+    if (!Array.isArray(tabelle)) return;
+    tabelle.forEach(zeile => {
+      if (!zeile || typeof zeile !== 'object' || zeile.historisch) return;
+      Object.keys(zeile).forEach(k => {
+        if (typeof zeile[k] === 'string' && iso.test(zeile[k])) { const d = new Date(zeile[k]); d.setDate(d.getDate() + tage); zeile[k] = d.toISOString(); }
+      });
+    });
+  });
 }
 function speichern() { try { localStorage.setItem(SPEICHER, JSON.stringify(db)); } catch { /* egal */ } }
 function neuAufsetzen(sitzung = null) {
   db = erzeugeDaten(new Date());
-  db.erzeugt = heuteSchluessel();
+  db.stichtag = mitternacht();
   db.sitzung = sitzung;
   speichern();
 }
@@ -67,6 +83,7 @@ function bytes(n) {
   return Math.max(1, Math.round(n / 1e3)) + ' KB';
 }
 const plural = (n, ein, mehr) => n + ' ' + (n === 1 ? ein : mehr);
+const ectsText = m => m.ects ? m.ects + ' ECTS' : 'ohne eigene ECTS';
 
 // ---------- Symbole ----------
 const ICONS = {
@@ -92,6 +109,9 @@ const ICONS = {
   pfeil: '<path d="m9 6 6 6-6 6"/>',
   zurueck: '<path d="m15 6-6 6 6 6"/>',
   video: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
   mond: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   schloss: '<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
 };
@@ -118,14 +138,22 @@ function gruppeVon(uid) {
   const m = db.gruppenmitglied.find(g => g.user_id === uid && !g.bis);
   return m ? byId('studiengruppe', m.gruppe_id) : null;
 }
-function kurseVon(uid) {
-  const u = byId('user', uid);
-  if (u.rolle === 'studierend') { const g = gruppeVon(uid); return db.kurs.filter(k => k.gruppe_id === g?.id); }
-  if (u.rolle === 'lehrend') { const ids = db.lehrauftrag.filter(l => l.lehrender_id === uid).map(l => l.kurs_id); return db.kurs.filter(k => ids.includes(k.id)); }
-  return db.kurs;
+// Das Semester, in dem heute liegt
+function aktSem() {
+  const h = new Date().toISOString().slice(0, 10);
+  return db.semester.find(s => s.beginn <= h && h <= s.ende) || db.semester.find(s => s.id === 3);
+}
+// Kurse einer Person, standardmäßig nur im aktuellen Semester; alle = true für den Studienverlauf
+function kurseVon(uid, alle = false) {
+  const u = byId('user', uid), sem = aktSem().id;
+  let liste;
+  if (u.rolle === 'studierend') { const g = gruppeVon(uid); liste = db.kurs.filter(k => k.gruppe_id === g?.id); }
+  else if (u.rolle === 'lehrend') { const ids = db.lehrauftrag.filter(l => l.lehrender_id === uid).map(l => l.kurs_id); liste = db.kurs.filter(k => ids.includes(k.id)); }
+  else liste = db.kurs;
+  return alle ? liste : liste.filter(k => k.semester_id === sem);
 }
 const modulVon = kurs => byId('modul', kurs.modul_id);
-const kursName = kid => modulVon(byId('kurs', kid)).titel;
+const kursName = kid => modulVon(byId('kurs', kid)).kurztitel;
 const farbeVon = kid => FARBEN[(byId('kurs', kid).modul_id - 1) % FARBEN.length];
 const lehrendeVon = kid => db.lehrauftrag.filter(l => l.kurs_id === kid).map(l => byId('user', l.lehrender_id));
 function studisVon(kid) {
@@ -239,7 +267,7 @@ const BEREICH = { studierend: 'Studierende', lehrend: 'Lehrende', verwaltung: 'V
 
 function render() {
   const app = document.getElementById('app');
-  if (!ich()) { app.innerHTML = demoLeiste() + loginAnsicht(); document.title = 'Anmelden · Online-Campus'; return; }
+  if (!ich()) { app.innerHTML = demoLeiste() + loginAnsicht(); document.title = 'Anmelden · Online-Campus'; assistentRendern(); return; }
   const { teile, q } = parseHash();
   let html;
   try { html = ANSICHTEN[rolle()](teile, q); }
@@ -247,6 +275,7 @@ function render() {
   app.innerHTML = demoLeiste() + layout(teile[0] || 'uebersicht', html);
   const h1 = app.querySelector('h1');
   document.title = (h1 ? h1.textContent + ' · ' : '') + 'Online-Campus';
+  assistentRendern();
 }
 
 function demoLeiste() {
@@ -326,6 +355,12 @@ function herunterladen(dateiname, inhalt, typ) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Lädt eine gespeicherte Datei herunter. Sehr große Uploads liegen im Prototyp nur als Metadaten vor.
+async function dateiHerunterladen(dateiId) {
+  const d = byId('datei', dateiId), blob = await inhaltLaden(dateiId);
+  if (!blob) { toast('Inhalt nicht gespeichert', d.ohne_inhalt ? `${d.dateiname} ist größer als der Browser-Speicher des Prototyps (${bytes(d.groesse_bytes)}).` : 'Die Datei ist in diesem Browser nicht vorhanden.'); return; }
+  herunterladen(d.dateiname, blob, d.mime_typ);
+}
 
 // ---------- Ereignisse ----------
 const AKTIONEN = {}, FORMULARE = {}, AENDERUNGEN = {};
@@ -363,10 +398,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOffen
 window.addEventListener('hashchange', () => { panelOffen = false; render(); window.scrollTo(0, 0); });
 
 Object.assign(AKTIONEN, {
-  als(el) { db.sitzung = el.dataset.id; letzteBestaetigung = null; speichern(); fristErinnerungen(); location.hash = '#/uebersicht'; render(); },
-  zuruecksetzen() {
-    if (!confirm('Alle Änderungen verwerfen und die Beispieldaten neu laden?')) return;
-    neuAufsetzen(db.sitzung); fristErinnerungen(); render(); toast('Beispieldaten neu geladen');
+  als(el) { db.sitzung = el.dataset.id; letzteBestaetigung = null; assistent.verlauf = []; speichern(); fristErinnerungen(); location.hash = '#/uebersicht'; render(); },
+  async zuruecksetzen() {
+    if (!confirm('Alle Änderungen und hochgeladenen Dateien verwerfen und die Beispieldaten neu laden?')) return;
+    await alleInhalteLoeschen();
+    neuAufsetzen(db.sitzung); assistent.verlauf = [];
+    await beispielDateienErzeugen(); fristErinnerungen(); render(); toast('Beispieldaten neu geladen');
   },
   thema() {
     const root = document.documentElement;

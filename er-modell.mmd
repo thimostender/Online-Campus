@@ -11,7 +11,8 @@ erDiagram
   STUDIENGANG {
     int id PK
     string name "z. B. Betriebswirtschaft"
-    string abschluss "VWA-Diplom oder Bachelor"
+    string abschluss "z. B. Bachelor of Arts"
+    int ects_gesamt
   }
   STUDIENGRUPPE {
     int id PK
@@ -40,10 +41,28 @@ erDiagram
   }
   MODUL {
     int id PK
+    string nr "laut Modulstruktur, z. B. 25 (1)"
     string kuerzel
     string titel
+    string bereich "z. B. Wertschöpfung, Recht"
+    int plansemester "1 bis 6"
+    int ue "Unterrichtseinheiten"
+    int workload "Stunden"
     int ects
+    int wahlfach "leer = Pflicht, 1 Marketing, 2 Controlling"
     string beschreibung
+  }
+  WAHLPFLICHT_WAHL {
+    uuid user_id FK
+    int wahlfach
+    datetime gewaehlt_am
+  }
+  MATERIAL_ABSCHNITT {
+    int id PK
+    int material_id FK
+    int seite
+    string text "ausgelesener Text für den Hilfe-Assistenten"
+    vector embedding "später für semantische Suche"
   }
   KURS {
     int id PK
@@ -88,6 +107,7 @@ erDiagram
     uuid datei_id FK
     string titel
     datetime sichtbar_ab
+    string text_status "ausgelesen, wird ausgelesen, Fehler"
   }
   PRUEFUNG {
     int id PK
@@ -186,3 +206,5 @@ erDiagram
   USER ||--o{ BENACHRICHTIGUNG_EINSTELLUNG : "legt fest"
   STUDIENGRUPPE |o--o{ MITTEILUNG : "adressiert"
   TERMIN |o--o{ MITTEILUNG : "Anlass für"
+  USER ||--o| WAHLPFLICHT_WAHL : "wählt"
+  MATERIAL ||--o{ MATERIAL_ABSCHNITT : "zerlegt in"
