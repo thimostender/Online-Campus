@@ -306,9 +306,11 @@ function sAbgabe(kid, p) {
     <form data-form="abgabe" data-pid="${p.id}">
       <label class="ablage" id="ablage">
         <input type="file" name="datei" data-change="datei-gewaehlt" data-pid="${p.id}" accept="${p.formate.split(',').map(f => '.' + f.trim()).join(',')}">
-        <span style="color:var(--akzent)">${I('upload')}</span>
-        <p class="fett" style="margin:8px 0 2px">Datei hierher ziehen oder auswählen</p>
-        <p class="klein leise" style="margin:0">${esc(p.formate.toUpperCase())} · bis ${mb(p)} · große Dateien werden in Teilen übertragen und setzen nach einem Abbruch fort</p>
+        <span class="ablage-symbol">${I('upload')}</span>
+        <p class="fett" style="margin:10px 0 2px">Datei hierher ziehen</p>
+        <p class="klein leise" style="margin:0">oder</p>
+        <span class="ablage-knopf">${I('datei')} Datei auswählen</span>
+        <p class="klein leise" style="margin:10px 0 0">${esc(p.formate.toUpperCase())} · bis ${mb(p)} · große Dateien werden in Teilen übertragen und setzen nach einem Abbruch fort</p>
         <div id="dateiwahl" class="abstand"></div>
       </label>
       <div id="fortschritt" class="abstand" hidden><div class="zeile dazwischen klein"><span id="fortschritt-text">Wird übertragen …</span><span id="fortschritt-prozent">0 %</span></div><div class="fortschritt" style="margin-top:6px"><i id="fortschritt-balken" style="width:0"></i></div></div>

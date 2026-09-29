@@ -158,9 +158,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .reiter a[aria-current="page"] { color: var(--akzent); border-bottom-color: var(--akzent); }
 
 /* Upload */
-.ablage { border: 2px dashed var(--rand); border-radius: 14px; padding: 26px; text-align: center; cursor: pointer; background: var(--flaeche-2); transition: border-color .15s, background .15s; }
+.ablage { display: block; border: 2px dashed var(--rand); border-radius: 14px; padding: 26px 20px; text-align: center; cursor: pointer; background: var(--flaeche-2); transition: border-color .15s, background .15s; position: relative; }
 .ablage:hover, .ablage.drueber { border-color: var(--akzent); background: var(--akzent-hell); }
-.ablage input { display: none; }
+.ablage:focus-within { outline: 3px solid var(--akzent); outline-offset: 2px; }
+.ablage.fehlt { border-color: var(--fehler); background: var(--fehler-hell); }
+.ablage.gewaehlt { border-style: solid; border-color: var(--gut); background: var(--gut-hell); }
+/* Datei-Eingabe unsichtbar, aber per Tastatur erreichbar */
+.ablage input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.ablage-symbol { width: 48px; height: 48px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--akzent-hell); color: var(--akzent); }
+.ablage-symbol .svg { width: 24px; height: 24px; }
+.ablage-knopf { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 14px; border-radius: 10px; background: var(--akzent); color: var(--akzent-text); font-weight: 600; font-size: 14px; }
 .fortschritt { height: 8px; background: var(--flaeche-2); border-radius: 999px; overflow: hidden; }
 .fortschritt > i { display: block; height: 100%; background: var(--akzent); border-radius: 999px; transition: width .2s; }
 .pruefsumme { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; color: var(--text-2); }

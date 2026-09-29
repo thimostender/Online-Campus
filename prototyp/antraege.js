@@ -20,8 +20,8 @@ const ANTRAGSARTEN = {
     erklaerung: 'Wenn du eine Klausur oder Abgabe krankheitsbedingt nicht wahrnehmen kannst. Das Attest ist Pflicht.',
     felder: [
       { k: 'pruefung', typ: 'pruefung', label: 'Welche Prüfung?', filter: p => D(p.frist) > new Date(Date.now() - 7 * 864e5) },
-      { k: 'von', typ: 'date', label: 'Krank von' },
-      { k: 'bis', typ: 'date', label: 'Krank bis' },
+      { k: 'von', typ: 'date', label: 'Krank von', wert: 'heute' },
+      { k: 'bis', typ: 'date', label: 'Krank bis', wert: 'heute' },
     ],
     anhang: { label: 'Ärztliches Attest', pflicht: true },
     wirkung: 'Du bist von der Prüfung entschuldigt. Sie zählt nicht als Fehlversuch, du legst sie beim nächsten Termin ab.',
@@ -97,18 +97,21 @@ function antragFormular(art) {
     }
     if (f.typ === 'note') return `<label class="feld">${lbl}<select name="${f.k}">${NOTENSTUFEN.filter(w => w <= 4).map(w => `<option value="${w}">${noteFmt(w)}</option>`).join('')}</select></label>`;
     if (f.typ === 'textarea') return `<label class="feld" style="grid-column:1/-1">${lbl}<textarea name="${f.k}" required></textarea></label>`;
-    const wert = f.wert || (f.typ === 'date' ? lokal(new Date(Date.now() + 7 * 864e5)).slice(0, 10) : '');
+    const wert = f.wert === 'heute' ? lokal(new Date()).slice(0, 10) : f.wert || (f.typ === 'date' ? lokal(new Date(Date.now() + 7 * 864e5)).slice(0, 10) : '');
     return `<label class="feld">${lbl}<input type="${f.typ}" name="${f.k}" value="${esc(wert)}" placeholder="${esc(f.platzhalter || '')}" required></label>`;
   };
   return `<a class="klein zeile" href="#/service/formulare" style="gap:4px;margin-bottom:10px">${I('zurueck')} Formulare</a>
   ${kopfzeile(esc(def.name), esc(def.erklaerung))}
   <form class="karte" data-form="antrag" data-art="${art}">
     <div class="raster raster-2" style="gap:0 16px">${def.felder.map(feld).join('')}</div>
-    ${def.anhang ? `<label class="ablage" style="margin-top:4px">
-      <input type="file" name="anhang" accept=".pdf,application/pdf" data-change="anhang-gewaehlt" ${def.anhang.pflicht ? 'required' : ''}>
-      <span style="color:var(--akzent)">${I('upload')}</span>
-      <p class="fett" style="margin:8px 0 2px">${esc(def.anhang.label)} ${def.anhang.pflicht ? '' : '<span class="leise">(freiwillig)</span>'}</p>
-      <p class="klein leise" style="margin:0">PDF bis ${MAX_ANHANG_MB} MB · hierher ziehen oder auswählen</p>
+    ${def.anhang ? `<span class="feld" style="margin-bottom:6px"><span>${esc(def.anhang.label)} ${def.anhang.pflicht ? '<span class="marke-klein m-fehler">Pflicht</span>' : '<span class="leise">(freiwillig)</span>'}</span></span>
+    <label class="ablage" id="anhang-ablage">
+      <input type="file" name="anhang" accept=".pdf,application/pdf" data-change="anhang-gewaehlt">
+      <span class="ablage-symbol">${I('upload')}</span>
+      <p class="fett" style="margin:10px 0 2px">PDF hierher ziehen</p>
+      <p class="klein leise" style="margin:0">oder</p>
+      <span class="ablage-knopf">${I('datei')} Datei auswählen</span>
+      <p class="klein leise" style="margin:10px 0 0">Nur PDF, bis ${MAX_ANHANG_MB} MB. Fotos vom Attest mit der Scan-Funktion des Handys als PDF speichern.</p>
       <div id="anhangwahl" class="abstand"></div></label>` : ''}
     <div class="hinweis abstand">${I('info')}<div class="klein"><b>Was passiert danach?</b> Das Studienbüro prüft deinen Antrag, meist innerhalb von zwei Werktagen. Über die Entscheidung bekommst du eine Mitteilung. ${esc(def.wirkung)}</div></div>
     <label class="haken abstand"><input type="checkbox" required> <span>Ich bestätige, dass meine Angaben stimmen.</span></label>
@@ -116,8 +119,10 @@ function antragFormular(art) {
   </form>`;
 }
 AENDERUNGEN['anhang-gewaehlt'] = el => {
-  const f = el.files[0], box = document.getElementById('anhangwahl');
+  const f = el.files[0], box = document.getElementById('anhangwahl'), ablage = document.getElementById('anhang-ablage');
+  ablage.classList.remove('fehlt', 'gewaehlt');
   if (!f) { box.innerHTML = ''; return; }
+  ablage.classList.toggle('gewaehlt', /\.pdf$/i.test(f.name) && f.size <= MAX_ANHANG_MB * 1e6);
   const fehler = !/\.pdf$/i.test(f.name) ? 'Bitte eine PDF-Datei wählen. Fotos vom Attest kannst du zum Beispiel mit der Scan-Funktion deines Handys als PDF speichern.' : f.size > MAX_ANHANG_MB * 1e6 ? `Die Datei ist ${bytes(f.size)} groß, erlaubt sind ${MAX_ANHANG_MB} MB.` : null;
   box.innerHTML = fehler ? `<div class="hinweis fehler" style="text-align:left">${I('warn')}<div>${fehler}</div></div>` : `<span class="marke-klein m-gut">${I('datei')} ${esc(f.name)} · ${bytes(f.size)}</span>`;
 };
@@ -134,7 +139,14 @@ FORMULARE.antrag = async (f, fd) => {
     const d = { id: 'd' + (db.datei.length + 1) + '-' + Date.now(), dateiname: anhang.name, mime_typ: 'application/pdf', groesse_bytes: anhang.size, sha256: (await sha256(anhang)) || pseudoHash(anhang.name + jetzt), hochgeladen_von: u.id, hochgeladen_am: jetzt };
     d.ohne_inhalt = !(await inhaltSpeichern(d.id, anhang, [u.id, ...db.user.filter(x => x.rolle === 'verwaltung').map(x => x.id)]));
     db.datei.push(d); datei_id = d.id;
-  } else if (def.anhang?.pflicht) { toast('Bitte den Nachweis als PDF anhängen'); return; }
+  } else if (def.anhang?.pflicht) {
+    // Sichtbar machen, was fehlt (ein unsichtbares Pflichtfeld würde der Browser still blockieren)
+    const ablage = document.getElementById('anhang-ablage');
+    ablage.classList.add('fehlt');
+    document.getElementById('anhangwahl').innerHTML = `<div class="hinweis fehler" style="text-align:left">${I('warn')}<div>Bitte den Nachweis („${esc(def.anhang.label)}“) als PDF anhängen. Ohne Nachweis kann das Studienbüro den Antrag nicht bearbeiten.</div></div>`;
+    ablage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   const antrag = { id: nextId('antrag'), antragsteller_id: u.id, art, status: 'eingereicht', daten, datei_id, eingereicht_am: new Date().toISOString(), bearbeitet_von: null, entschieden_am: null, bescheid: '' };
   db.antrag.push(antrag);
   // Das Studienbüro bekommt eine Mitteilung, die Person eine Eingangsbestätigung
