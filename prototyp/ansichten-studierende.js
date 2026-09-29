@@ -24,38 +24,8 @@ function gruss() { const h = new Date().getHours(); return h < 11 ? 'Guten Morge
 function kopfzeile(titel, unter = '') { return `<h1>${titel}</h1>${unter ? `<p class="unterzeile">${unter}</p>` : ''}`; }
 
 function sUebersicht() {
-  const u = ich(), kurse = kurseVon(u.id).map(k => k.id), jetzt = new Date();
-  const termine = termineVon(kurse);
-  const naechster = termine.find(t => D(t.ende) > jetzt && t.status !== 'ausgefallen');
-  const aenderungen = termine.filter(t => t.status !== 'geplant' || t.vertretung_id).filter(t => D(t.ende) > jetzt && tagDiff(t.beginn) <= 14);
-  const fristen = pruefungenVon(kurse, u.id).filter(p => D(p.frist) > jetzt && statusVon(p, u.id).code !== 'entschuldigt');
-  const neu = meineMitteilungen(u.id).filter(m => !m.gelesen).slice(0, 4);
-  const stand = ectsStand(u.id);
-
-  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(gruppeVon(u.id).name)} · ${SCHWERPUNKTE[schwerpunktVon(u.id)] || ''} · ${esc(aktSem().bezeichnung)}`)}
-  ${aenderungen.length ? `<div class="hinweis warn" style="margin-bottom:16px">${I('warn')}<div><b>${plural(aenderungen.length, 'Änderung', 'Änderungen')} in deinem Stundenplan</b>
-    <ul class="liste" style="margin-top:6px">${aenderungen.map(t => `<li style="padding:6px 0;border:0"><a href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul></div></div>` : ''}
-  <div class="raster raster-2">
-    <section class="karte">
-      <h2>Nächster Termin</h2>
-      ${naechster ? terminGross(naechster) : '<p class="leer">Keine anstehenden Termine</p>'}
-    </section>
-    <section class="karte">
-      <div class="zeile dazwischen"><h2>Nächste Abgaben und Prüfungen</h2><a class="klein" href="#/leistungen">Alle</a></div>
-      <ul class="liste">${fristen.map(p => fristZeile(p, u.id)).join('') || '<li class="leer">Keine offenen Fristen</li>'}</ul>
-    </section>
-    <section class="karte">
-      <div class="zeile dazwischen"><h2>Neu für dich</h2><a class="klein" href="#/mitteilungen">Alle Mitteilungen</a></div>
-      ${neu.length ? `<div style="margin:0 -20px -18px">${neu.map(mitteilungsEintrag).join('')}</div>` : '<p class="leer">Du hast alles gelesen.</p>'}
-    </section>
-    <section class="karte">
-      <div class="zeile dazwischen"><h2>Dein Stand</h2><a class="klein" href="#/leistungen">Leistungen</a></div>
-      <div class="zeile dazwischen"><span class="gross-zahl">${stand.endgueltig} <span class="leise" style="font-size:16px;font-weight:600">von ${stand.gesamt} ECTS</span></span>
-      ${stand.schnitt ? `<span class="marke-klein m-akzent">Schnitt ${noteFmt(stand.schnitt)}</span>` : ''}</div>
-      <div class="balken abstand"><i style="width:${(stand.endgueltig / stand.gesamt) * 100}%"></i></div>
-      <p class="klein leise abstand">${stand.vorlaeufig ? `Dazu ${stand.vorlaeufig} ECTS mit vorläufiger Note. ` : ''}Die Zahl zählt nur Noten, die das Prüfungsamt endgültig bestätigt hat.</p>
-    </section>
-  </div>`;
+  const u = ich();
+  return uebersichtSeite(`${fmtLang(new Date())} · ${esc(gruppeVon(u.id).name)} · ${SCHWERPUNKTE[schwerpunktVon(u.id)] || ''} · ${esc(aktSem().bezeichnung)}`);
 }
 function wochenVersatz(iso) {
   const montag = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
@@ -85,7 +55,7 @@ function fristZeile(p, uid) {
 
 // ---------- Stundenplan (auch für Lehrende) ----------
 function stundenplan(q) {
-  const u = ich(), ansicht = q.get('ansicht') || 'woche', w = Number(q.get('w') || 0);
+  const u = ich(), ansicht = q.get('ansicht') || 'woche', w = Number(q.get('w') || 0), mo = Number(q.get('m') || 0);
   const kurse = kurseVon(u.id).map(k => k.id);
   const termine = termineVon(kurse, u.id);
   const fristen = rolle() === 'studierend' ? pruefungenVon(kurse, u.id).filter(p => p.mit_upload && statusVon(p, u.id).code !== 'entschuldigt') : [];
@@ -94,11 +64,13 @@ function stundenplan(q) {
   const tage = [...Array(6)].map((_, i) => { const d = new Date(montag); d.setDate(d.getDate() + i); return d; });
   const gleich = (a, b) => a.toDateString() === b.toDateString();
   const frei = d => db.vorlesungsfreie_zeit.find(v => d >= new Date(v.beginn + 'T00:00') && d <= new Date(v.ende + 'T23:59'));
-  const link = (extra) => `#/stundenplan?${new URLSearchParams({ ansicht, w, ...extra })}`;
+  const link = (extra) => `#/stundenplan?${new URLSearchParams({ ansicht, w, m: mo, ...extra })}`;
+  const monatsErster = new Date(); monatsErster.setHours(0, 0, 0, 0); monatsErster.setDate(1); monatsErster.setMonth(monatsErster.getMonth() + mo);
 
   const kopf = `<div class="zeile dazwischen" style="flex-wrap:wrap;gap:12px;margin-bottom:18px">
     <div class="umschalter" role="group" aria-label="Ansicht">
       <button data-action="gehe" data-ziel="${link({ ansicht: 'woche' })}" aria-pressed="${ansicht === 'woche'}">Woche</button>
+      <button data-action="gehe" data-ziel="${link({ ansicht: 'monat' })}" aria-pressed="${ansicht === 'monat'}">Monat</button>
       <button data-action="gehe" data-ziel="${link({ ansicht: 'liste' })}" aria-pressed="${ansicht === 'liste'}">Liste</button>
     </div>
     ${ansicht === 'woche' ? `<div class="zeile">
@@ -106,6 +78,11 @@ function stundenplan(q) {
       <a class="knopf klein" href="${link({ w: 0 })}">${w === 0 ? 'Diese Woche' : 'Heute'}</a>
       <a class="knopf klein" href="${link({ w: w + 1 })}" aria-label="Nächste Woche">${I('pfeil')}</a>
       <span class="fett" style="margin-left:6px">${fmtDatum(tage[0].toISOString(), false)} – ${fmtDatum(tage[5].toISOString(), false)}</span></div>` : ''}
+    ${ansicht === 'monat' ? `<div class="zeile">
+      <a class="knopf klein" href="${link({ m: mo - 1, tag: '' })}" aria-label="Vorheriger Monat">${I('zurueck')}</a>
+      <a class="knopf klein" href="${link({ m: 0, tag: '' })}">${mo === 0 ? 'Dieser Monat' : 'Heute'}</a>
+      <a class="knopf klein" href="${link({ m: mo + 1, tag: '' })}" aria-label="Nächster Monat">${I('pfeil')}</a>
+      <span class="fett" style="margin-left:6px">${MON[monatsErster.getMonth()]} ${monatsErster.getFullYear()}</span></div>` : ''}
     <button class="knopf" data-action="ical">${I('kalender')} Kalender abonnieren</button>
   </div>`;
 
@@ -127,6 +104,8 @@ function stundenplan(q) {
     }).join('')}</div>
     <p class="klein leise abstand zeile" style="flex-wrap:wrap;gap:14px">
       <span class="marke-klein m-akzent">Vorlesung</span><span class="marke-klein m-info">Klausur</span><span class="marke-klein m-warn">geändert</span><span class="marke-klein m-fehler">fällt aus</span><span class="marke-klein">Abgabefrist</span></p>`;
+  } else if (ansicht === 'monat') {
+    inhalt = monatsansicht({ monatsErster, termine, fristen, reserv, frei, gleich, link, gewaehlt: q.get('tag') });
   } else {
     const ab = new Date(); ab.setHours(0, 0, 0, 0);
     const alles = [
@@ -142,6 +121,37 @@ function stundenplan(q) {
     ${kopf}${inhalt}
     <section class="karte abstand"><h2>Vorlesungsfreie Zeiten ${esc(aktSem().bezeichnung)}</h2>
       <ul class="liste">${db.vorlesungsfreie_zeit.map(v => `<li class="zeile dazwischen"><span>${esc(v.bezeichnung)}</span><span class="leise">${fmtDatumJ(v.beginn)} – ${fmtDatumJ(v.ende)}</span></li>`).join('')}</ul></section>`;
+}
+// Monatsraster Mo–So; ein Klick auf einen Tag zeigt dessen Einträge darunter
+function monatsansicht({ monatsErster, termine, fristen, reserv, frei, gleich, link, gewaehlt }) {
+  const versatz = (monatsErster.getDay() + 6) % 7, tageImMonat = new Date(monatsErster.getFullYear(), monatsErster.getMonth() + 1, 0).getDate();
+  const wochen = Math.ceil((versatz + tageImMonat) / 7), start = new Date(monatsErster); start.setDate(1 - versatz);
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const schluessel = d => lokal(d).slice(0, 10);
+  const imMonat = heute.getMonth() === monatsErster.getMonth() && heute.getFullYear() === monatsErster.getFullYear();
+  const auswahl = gewaehlt ? new Date(gewaehlt + 'T00:00') : imMonat ? heute : monatsErster;
+  const eintraege = d => [
+    ...termine.filter(t => gleich(D(t.beginn), d)).map(t => ({ zeit: t.beginn, kl: t.status === 'ausgefallen' ? 'ausgefallen' : t.status === 'verlegt' ? 'verlegt' : t.art === 'Klausur' ? 'klausur' : '', text: `${fmtZeit(t.beginn)} ${modulVon(byId('kurs', t.kurs_id)).kuerzel}`, html: ereignis(t) })),
+    ...fristen.filter(p => gleich(D(p.frist), d)).map(p => ({ zeit: p.frist, kl: 'fristtermin', text: `Frist ${modulVon(byId('kurs', p.kurs_id)).kuerzel}`, html: `<a class="ereignis fristtermin" href="#/module/${p.kurs_id}/abgabe"><b>Frist: ${esc(kursName(p.kurs_id))}</b>${esc(p.titel)} · bis ${fmtZeit(p.frist)} Uhr</a>` })),
+    ...reserv.filter(r => gleich(D(r.beginn), d)).map(r => ({ zeit: r.beginn, kl: 'frei', text: `${fmtZeit(r.beginn)} Schnittplatz`, html: `<a class="ereignis frei" href="#/service/antraege/${r.antrag_id}"><b>Schnittplatz reserviert</b>${fmtZeit(r.beginn)}–${fmtZeit(r.ende)} · ${esc(byId('raum', r.raum_id).bezeichnung)}</a>` })),
+  ].sort((a, b) => D(a.zeit) - D(b.zeit));
+  const zellen = [...Array(wochen * 7)].map((_, i) => {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const es = eintraege(d), fz = frei(d), aussen = d.getMonth() !== monatsErster.getMonth();
+    const kls = ['monat-tag', aussen ? 'aussen' : '', gleich(d, heute) ? 'heute' : '', gleich(d, auswahl) ? 'gewaehlt' : '', fz ? 'frei' : '', d.getDay() === 0 || d.getDay() === 6 ? 'wochenende' : ''].filter(Boolean).join(' ');
+    return `<a class="${kls}" href="${link({ tag: schluessel(d) })}" aria-label="${fmtLang(d)}${es.length ? ', ' + plural(es.length, 'Eintrag', 'Einträge') : ''}${fz ? ', vorlesungsfrei' : ''}">
+      <span class="monat-zahl">${d.getDate()}</span>
+      ${fz && !aussen ? '<span class="monat-frei">frei</span>' : ''}
+      <span class="monat-chips">${es.slice(0, 3).map(e => `<span class="monat-chip ${e.kl}">${esc(e.text)}</span>`).join('')}${es.length > 3 ? `<span class="monat-mehr">+${es.length - 3}</span>` : ''}</span>
+      <span class="monat-punkte">${es.slice(0, 4).map(e => `<i class="${e.kl}"></i>`).join('')}</span></a>`;
+  }).join('');
+  const es = eintraege(auswahl), fz = frei(auswahl);
+  return `<div class="monat" role="grid"><div class="monat-kopf">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(t => `<span>${t}</span>`).join('')}</div><div class="monat-raster">${zellen}</div></div>
+    <section class="karte abstand"><h2>${fmtLang(auswahl)}${Math.abs(tagDiff(auswahl.toISOString())) < 7 ? ` <span class="leise klein">· ${relTag(auswahl.toISOString())}</span>` : ''}</h2>
+      ${fz ? `<div class="ereignis frei"><b>${esc(fz.bezeichnung)}</b>vorlesungsfrei</div>` : ''}
+      ${es.map(e => e.html).join('') || (fz ? '' : '<p class="leer">Keine Einträge an diesem Tag.</p>')}</section>
+    <p class="klein leise abstand zeile" style="flex-wrap:wrap;gap:14px">
+      <span class="marke-klein m-akzent">Vorlesung</span><span class="marke-klein m-info">Klausur</span><span class="marke-klein m-warn">geändert</span><span class="marke-klein m-fehler">fällt aus</span><span class="marke-klein">Abgabefrist</span><span class="marke-klein m-gut">frei / reserviert</span></p>`;
 }
 function ereignis(t) {
   const kl = t.status === 'ausgefallen' ? 'ausgefallen' : t.status === 'verlegt' ? 'verlegt' : t.art === 'Klausur' ? 'klausur' : '';

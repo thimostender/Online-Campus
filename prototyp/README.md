@@ -35,6 +35,9 @@ Oben in der dunklen Leiste meldet ihr euch mit einem Klick als eine der fiktiven
 9. **Online-Antrag:** Lena stellt unter Service › Formulare eine Fristverlängerung mit PDF-Attest. Petra Lange genehmigt sie unter Anträge. Danach hat nur Lena die neue Frist, und der Bescheid lässt sich als PDF laden.
 10. **Online-Vorlesung:** Bei einem Online-Termin (zum Beispiel der Ringvorlesung) auf „Jetzt beitreten“ bzw. als Lehrende „Online-Raum starten“ klicken. Es öffnet sich eine Jitsi-Konferenz direkt im Campus.
 
+11. **Übersicht anpassen:** Auf der Übersicht „Übersicht anpassen“ klicken. Karten per Ziehen oder Pfeilen umsortieren, auf „Breit“ stellen, ausblenden oder weitere Karten einblenden (Die nächsten 7 Tage, Letzte Noten, Meine Anträge, Schnellzugriff, Frag den Assistenten). Die Anordnung gilt auf allen Geräten der Person.
+12. **Monatsansicht:** Stundenplan › Monat. Blättern mit den Pfeilen, ein Klick auf einen Tag zeigt dessen Einträge darunter. Auf dem Handy erscheinen die Einträge als farbige Punkte.
+
 **Zum Zusammenspiel zeigen:** Zwei Browserfenster nebeneinander öffnen, eines privat, links als Prof. Brandt und rechts als Lena. Ändert links einen Termin, dann erscheint die Mitteilung rechts sofort.
 
 ## Der Hilfe-Assistent
@@ -64,6 +67,7 @@ Oben in der dunklen Leiste meldet ihr euch mit einem Klick als eine der fiktiven
 | `backend.js` | Firebase: Anmeldung, Laden mit Echtzeit-Abos, Speichern der Änderungen, Dateien, Befüllen mit Beispieldaten |
 | `antraege.js` | Online-Anträge: Formulare, Meine Anträge, Posteingang der Verwaltung, Wirkungen |
 | `konferenz.js` | Videokonferenz mit Jitsi Meet, Technik-Test |
+| `uebersicht.js` | Personalisierbare Übersicht: Kartenbaukasten je Rolle, Anpassen, Ziehen und Ablegen |
 | `server.mjs` / `server-assistent-beispiel.mjs` | lokaler Server, einmal ohne, einmal mit Claude |
 | `vendor/` | pdf.js 3.11 (Apache-Lizenz), lokal, damit die Vorführung ohne Internet läuft |
 

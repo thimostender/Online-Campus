@@ -408,7 +408,7 @@ document.addEventListener('drop', e => {
   input.dispatchEvent(new Event('change', { bubbles: true }));
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOffen) { panelOffen = false; render(); } });
-window.addEventListener('hashchange', () => { panelOffen = false; render(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { panelOffen = false; if (typeof uebersichtBearbeiten !== 'undefined' && !/^#\/?(uebersicht)?$/.test(location.hash)) uebersichtBearbeiten = false; render(); window.scrollTo(0, 0); });
 
 Object.assign(AKTIONEN, {
   async als(el) {

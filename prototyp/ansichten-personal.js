@@ -49,24 +49,8 @@ function offeneKorrekturen(uid) {
 
 // ---------- Lehrende: Übersicht ----------
 function lUebersicht() {
-  const u = ich(), kurse = kurseVon(u.id).map(k => k.id), jetzt = new Date();
-  const naechste = termineVon(kurse, u.id).filter(t => D(t.ende) > jetzt).slice(0, 5);
-  const korr = pruefungenVon(kurse).map(p => ({ p, s: korrekturStand(p) })).filter(x => x.s.vorbei && x.s.frei < x.s.abgegeben);
-  const gesendet = db.mitteilung.filter(m => m.absender_id === u.id).sort((a, b) => D(b.erstellt_am) - D(a.erstellt_am)).slice(0, 4);
-  return `${kopfzeile(`${gruss()}, ${esc(name(u))}`, `${fmtLang(jetzt)} · ${plural(kurse.length, 'Modul', 'Module')} im ${esc(aktSem().bezeichnung)}`)}
-  <div class="raster raster-2">
-    <section class="karte"><div class="zeile dazwischen"><h2>Nächste Vorlesungen</h2><a class="klein" href="#/stundenplan">Stundenplan</a></div>
-      <ul class="liste">${naechste.map(t => `<li class="zeile dazwischen"><span><b>${esc(kursName(t.kurs_id))}</b>${t.vertretung_id === u.id ? ' <span class="marke-klein m-warn">du vertrittst</span>' : ''}<br><span class="klein leise">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} · ${esc(raumName(t))} · ${esc(byId('studiengruppe', byId('kurs', t.kurs_id).gruppe_id).name)}</span></span>
-        <span class="zeile" style="gap:6px">${konferenzKnopf(t)}${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">Ändern</button>`}</span></li>`).join('') || '<li class="leer">Keine Termine</li>'}</ul></section>
-    <section class="karte"><div class="zeile dazwischen"><h2>Offene Korrekturen</h2><a class="klein" href="#/korrektur">Alle</a></div>
-      <ul class="liste">${korr.map(({ p, s }) => `<li><a href="#/korrektur/${p.id}" class="zeile dazwischen" style="color:var(--text);text-decoration:none"><span><b>${esc(kursName(p.kurs_id))}</b><br><span class="klein leise">${esc(p.art)} · Frist ${fmtDatum(p.frist)}</span></span>
-        <span class="marke-klein ${s.bewertet < s.abgegeben ? 'm-warn' : 'm-info'}">${s.bewertet < s.abgegeben ? `${s.bewertet} von ${s.abgegeben} bewertet` : `${s.bewertet - s.frei} bereit zur Freigabe`}</span></a></li>`).join('') || '<li class="leer">Nichts offen</li>'}</ul></section>
-    <section class="karte"><h2>Zuletzt von dir gesendet</h2><ul class="liste">${gesendet.map(m => `<li><b>${esc(m.titel)}</b><br><span class="klein leise">${relZeit(m.erstellt_am)} · ${zustellStatistik(m.id)}</span></li>`).join('') || '<li class="leer">Noch nichts gesendet</li>'}</ul></section>
-    <section class="karte"><h2>So funktioniert es</h2><ul style="padding-left:18px;margin:0" class="klein">
-      <li>Änderst du einen Termin, bekommt die Gruppe automatisch eine Mitteilung, je nach Einstellung auch per Push und E-Mail.</li>
-      <li>Noten, die du einträgst, sind erst sichtbar, wenn du sie freigibst. So kannst du in Ruhe korrigieren.</li>
-      <li>Nach deiner Freigabe bestätigt das Prüfungsamt die Noten endgültig.</li></ul></section>
-  </div>`;
+  const u = ich();
+  return uebersichtSeite(`${fmtLang(new Date())} · ${plural(kurseVon(u.id).length, 'Modul', 'Module')} im ${esc(aktSem().bezeichnung)}`);
 }
 function zustellStatistik(mid) {
   const z = db.zustellung.filter(x => x.mitteilung_id === mid);
@@ -301,27 +285,7 @@ function raumKonflikte() {
   ts.forEach((a, i) => ts.slice(i + 1).forEach(b => { if (a.raum_id === b.raum_id && D(a.beginn) < D(b.ende) && D(b.beginn) < D(a.ende)) k.push([a, b]); }));
   return k;
 }
-function vUebersicht() {
-  const u = ich(), jetzt = new Date();
-  const studis = db.user.filter(x => x.rolle === 'studierend' && x.aktiv).length;
-  const offen = db.note.filter(n => n.freigegeben_am && !n.bestaetigt_am).length;
-  const konflikte = raumKonflikte().length;
-  const woche = db.mitteilung.filter(m => (jetzt - D(m.erstellt_am)) < 7 * 864e5).length;
-  const karte = (zahl, text, link, kl = '') => `<a class="karte modul-karte" href="${link}"><p class="gross-zahl ${kl}" style="margin:0">${zahl}</p><p class="leise" style="margin:4px 0 0">${text}</p></a>`;
-  const protokoll = db.zustellung.filter(z => z.kanal !== 'campus').sort((a, b) => D(b.gesendet_am) - D(a.gesendet_am)).slice(0, 10);
-  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(aktSem().bezeichnung)}`)}
-  <div class="raster" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-    ${karte(studis, 'Studierende aktiv', '#/personen?rolle=studierend')}
-    ${karte(db.kurs.length, 'Kurse im Semester', '#/gruppen')}
-    ${karte(offen, 'Noten warten auf Bestätigung', '#/pruefungsamt', offen ? '' : 'leise')}
-    ${karte(konflikte, konflikte ? 'Raumkonflikte' : 'Keine Raumkonflikte', '#/planung', konflikte ? '' : 'leise')}
-    ${karte(woche, 'Mitteilungen in 7 Tagen', '#/nachrichten')}
-  </div>
-  <section class="karte abstand"><h2>Zustellprotokoll E-Mail und Push</h2><p class="klein leise">Nachweis, wer wann über welchen Kanal benachrichtigt wurde. Im Prototyp simuliert.</p>
-    <div class="tabelle-huelle"><table><thead><tr><th>Zeit</th><th>Empfänger</th><th>Kanal</th><th>Mitteilung</th></tr></thead><tbody>
-    ${protokoll.map(z => { const m = byId('mitteilung', z.mitteilung_id); return `<tr><td class="klein">${relZeit(z.gesendet_am)}</td><td>${esc(name(byId('user', z.empfaenger_id)))}</td><td><span class="marke-klein ${z.kanal === 'push' ? 'm-akzent' : 'm-info'}">${z.kanal === 'push' ? 'Push' : 'E-Mail'}</span></td><td>${esc(m.titel)}</td></tr>`; }).join('') || '<tr><td colspan="4" class="leer">Noch keine Zustellungen per E-Mail oder Push. Ändere als Lehrende einen Termin, dann erscheinen sie hier.</td></tr>'}
-    </tbody></table></div></section>`;
-}
+function vUebersicht() { return uebersichtSeite(`${fmtLang(new Date())} · ${esc(aktSem().bezeichnung)}`); }
 function vGruppen() {
   const sem = aktSem();
   return `${kopfzeile('Gruppen & Semester')}

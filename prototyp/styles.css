@@ -287,3 +287,55 @@ details > summary::-webkit-details-marker { display: none; }
 .konferenz { width: 100%; height: 100%; }
 .konferenz .leer { color: #bbb; padding-top: 30vh; }
 @media (max-width: 860px) { .konferenz-huelle { height: 70vh; border-radius: 12px; } }
+
+/* Personalisierbare Übersicht */
+.kacheln { align-items: start; }
+.kachel.breit { grid-column: 1 / -1; }
+.kachel.bearbeiten { outline: 2px dashed var(--akzent); outline-offset: -2px; cursor: grab; }
+.kachel.zieht { opacity: .45; }
+.kachel.ziel { box-shadow: 0 0 0 3px var(--akzent); }
+.kachel-leiste { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -6px -8px 12px; padding: 6px 8px; background: var(--akzent-hell); border-radius: 10px; }
+.kachel-leiste .griff { font-size: 18px; color: var(--akzent); cursor: grab; }
+.rund.mini { width: 30px; height: 30px; }
+.rund.mini:disabled { opacity: .35; cursor: default; }
+.svg.hoch { transform: rotate(90deg); }
+.svg.runter { transform: rotate(90deg); }
+.schnell { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.schnell-link { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; border-radius: 12px; border: 1px solid var(--rand); background: var(--flaeche-2); color: var(--text); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; text-decoration: none !important; }
+.schnell-link:hover { border-color: var(--akzent); color: var(--akzent); }
+.schnell-link .svg { color: var(--akzent); }
+.kennzahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kennzahl { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--flaeche-2); color: var(--text); text-decoration: none !important; }
+.kennzahl:hover { outline: 2px solid var(--akzent); }
+
+/* Monatsansicht */
+.monat { background: var(--flaeche); border: 1px solid var(--rand); border-radius: var(--radius); overflow: hidden; }
+.monat-kopf, .monat-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.monat-kopf span { padding: 8px; font-size: 12px; font-weight: 700; color: var(--text-2); text-align: center; border-bottom: 1px solid var(--rand); }
+.monat-tag { min-height: 104px; padding: 6px; border-right: 1px solid var(--rand); border-bottom: 1px solid var(--rand); color: var(--text); text-decoration: none !important; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.monat-tag:nth-child(7n) { border-right: 0; }
+.monat-tag:hover { background: var(--flaeche-2); }
+.monat-tag.aussen { opacity: .4; }
+.monat-tag.wochenende { background: color-mix(in srgb, var(--flaeche-2) 55%, transparent); }
+.monat-tag.frei { background: color-mix(in srgb, var(--gut-hell) 60%, transparent); }
+.monat-tag.gewaehlt { box-shadow: inset 0 0 0 2px var(--akzent); }
+.monat-zahl { font-size: 13px; font-weight: 700; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; }
+.monat-tag.heute .monat-zahl { background: var(--akzent); color: var(--akzent-text); }
+.monat-frei { font-size: 11px; color: var(--gut); font-weight: 600; }
+.monat-chips { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.monat-chip { font-size: 11px; line-height: 1.3; padding: 1px 5px; border-radius: 5px; background: var(--akzent-hell); border-left: 3px solid var(--akzent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.monat-chip.verlegt { background: var(--warn-hell); border-left-color: var(--warn); }
+.monat-chip.ausgefallen { background: var(--fehler-hell); border-left-color: var(--fehler); text-decoration: line-through; }
+.monat-chip.klausur { background: var(--info-hell); border-left-color: var(--info); }
+.monat-chip.fristtermin { background: var(--flaeche-2); border-left: 3px dashed var(--text-2); }
+.monat-chip.frei { background: var(--gut-hell); border-left-color: var(--gut); }
+.monat-mehr { font-size: 11px; color: var(--text-2); font-weight: 600; }
+.monat-punkte { display: none; gap: 3px; flex-wrap: wrap; }
+.monat-punkte i { width: 6px; height: 6px; border-radius: 999px; background: var(--akzent); }
+.monat-punkte i.verlegt { background: var(--warn); } .monat-punkte i.ausgefallen { background: var(--fehler); } .monat-punkte i.klausur { background: var(--info); } .monat-punkte i.fristtermin { background: var(--text-2); } .monat-punkte i.frei { background: var(--gut); }
+@media (max-width: 860px) {
+  .monat-tag { min-height: 54px; padding: 4px; align-items: center; }
+  .monat-chips, .monat-frei { display: none; }
+  .monat-punkte { display: flex; justify-content: center; }
+  .kachel-leiste .klein.fett { flex-basis: 100%; }
+}
