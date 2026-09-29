@@ -209,7 +209,8 @@ function erzeugeDaten(heute = new Date()) {
   neuePruefung('GMA', { art: 'Klausur', titel: 'Klausur Grundlagen Marketing (90 Minuten)', frist: tag(20, 9, 0), mit_upload: false, max_mb: 0, formate: '' });
   neuePruefung('MKO', { art: 'Projekt', titel: 'Medienkonzept für eine Kampagne des Praxisbetriebs', frist: tag(30, 23, 59), mit_upload: true, max_mb: 100, formate: 'pdf' });
   neuePruefung('DBK', { art: 'Klausur', titel: 'Klausur Datenbanken (90 Minuten)', frist: tag(34, 9, 0), mit_upload: false, max_mb: 0, formate: '' });
-  neuePruefung('PT3', { art: 'PTP', titel: 'Praxistransferbericht 3. Semester (Projektmanagement)', frist: tag(45, 23, 59), mit_upload: true, max_mb: 100, formate: 'pdf' });
+  // Frist gestern abgelaufen: Prof. Brandt kann sofort bewerten und freigeben (zum Ausprobieren)
+  const pPT3 = neuePruefung('PT3', { art: 'PTP', titel: 'Praxistransferbericht 3. Semester (Projektmanagement)', frist: tag(-1, 23, 59), mit_upload: true, max_mb: 100, formate: 'pdf' });
 
   const abgabe = [], abgabe_mitglied = [], abgabeversion = [], note = [];
   const neueAbgabe = (pid, mitglieder, versionen, verspaetet = false) => {
@@ -237,6 +238,11 @@ function erzeugeDaten(heute = new Date()) {
     { name: 'AVM_Gruppe2_Konzept.pdf', von: 's3', am: tag(-3, 19, 40), titel: 'Imagefilm Gruppe 2: Konzept' },
     { name: 'AVM_Gruppe2_Imagefilm.mp4', mime: 'video/mp4', groesse: 812_000_000, von: 's5', am: tag(-1, 23, 12), ohneInhalt: true },
   ]);
+
+  // Praxistransfer 3: vier Berichte, einer verspätet, Sophie hat nichts abgegeben. Noch keine Noten.
+  [['s1', -2, 'Projektmanagement bei der Einführung eines neuen Intranets'], ['s2', -1, 'Migration des Ticketsystems im IT-Service'], ['s3', -3, 'Relaunch des Instagram-Auftritts'], ['s4', 0, 'Planung einer Hausmesse']].forEach(([u, t, thema]) => {
+    neueAbgabe(pPT3, [u], [{ name: `Praxistransferbericht_3_${u}.pdf`, von: u, am: tag(t, t === 0 ? 8 : 21, 40), titel: `Praxistransferbericht: ${thema}` }], t === 0);
+  });
 
   // Frühere Semester: je Kurs eine Prüfung mit bestätigter Note (nur für Studierende des passenden Schwerpunkts)
   const lenaNoten = { GMI: 1.7, EIM: 2.0, RAB: 2.7, NST: 3.0, KTH: 1.3, GDE: 1.7, PT1: 1.3, WMI: 2.3, ONM: 1.7, MPS: 1.3, PRE: 1.7, BUB: 2.7, MOK: 2.0, PT2: 1.7 };
