@@ -6,7 +6,8 @@ service cloud.firestore {
 
     function angemeldet() { return request.auth != null; }
     function rolle() { return get(/databases/$(database)/documents/user/$(request.auth.uid)).data.rolle; }
-    function istVerwaltung() { return angemeldet() && rolle() == 'verwaltung'; }
+    // v1 (Studienbüro) ist fest eingetragen, damit eine leere Datenbank befüllt werden kann
+    function istVerwaltung() { return angemeldet() && (request.auth.uid == 'v1' || rolle() == 'verwaltung'); }
     function istLehrend() { return angemeldet() && rolle() == 'lehrend'; }
     function istStudierend() { return angemeldet() && rolle() == 'studierend'; }
     function eigenes(feld) { return request.auth.uid == resource.data[feld]; }

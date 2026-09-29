@@ -283,8 +283,10 @@ function antragWirkungAnwenden(a) {
   const d = a.daten, uid = a.antragsteller_id;
   switch (a.art) {
     case 'fristverlaengerung': {
-      db.pruefung_ausnahme = db.pruefung_ausnahme.filter(x => !(x.pruefung_id === Number(d.pruefung) && x.student_id === uid && x.art === 'frist'));
-      db.pruefung_ausnahme.push({ pruefung_id: Number(d.pruefung), student_id: uid, art: 'frist', neue_frist: new Date(d.neue_frist + 'T23:59').toISOString(), antrag_id: a.id });
+      // Eine schon bestehende Verlängerung wird ersetzt (gleicher Schlüssel, also Überschreiben statt Löschen)
+      const neue_frist = new Date(d.neue_frist + 'T23:59').toISOString(), alt = ausnahmeFuer(Number(d.pruefung), uid, 'frist');
+      if (alt) Object.assign(alt, { neue_frist, antrag_id: a.id });
+      else db.pruefung_ausnahme.push({ pruefung_id: Number(d.pruefung), student_id: uid, art: 'frist', neue_frist, antrag_id: a.id });
       return null;
     }
     case 'pruefungsunfaehigkeit':

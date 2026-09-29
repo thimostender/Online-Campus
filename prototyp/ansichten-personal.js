@@ -250,10 +250,11 @@ function lKorrektur(pid) {
   ${studis.map(x => {
     const a = p.mit_upload ? abgabeVon(pid, x.id) : null, n = noteVon(pid, x.id);
     const v = a ? zaehlendeVersion(a.id) : null, d = v ? byId('datei', v.datei_id) : null;
-    const abgabeTxt = rt ? '<span class="marke-klein m-info">entschuldigt (Attest)</span>' : (fx !== p.frist ? `<span class="marke-klein m-warn">Frist bis ${fmtDatum(fx)}</span><br>` : '') + (!p.mit_upload ? '<span class="klein leise">Klausur</span>' : a ? (a.verspaetet ? '<span class="marke-klein m-fehler">verspätet</span>' : '<span class="marke-klein m-gut">pünktlich</span>') + (mitgliederVon(a.id).length > 1 ? `<br><span class="klein leise">Gruppe: ${mitgliederVon(a.id).map(y => esc(byId('user', y).vorname)).join(', ')}</span>` : '') : D(fx) < new Date() ? '<span class="marke-klein m-fehler">fehlt</span>' : '<span class="klein leise">noch nicht</span>');
     // Regel: bewertet wird erst nach der Frist, dann stehen alle Versionen fest
     const rt = ausnahmeFuer(pid, x.id, 'ruecktritt'), fx = fristFuer(p, x.id);
     const kannBewerten = !rt && D(fx) < new Date() && (p.mit_upload ? !!a : true) && !(n && n.freigegeben_am);
+    const abgabeTxt = rt ? '<span class="marke-klein m-info">entschuldigt (Attest)</span>' : (fx !== p.frist ? `<span class="marke-klein m-warn">Frist bis ${fmtDatum(fx)}</span><br>` : '') + (!p.mit_upload ? '<span class="klein leise">Klausur</span>' : a ? (a.verspaetet ? '<span class="marke-klein m-fehler">verspätet</span>' : '<span class="marke-klein m-gut">pünktlich</span>') + (mitgliederVon(a.id).length > 1 ? `<br><span class="klein leise">Gruppe: ${mitgliederVon(a.id).map(y => esc(byId('user', y).vorname)).join(', ')}</span>` : '') : D(fx) < new Date() ? '<span class="marke-klein m-fehler">fehlt</span>' : '<span class="klein leise">noch nicht</span>');
+
     return `<tr><td><b>${esc(name(x))}</b><br><span class="klein leise">${esc(x.matrikelnummer)}</span></td><td>${abgabeTxt}</td>
       <td>${d ? `<a href="#" data-action="datei-laden" data-id="${d.id}">${esc(d.dateiname)}</a><br><span class="klein leise">V${v.nummer} · ${bytes(d.groesse_bytes)} · ${fmtDatum(v.hochgeladen_am)}, ${fmtZeit(v.hochgeladen_am)}</span>` : '<span class="leise">–</span>'}</td>
       <td>${n ? `<span class="note">${noteFmt(n.wert)}</span> <span class="marke-klein ${n.bestaetigt_am ? 'm-gut' : n.freigegeben_am ? 'm-info' : 'm-warn'}">${n.bestaetigt_am ? 'endgültig' : n.freigegeben_am ? 'freigegeben' : 'Entwurf'}</span>` : '<span class="leise">–</span>'}</td>

@@ -89,10 +89,24 @@ async function abosStarten(uid) {
   ersteLadung.push(new Promise(ok => { let erst = true; BACKEND.abos.push(fs.collection('service').doc('inhalte').onSnapshot(d => { if (d.exists) { db.service = d.data(); BACKEND.stand.service = JSON.stringify(db.service); } if (erst) { erst = false; ok(); } else neuZeichnen(1); }, () => ok())); }));
   await Promise.all(ersteLadung);
 }
+// Übernimmt den Serverstand einer Tabelle. Vorhandene Objekte werden an Ort und Stelle aktualisiert,
+// damit laufende Abläufe (Upload, Textauslese) weiter mit denselben Objekten arbeiten. Eigene Änderungen,
+// die noch nicht geschrieben sind (weicht vom letzten Stand ab), bleiben erhalten.
 function tabelleUebernehmen(tab, zeilen) {
-  // Eigene, noch nicht bestätigte Änderungen nicht überschreiben
-  db[tab] = zeilen;
-  BACKEND.stand[tab] = Object.fromEntries(zeilen.map(z => [docId(tab, z), JSON.stringify(zuDokument(tab, z))]));
+  const stand = BACKEND.stand[tab] || {}, vorher = new Map((db[tab] || []).map(r => [docId(tab, r), r]));
+  const offen = new Set([...vorher].filter(([id, r]) => stand[id] !== JSON.stringify(zuDokument(tab, r))).map(([id]) => id));
+  const neu = [], neuerStand = {};
+  zeilen.forEach(z => {
+    const id = docId(tab, z), alt = vorher.get(id);
+    neuerStand[id] = JSON.stringify(zuDokument(tab, z));
+    if (alt && offen.has(id)) { neu.push(alt); return; }
+    if (alt) { Object.keys(alt).forEach(k => { if (!(k in z)) delete alt[k]; }); Object.assign(alt, z); neu.push(alt); }
+    else neu.push(z);
+  });
+  // Lokal neu angelegte Zeilen, die der Server noch nicht kennt
+  offen.forEach(id => { if (!(id in neuerStand)) { neu.push(vorher.get(id)); } });
+  db[tab] = neu;
+  BACKEND.stand[tab] = neuerStand;
 }
 function abosBeenden() { BACKEND.abos.forEach(stop => stop()); BACKEND.abos = []; BACKEND.stand = {}; }
 
@@ -139,8 +153,9 @@ async function schreibeUnterschiede() {
       neu[id] = json;
       if (alt[id] !== json) ops.push(b => b.set(fs.collection(tab).doc(id), JSON.parse(json)));
     });
-    Object.keys(alt).forEach(id => { if (!(id in neu)) ops.push(b => b.delete(fs.collection(tab).doc(id))); });
-    BACKEND.stand[tab] = neu;
+    // Kein Löschen, nur weil eine Zeile lokal fehlt: Das könnte ein veralteter Stand sein.
+    // Gelöscht wird ausschließlich über backendLoeschen().
+    BACKEND.stand[tab] = { ...alt, ...neu };
   });
   const ein = JSON.stringify(db.einstellungen || {});
   if (ein !== BACKEND.stand.einstellungen) {
@@ -155,6 +170,15 @@ async function schreibeUnterschiede() {
     ops.slice(i, i + 400).forEach(op => op(b));
     await b.commit();
   }
+}
+
+// Ausdrückliches Löschen einer Zeile (lokal und auf dem Server)
+function zeileLoeschen(tab, zeile) {
+  db[tab] = db[tab].filter(r => r !== zeile);
+  if (!BACKEND.aktiv) return;
+  const id = docId(tab, zeile);
+  delete BACKEND.stand[tab]?.[id];
+  BACKEND.fs.collection(tab).doc(id).delete().catch(e => toast('Löschen fehlgeschlagen', e.message));
 }
 
 // ---------- Dateien in Firestore (Stücke zu 700 KB) ----------

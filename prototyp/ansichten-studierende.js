@@ -237,7 +237,8 @@ function sModul(kid, tab) {
 }
 function materialListe(kid, lehrend) {
   const jetzt = new Date();
-  const liste = db.material.filter(x => x.kurs_id === kid && (lehrend || D(x.sichtbar_ab) <= jetzt)).sort((a, b) => D(b.sichtbar_ab) - D(a.sichtbar_ab));
+  // Material ohne Dateieintrag (z. B. abgebrochener Upload) nicht anzeigen, statt die Seite abstürzen zu lassen
+  const liste = db.material.filter(x => x.kurs_id === kid && byId('datei', x.datei_id) && (lehrend || D(x.sichtbar_ab) <= jetzt)).sort((a, b) => D(b.sichtbar_ab) - D(a.sichtbar_ab));
   return `<section class="karte"><ul class="liste">${liste.map(x => {
     const d = byId('datei', x.datei_id);
     const neu = tagDiff(x.sichtbar_ab) >= -7 && D(x.sichtbar_ab) <= jetzt;
@@ -585,7 +586,7 @@ function suche(begriff) {
   const basis = rolle() === 'studierend' ? '#/module/' : '#/kurse/';
   const treffer = b.length < 2 ? [] : [
     ...kurse.filter(k => passt(modulVon(k).titel, modulVon(k).kuerzel, modulVon(k).beschreibung)).map(k => ({ typ: 'Modul', titel: modulVon(k).titel, link: basis + k.id })),
-    ...db.material.filter(m => kurse.some(k => k.id === m.kurs_id) && passt(m.titel, byId('datei', m.datei_id).dateiname)).map(m => ({ typ: 'Material', titel: m.titel, unter: kursName(m.kurs_id), link: rolle() === 'studierend' ? `#/module/${m.kurs_id}/materialien` : `#/kurse/${m.kurs_id}/materialien` })),
+    ...db.material.filter(m => kurse.some(k => k.id === m.kurs_id) && passt(m.titel, byId('datei', m.datei_id)?.dateiname)).map(m => ({ typ: 'Material', titel: m.titel, unter: kursName(m.kurs_id), link: rolle() === 'studierend' ? `#/module/${m.kurs_id}/materialien` : `#/kurse/${m.kurs_id}/materialien` })),
     ...db.service.faq.filter(f => passt(f.frage, f.antwort)).map(f => ({ typ: 'Hilfe', titel: f.frage, unter: f.antwort, link: '#/service/formulare' })),
     ...db.service.ansprechpersonen.filter(a => passt(a.name, a.aufgabe)).map(a => ({ typ: 'Kontakt', titel: a.name, unter: a.aufgabe, link: '#/service/kontakt' })),
     ...db.raum.filter(r => passt(r.bezeichnung)).map(r => ({ typ: 'Raum', titel: r.bezeichnung, link: '#/service/lageplan?raum=' + r.id })),
