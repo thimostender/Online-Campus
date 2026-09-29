@@ -1,0 +1,63 @@
+---
+title: Teil 4: Anträge und ihre Wirkung
+---
+erDiagram
+  ANTRAG {
+    int id PK
+    uuid antragsteller_id FK
+    string art "Fristverlängerung, Attest, Anerkennung, Schnittplatz, Adresse"
+    string status "eingereicht, in Bearbeitung, genehmigt, abgelehnt"
+    json daten "Formularangaben"
+    uuid datei_id FK "PDF-Nachweis"
+    datetime eingereicht_am
+    uuid bearbeitet_von FK
+    datetime entschieden_am
+    string bescheid
+  }
+  PRUEFUNG_AUSNAHME {
+    int pruefung_id FK
+    uuid student_id FK
+    string art "frist oder ruecktritt"
+    datetime neue_frist
+    int antrag_id FK
+  }
+  ANERKENNUNG {
+    int id PK
+    uuid user_id FK
+    int modul_id FK
+    decimal wert
+    string einrichtung
+    int antrag_id FK
+  }
+  RAUM_RESERVIERUNG {
+    int id PK
+    int raum_id FK
+    uuid user_id FK
+    datetime beginn
+    datetime ende
+    int antrag_id FK
+  }
+  USER {
+    uuid id PK "Details in Teil 1 oder 2"
+  }
+  PRUEFUNG {
+    int id PK "Details in Teil 1 oder 2"
+  }
+  MODUL {
+    int id PK "Details in Teil 1 oder 2"
+  }
+  RAUM {
+    int id PK "Details in Teil 1 oder 2"
+  }
+  DATEI {
+    uuid id PK "Details in Teil 1 oder 2"
+  }
+  USER ||--o{ ANTRAG : "stellt"
+  ANTRAG |o--o| DATEI : "Nachweis"
+  ANTRAG |o--o{ PRUEFUNG_AUSNAHME : "bewirkt"
+  PRUEFUNG ||--o{ PRUEFUNG_AUSNAHME : "gilt für"
+  USER ||--o{ PRUEFUNG_AUSNAHME : "betrifft"
+  ANTRAG |o--o| ANERKENNUNG : "bewirkt"
+  MODUL ||--o{ ANERKENNUNG : "angerechnet als"
+  ANTRAG |o--o| RAUM_RESERVIERUNG : "bewirkt"
+  RAUM ||--o{ RAUM_RESERVIERUNG : "reserviert"

@@ -1,0 +1,81 @@
+rules_version = '2';
+// Rechtekonzept des Online-Campus (siehe Handout, Rollen- und Rechtekonzept).
+// Die Rolle steht im Dokument /user/{uid}; die uid entspricht der ID im Datenmodell (s1, l1, v1 …).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function angemeldet() { return request.auth != null; }
+    function rolle() { return get(/databases/$(database)/documents/user/$(request.auth.uid)).data.rolle; }
+    function istVerwaltung() { return angemeldet() && rolle() == 'verwaltung'; }
+    function istLehrend() { return angemeldet() && rolle() == 'lehrend'; }
+    function istStudierend() { return angemeldet() && rolle() == 'studierend'; }
+    function eigenes(feld) { return request.auth.uid == resource.data[feld]; }
+    function wirdEigenes(feld) { return request.auth.uid == request.resource.data[feld]; }
+
+    // Verwaltung darf alles (Pflege, Prüfungsamt, Zurücksetzen der Beispieldaten)
+    match /{document=**} { allow read, write: if istVerwaltung(); }
+
+    // Stammdaten und Lehrangebot: alle Angemeldeten lesen
+    match /user/{id} { allow read: if angemeldet(); }
+    match /studiengang/{id} { allow read: if angemeldet(); }
+    match /studiengruppe/{id} { allow read: if angemeldet(); }
+    match /gruppenmitglied/{id} { allow read: if angemeldet(); }
+    match /schwerpunkt_wahl/{id} { allow read: if angemeldet(); }
+    match /semester/{id} { allow read: if angemeldet(); }
+    match /vorlesungsfreie_zeit/{id} { allow read: if angemeldet(); }
+    match /modul/{id} { allow read: if angemeldet(); }
+    match /kurs/{id} { allow read: if angemeldet(); }
+    match /lehrauftrag/{id} { allow read: if angemeldet(); }
+    match /raum/{id} { allow read: if angemeldet(); }
+    match /service/{id} { allow read: if angemeldet(); }
+    match /raum_reservierung/{id} { allow read: if angemeldet(); }
+
+    // Termine, Prüfungen, Material: lesen alle, schreiben Lehrende
+    match /termin/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
+    match /pruefung/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
+    match /material/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
+    match /abschnitt/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
+
+    // Abgaben: Metadaten lesen alle Angemeldeten, anlegen Studierende, Status setzen auch Lehrende
+    match /abgabe/{id} { allow read: if angemeldet(); allow create, update: if istStudierend() || istLehrend(); }
+    match /abgabe_mitglied/{id} { allow read: if angemeldet(); allow create: if istStudierend(); }
+    match /abgabeversion/{id} { allow read: if angemeldet(); allow create: if istStudierend(); }
+    match /datei/{id} { allow read: if angemeldet(); allow create: if angemeldet() && wirdEigenes('hochgeladen_von'); allow update: if angemeldet() && eigenes('hochgeladen_von'); }
+
+    // Dateiinhalte: nur die eingetragenen Lesenden (leer = alle Angemeldeten)
+    match /datei_inhalt/{id} {
+      allow read: if angemeldet() && (resource.data.leser == null || request.auth.uid in resource.data.leser);
+      allow create: if angemeldet();
+      match /teile/{nr} {
+        allow read: if angemeldet() && (get(/databases/$(database)/documents/datei_inhalt/$(id)).data.leser == null
+                     || request.auth.uid in get(/databases/$(database)/documents/datei_inhalt/$(id)).data.leser);
+        allow create: if angemeldet();
+      }
+    }
+
+    // Noten: Studierende nur eigene und erst nach Freigabe; Lehrende bewerten und geben frei
+    match /note/{id} {
+      allow read: if istLehrend() || (istStudierend() && eigenes('student_id') && resource.data.freigegeben == true);
+      allow create: if istLehrend();
+      allow update: if istLehrend() && resource.data.freigegeben != true;
+    }
+    match /pruefung_ausnahme/{id} { allow read: if angemeldet(); }
+    match /anerkennung/{id} { allow read: if angemeldet(); }
+
+    // Anträge: eigene stellen und lesen; entscheiden nur die Verwaltung (Regel oben)
+    match /antrag/{id} {
+      allow read: if istStudierend() && eigenes('antragsteller_id');
+      allow create: if istStudierend() && wirdEigenes('antragsteller_id') && request.resource.data.status == 'eingereicht';
+    }
+
+    // Mitteilungen: alle Angemeldeten dürfen senden; Zustellungen liest nur, wer sie bekommt
+    match /mitteilung/{id} { allow read, create: if angemeldet(); }
+    match /zustellung/{id} {
+      allow read: if angemeldet() && eigenes('empfaenger_id');
+      allow create: if angemeldet();
+      allow update: if angemeldet() && eigenes('empfaenger_id') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gelesen_am']);
+    }
+    // Benachrichtigungs-Einstellungen: lesen alle (für die Zustellung), ändern nur die eigenen
+    match /einstellungen/{uid} { allow read: if angemeldet(); allow write: if angemeldet() && request.auth.uid == uid; }
+  }
+}

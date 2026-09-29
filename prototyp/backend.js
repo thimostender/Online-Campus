@@ -1,0 +1,211 @@
+'use strict';
+// Anbindung an Firebase (Authentication + Firestore).
+// Prinzip: Der Campus arbeitet weiter mit dem Zwischenspeicher `db`. Nach dem Anmelden kommen die
+// Daten aus Firestore (nur, was die Regeln dieser Person erlauben) und bleiben über Echtzeit-Abos
+// aktuell. `speichern()` schreibt alle Änderungen gegenüber dem letzten Stand zurück.
+// Ohne Firebase (oder mit ?lokal in der Adresse) läuft alles wie bisher nur im Browser.
+
+const FIREBASE_KONFIG = {
+  apiKey: 'AIzaSyBQBfUUYxZRvrCaptccG1_LnK27HKyM-_w',
+  authDomain: 'online-campus-mit.firebaseapp.com',
+  projectId: 'online-campus-mit',
+  storageBucket: 'online-campus-mit.firebasestorage.app',
+  messagingSenderId: '486047562424',
+  appId: '1:486047562424:web:49da49f89ab3459d42924d',
+};
+// Gemeinsames Passwort der fiktiven Demo-Konten (Prototyp, keine echten Personen)
+const DEMO_PASSWORT = 'Campus-d945cc52-Demo';
+
+const BACKEND = { aktiv: false, fs: null, auth: null, abos: [], stand: {}, geladen: false, schreibt: false };
+// Tabellen mit zusammengesetztem Schlüssel statt eigener ID
+const SCHLUESSEL = {
+  gruppenmitglied: r => `${r.user_id}_${r.gruppe_id}`,
+  lehrauftrag: r => `${r.kurs_id}_${r.lehrender_id}`,
+  abgabe_mitglied: r => `${r.abgabe_id}_${r.student_id}`,
+  zustellung: r => `${r.mitteilung_id}_${r.empfaenger_id}_${r.kanal}`,
+  schwerpunkt_wahl: r => r.user_id,
+  pruefung_ausnahme: r => `${r.pruefung_id}_${r.student_id}_${r.art}`,
+};
+const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung'];
+const docId = (tab, r) => SCHLUESSEL[tab] ? SCHLUESSEL[tab](r) : String(r.id);
+// Felder, die nur für die Regeln da sind
+function zuDokument(tab, r) {
+  const d = JSON.parse(JSON.stringify(r));
+  if (tab === 'note') d.freigegeben = !!r.freigegeben_am;
+  return d;
+}
+function ausDokument(tab, d) { const r = { ...d }; if (tab === 'note') delete r.freigegeben; return r; }
+
+function backendStarten() {
+  if (!window.firebase || new URLSearchParams(location.search).has('lokal')) return false;
+  firebase.initializeApp(FIREBASE_KONFIG);
+  BACKEND.fs = firebase.firestore();
+  BACKEND.auth = firebase.auth();
+  BACKEND.aktiv = true;
+  BACKEND.auth.onAuthStateChanged(async nutzer => {
+    abosBeenden();
+    if (!nutzer) { db = erzeugeDaten(new Date()); db.sitzung = null; BACKEND.geladen = false; render(); return; }
+    db.sitzung = nutzer.uid;
+    zeigeLaden('Daten werden geladen …');
+    try { await abosStarten(nutzer.uid); }
+    catch (e) { console.error(e); toast('Laden fehlgeschlagen', e.message); }
+    BACKEND.geladen = true;
+    if (!db.user.some(u => u.id === nutzer.uid)) {
+      document.getElementById('app').innerHTML = demoLeiste() + `<div class="login"><div class="karte login-karte"><h2>Datenbank ist leer</h2><p>Das Konto ist angemeldet, aber in Firestore liegen noch keine Beispieldaten.</p>
+        <p>${nutzer.uid === 'v1' ? '<button class="knopf primaer" data-action="backend-befuellen">Mit Beispieldaten füllen</button>' : 'Bitte als Petra Lange (Verwaltung) anmelden und die Datenbank füllen.'}</p><button class="knopf" data-action="abmelden">Abmelden</button></div></div>`;
+      return;
+    }
+    fristErinnerungen();
+    render();
+  });
+  return true;
+}
+function zeigeLaden(text) { document.getElementById('app').innerHTML = demoLeiste() + `<div class="login"><p class="leise">${esc(text)}</p></div>`; }
+
+// Liest alle Tabellen, die diese Rolle sehen darf, und hält sie per Echtzeit-Abo aktuell
+async function abosStarten(uid) {
+  const fs = BACKEND.fs;
+  const profil = (await fs.collection('user').doc(uid).get()).data();
+  const r = profil?.rolle;
+  const abfrage = tab => {
+    const c = fs.collection(tab);
+    if (tab === 'zustellung' && r !== 'verwaltung') return c.where('empfaenger_id', '==', uid);
+    if (tab === 'note' && r === 'studierend') return c.where('student_id', '==', uid).where('freigegeben', '==', true);
+    if (tab === 'antrag' && r === 'studierend') return c.where('antragsteller_id', '==', uid);
+    if (tab === 'antrag' && r !== 'verwaltung') return null;
+    return c;
+  };
+  const ersteLadung = TABELLEN.map(tab => new Promise((ok, fehler) => {
+    const q = abfrage(tab);
+    if (!q) { db[tab] = []; BACKEND.stand[tab] = {}; ok(); return; }
+    let erst = true;
+    BACKEND.abos.push(q.onSnapshot(snap => {
+      tabelleUebernehmen(tab, snap.docs.map(d => ausDokument(tab, d.data())));
+      if (erst) { erst = false; ok(); } else neuZeichnen(snap.docChanges().filter(c => !c.doc.metadata.hasPendingWrites).length);
+    }, e => { if (erst) { erst = false; console.warn(tab, e.message); db[tab] = []; ok(); } }));
+  }));
+  // Einzelne Dokumente: Einstellungen aller Personen, Service-Inhalte
+  BACKEND.abos.push(fs.collection('einstellungen').onSnapshot(snap => { db.einstellungen = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); BACKEND.stand.einstellungen = JSON.stringify(db.einstellungen); }));
+  ersteLadung.push(new Promise(ok => { let erst = true; BACKEND.abos.push(fs.collection('service').doc('inhalte').onSnapshot(d => { if (d.exists) { db.service = d.data(); BACKEND.stand.service = JSON.stringify(db.service); } if (erst) { erst = false; ok(); } else neuZeichnen(1); }, () => ok())); }));
+  await Promise.all(ersteLadung);
+}
+function tabelleUebernehmen(tab, zeilen) {
+  // Eigene, noch nicht bestätigte Änderungen nicht überschreiben
+  db[tab] = zeilen;
+  BACKEND.stand[tab] = Object.fromEntries(zeilen.map(z => [docId(tab, z), JSON.stringify(zuDokument(tab, z))]));
+}
+function abosBeenden() { BACKEND.abos.forEach(stop => stop()); BACKEND.abos = []; BACKEND.stand = {}; }
+
+// Änderungen anderer: neu zeichnen, aber nie mitten in einer Eingabe, einem Upload oder einer Konferenz
+let zeichnenGeplant = null;
+function neuZeichnen(anzahl) {
+  if (!anzahl || !BACKEND.geladen) return;
+  clearTimeout(zeichnenGeplant);
+  zeichnenGeplant = setTimeout(function versuche() {
+    const fokus = document.activeElement;
+    const beschaeftigt = (fokus && fokus.matches('input, textarea, select') && fokus.closest('#inhalt, dialog'))
+      || document.getElementById('dialog')?.open || location.hash.startsWith('#/konferenz/')
+      || document.querySelector('#fortschritt:not([hidden])');
+    if (beschaeftigt) { zeichnenGeplant = setTimeout(versuche, 1500); return; }
+    render();
+    pushBenachrichtigen();
+  }, 250);
+}
+// Echte Browser-Benachrichtigung für neue Push-Zustellungen an die angemeldete Person
+let gemeldet = new Set();
+function pushBenachrichtigen() {
+  const u = ich();
+  if (!u || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const neu = db.mitteilung.filter(m => db.zustellung.some(z => z.mitteilung_id === m.id && z.empfaenger_id === u.id && z.kanal === 'push' && !z.gelesen_am) && Date.now() - D(m.erstellt_am) < 5 * 6e4 && !gemeldet.has(m.id));
+  neu.forEach(m => { gemeldet.add(m.id); new Notification(m.titel, { body: m.text, tag: 'campus-' + m.id }); });
+}
+
+// Schreibt alles, was sich gegenüber dem letzten Stand geändert hat
+let schreibWarteschlange = Promise.resolve();
+function backendSpeichern() {
+  if (!BACKEND.aktiv || !BACKEND.geladen || !db.sitzung) return;
+  schreibWarteschlange = schreibWarteschlange.then(schreibeUnterschiede).catch(e => {
+    console.error(e);
+    toast('Speichern fehlgeschlagen', e.code === 'permission-denied' ? 'Dafür fehlt dieser Rolle die Berechtigung.' : e.message);
+  });
+  return schreibWarteschlange;
+}
+async function schreibeUnterschiede() {
+  const fs = BACKEND.fs, ops = [];
+  TABELLEN.forEach(tab => {
+    const alt = BACKEND.stand[tab] || {}, neu = {};
+    (db[tab] || []).forEach(r => {
+      const id = docId(tab, r), json = JSON.stringify(zuDokument(tab, r));
+      neu[id] = json;
+      if (alt[id] !== json) ops.push(b => b.set(fs.collection(tab).doc(id), JSON.parse(json)));
+    });
+    Object.keys(alt).forEach(id => { if (!(id in neu)) ops.push(b => b.delete(fs.collection(tab).doc(id))); });
+    BACKEND.stand[tab] = neu;
+  });
+  const ein = JSON.stringify(db.einstellungen || {});
+  if (ein !== BACKEND.stand.einstellungen) {
+    const u = ich();
+    if (u && db.einstellungen[u.id]) ops.push(b => b.set(fs.collection('einstellungen').doc(u.id), db.einstellungen[u.id]));
+    BACKEND.stand.einstellungen = ein;
+  }
+  const srv = JSON.stringify(db.service);
+  if (srv !== BACKEND.stand.service) { ops.push(b => b.set(fs.collection('service').doc('inhalte'), db.service)); BACKEND.stand.service = srv; }
+  for (let i = 0; i < ops.length; i += 400) {
+    const b = fs.batch();
+    ops.slice(i, i + 400).forEach(op => op(b));
+    await b.commit();
+  }
+}
+
+// ---------- Dateien in Firestore (Stücke zu 700 KB) ----------
+const STUECK = 700_000, MAX_FIRESTORE_DATEI = 15e6;
+async function backendInhaltSpeichern(id, blob, leser = null) {
+  if (blob.size > MAX_FIRESTORE_DATEI) return false;
+  const bytes = new Uint8Array(await blob.arrayBuffer()), fs = BACKEND.fs, teile = Math.max(1, Math.ceil(bytes.length / STUECK));
+  await fs.collection('datei_inhalt').doc(id).set({ teile, groesse: bytes.length, typ: blob.type || 'application/octet-stream', leser });
+  for (let i = 0; i < teile; i++) {
+    let bin = '';
+    const stueck = bytes.subarray(i * STUECK, (i + 1) * STUECK);
+    for (let j = 0; j < stueck.length; j += 8192) bin += String.fromCharCode.apply(null, stueck.subarray(j, j + 8192));
+    await fs.collection('datei_inhalt').doc(id).collection('teile').doc(String(i)).set({ daten: btoa(bin) });
+  }
+  return true;
+}
+async function backendInhaltLaden(id) {
+  const fs = BACKEND.fs, kopf = await fs.collection('datei_inhalt').doc(id).get();
+  if (!kopf.exists) return null;
+  const { teile, typ } = kopf.data(), stuecke = [];
+  for (let i = 0; i < teile; i++) {
+    const bin = atob((await fs.collection('datei_inhalt').doc(id).collection('teile').doc(String(i)).get()).data().daten);
+    const arr = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j);
+    stuecke.push(arr);
+  }
+  return new Blob(stuecke, { type: typ });
+}
+
+// ---------- Beispieldaten in Firestore schreiben (nur Verwaltung) ----------
+async function backendBefuellen() {
+  const fs = BACKEND.fs;
+  zeigeLaden('Alte Daten werden gelöscht …');
+  for (const tab of [...TABELLEN, 'einstellungen', 'service']) {
+    const snap = await fs.collection(tab).get();
+    for (let i = 0; i < snap.docs.length; i += 400) { const b = fs.batch(); snap.docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit(); }
+  }
+  const inhalte = await fs.collection('datei_inhalt').get();
+  for (const d of inhalte.docs) { const teile = await d.ref.collection('teile').get(); const b = fs.batch(); teile.docs.forEach(t => b.delete(t.ref)); b.delete(d.ref); await b.commit(); }
+  zeigeLaden('Beispieldaten werden geschrieben …');
+  const neu = erzeugeDaten(new Date());
+  // Stand leeren, damit alles als neu geschrieben wird
+  abosBeenden();
+  db = { ...neu, sitzung: 'v1' };
+  BACKEND.geladen = true;
+  await schreibeUnterschiede();
+  zeigeLaden('Beispieldateien werden erzeugt …');
+  await beispielDateienErzeugen();
+  await schreibeUnterschiede();
+  await abosStarten('v1');
+  render();
+  toast('Datenbank neu befüllt', `${TABELLEN.reduce((s, t) => s + (db[t]?.length || 0), 0)} Einträge`);
+}
+AKTIONEN['backend-befuellen'] = () => backendBefuellen().catch(e => { console.error(e); toast('Befüllen fehlgeschlagen', e.message); });

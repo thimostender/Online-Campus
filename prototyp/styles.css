@@ -281,3 +281,9 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .raster > .karte + .karte { margin-top: 0; }
 .liste .fett, .liste b { overflow-wrap: anywhere; hyphens: auto; }
+
+/* Videokonferenz */
+.konferenz-huelle { background: #111; border-radius: 16px; overflow: hidden; height: min(72vh, 680px); }
+.konferenz { width: 100%; height: 100%; }
+.konferenz .leer { color: #bbb; padding-top: 30vh; }
+@media (max-width: 860px) { .konferenz-huelle { height: 70vh; border-radius: 12px; } }

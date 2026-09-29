@@ -69,10 +69,10 @@ erDiagram
     datetime bestaetigt_am "leer = vorläufig"
   }
   USER {
-    uuid id PK "Details in Teil 1"
+    uuid id PK "Details in Teil 1 oder 2"
   }
   KURS {
-    int id PK "Details in Teil 1"
+    int id PK "Details in Teil 1 oder 2"
   }
   KURS ||--o{ MATERIAL : "stellt bereit"
   MATERIAL }o--|| DATEI : "ist"

@@ -14,6 +14,9 @@
   <div class="toasts" id="toasts" aria-live="polite"></div>
   <dialog id="dialog"></dialog>
   <div id="assistent"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="vendor/pdf.min.js"></script>
   <script src="material-texte.js"></script>
   <script src="data.js"></script>
@@ -21,9 +24,15 @@
   <script src="dateien.js"></script>
   <script src="ansichten-studierende.js"></script>
   <script src="ansichten-personal.js"></script>
+  <script src="antraege.js"></script>
+  <script src="konferenz.js"></script>
+  <script src="backend.js"></script>
   <script src="assistent.js"></script>
   <script>
     (async () => {
+      // Mit Firebase: gemeinsame Datenbank und echte Anmeldung; ohne (oder ?lokal): nur dieser Browser
+      db = erzeugeDaten(new Date()); db.sitzung = null;
+      if (backendStarten()) return;
       db = laden();
       if (!db) neuAufsetzen();
       render();

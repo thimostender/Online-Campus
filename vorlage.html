@@ -97,6 +97,7 @@
 <tr><td>Dateien und Material</td><td>DATEI, MATERIAL, MATERIAL_ABSCHNITT</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme; die Dateien selbst liegen im Objektspeicher. Hochgeladene Lehrmaterialien werden ausgelesen und in Abschnitte mit Seitenzahl zerlegt, aus denen der Hilfe-Assistent antwortet.</td></tr>
 <tr><td>Studienverlauf und Schwerpunkt</td><td>MODUL (mit Nr., Bereich, Plansemester, UE, Workload, Schwerpunkt), SCHWERPUNKT_WAHL, KURS.schwerpunkt</td><td>Bildet die Modulstruktur Medien- und IT-Management (B.A.) ab: 6 Semester, 180 ECTS, ab dem 2. Semester Schwerpunkt Medien (M) oder IT (I). Parallelmodule wie Medienkonzeption (M) und Datenbanken (I) laufen zur selben Zeit; ein Kurs mit Schwerpunkt erscheint nur bei dessen Studierenden.</td></tr>
 <tr><td>Kommunikation</td><td>MITTEILUNG, ZUSTELLUNG, BENACHRICHTIGUNG_EINSTELLUNG</td><td>Was wurde gesendet, an wen, über welchen Kanal, und wurde es gelesen?</td></tr>
+<tr><td>Anträge</td><td>ANTRAG, PRUEFUNG_AUSNAHME, ANERKENNUNG, RAUM_RESERVIERUNG</td><td>Online gestellte Anträge mit PDF-Nachweis. Die Genehmigung wirkt sofort: eine verlängerte Frist nur für diese Person, eine entschuldigte Prüfung, ein angerechnetes Modul oder ein reservierter Schnittplatz.</td></tr>
 </table>
 
 <h3>So entsteht der persönliche Stundenplan</h3>
@@ -127,6 +128,8 @@
 
 <h3>Hilfe-Assistent</h3>
 <p>Persönliche Fragen („Wann ist meine nächste Abgabe?“, „Was habe ich morgen?“) beantwortet er direkt aus den Daten. Fachfragen beantwortet er aus Lehrmaterialien, FAQ und Service-Texten: Eine Suche (BM25) findet die passenden Abschnitte, die Antwort nennt immer Quelle und Seite. Im Prototyp besteht die Antwort aus den passendsten Sätzen. Mit einem Sprachmodell (zum Beispiel Claude) auf dem eigenen Server formuliert er frei, bekommt aber nur die gefundenen Abschnitte, keine anderen Daten. Das Feld <code>embedding</code> ist für eine spätere Suche nach Bedeutung statt nach Wörtern vorgesehen.</p>
+<h3>Technische Umsetzung im Prototyp</h3>
+<p>Der Prototyp läuft als statische Web-App (GitHub Pages) mit <b>Firebase</b> als Server: Firebase Authentication für die Anmeldung, Firestore als gemeinsame Datenbank mit Echtzeit-Aktualisierung. Das Rollen- und Rechtekonzept ist als Firestore-Sicherheitsregeln umgesetzt: Studierende lesen zum Beispiel nur eigene und freigegebene Noten, Dateiinhalte nur die eingetragenen Personen. Online-Vorlesungen nutzen eine eingebettete <b>Jitsi-Meet</b>-Konferenz mit eigenem Raum je Termin. Vereinfachungen für den Prototyp: Dateien liegen in Stücken in Firestore statt in einem Dateispeicher, E-Mails werden nur protokolliert, Metadaten von Abgaben sind für alle Angemeldeten lesbar.</p>
 <h3>Bewusst weggelassen</h3>
 <p>Nachrichten zwischen Personen (Messenger). Er ist im Briefing optional; dafür kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Erst nach dem MVP.</p>
 </div>

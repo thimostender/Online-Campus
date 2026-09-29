@@ -6,6 +6,7 @@ erDiagram
     string email UK
     string rolle "studierend, lehrend, verwaltung, admin"
     string matrikelnummer "nur Studierende"
+    string adresse "Straße, PLZ, Ort"
     bool aktiv
   }
   STUDIENGANG {
@@ -158,6 +159,7 @@ erDiagram
     int kurs_id FK "leer = nicht kursbezogen"
     int gruppe_id FK "leer = an alle"
     int termin_id FK "bei Terminänderung"
+    string link "Ziel beim Antippen"
     string anlass "Neuigkeit, Änderung, Note, Frist"
     string titel
     string text
@@ -169,6 +171,41 @@ erDiagram
     string kanal "Campus, E-Mail, Push"
     datetime gesendet_am
     datetime gelesen_am
+  }
+  ANTRAG {
+    int id PK
+    uuid antragsteller_id FK
+    string art "Fristverlängerung, Attest, Anerkennung, Schnittplatz, Adresse"
+    string status "eingereicht, in Bearbeitung, genehmigt, abgelehnt"
+    json daten "Formularangaben"
+    uuid datei_id FK "PDF-Nachweis"
+    datetime eingereicht_am
+    uuid bearbeitet_von FK
+    datetime entschieden_am
+    string bescheid
+  }
+  PRUEFUNG_AUSNAHME {
+    int pruefung_id FK
+    uuid student_id FK
+    string art "frist oder ruecktritt"
+    datetime neue_frist
+    int antrag_id FK
+  }
+  ANERKENNUNG {
+    int id PK
+    uuid user_id FK
+    int modul_id FK
+    decimal wert
+    string einrichtung
+    int antrag_id FK
+  }
+  RAUM_RESERVIERUNG {
+    int id PK
+    int raum_id FK
+    uuid user_id FK
+    datetime beginn
+    datetime ende
+    int antrag_id FK
   }
   BENACHRICHTIGUNG_EINSTELLUNG {
     uuid user_id FK
@@ -209,3 +246,12 @@ erDiagram
   TERMIN |o--o{ MITTEILUNG : "Anlass für"
   USER ||--o| SCHWERPUNKT_WAHL : "wählt"
   MATERIAL ||--o{ MATERIAL_ABSCHNITT : "zerlegt in"
+  USER ||--o{ ANTRAG : "stellt"
+  ANTRAG |o--o| DATEI : "Nachweis"
+  ANTRAG |o--o{ PRUEFUNG_AUSNAHME : "bewirkt"
+  PRUEFUNG ||--o{ PRUEFUNG_AUSNAHME : "gilt für"
+  USER ||--o{ PRUEFUNG_AUSNAHME : "betrifft"
+  ANTRAG |o--o| ANERKENNUNG : "bewirkt"
+  MODUL ||--o{ ANERKENNUNG : "angerechnet als"
+  ANTRAG |o--o| RAUM_RESERVIERUNG : "bewirkt"
+  RAUM ||--o{ RAUM_RESERVIERUNG : "reserviert"

@@ -10,6 +10,7 @@ const ANLAESSE = [
   { id: 'frist', name: 'Frist bald fällig', std: { campus: true, push: true, email: false } },
   { id: 'material', name: 'Neues Material', std: { campus: true, push: false, email: false } },
   { id: 'neuigkeit', name: 'Neuigkeiten von Lehrenden und Verwaltung', std: { campus: true, push: false, email: true } },
+  { id: 'antrag', name: 'Entscheidung über einen Antrag', std: { campus: true, push: true, email: true } },
 ];
 const KANAELE = [
   { id: 'campus', name: 'Im Campus' },
@@ -90,7 +91,7 @@ function erzeugeDaten(heute = new Date()) {
   const zufall = text => parseInt(pseudoHash(text).slice(0, 8), 16) / 0xffffffff; // stabil, nicht zufällig
 
   const user = [
-    { id: 's1', vorname: 'Lena', nachname: 'Hoffmann', email: 'lena.hoffmann@campus.example', rolle: 'studierend', matrikelnummer: '2025-0142', aktiv: true },
+    { id: 's1', vorname: 'Lena', nachname: 'Hoffmann', email: 'lena.hoffmann@campus.example', rolle: 'studierend', matrikelnummer: '2025-0142', aktiv: true, adresse: { strasse: 'Am Sande 12', plz: '21335', ort: 'Lüneburg' } },
     { id: 's2', vorname: 'Jonas', nachname: 'Weber', email: 'jonas.weber@campus.example', rolle: 'studierend', matrikelnummer: '2025-0157', aktiv: true },
     { id: 's3', vorname: 'Mira', nachname: 'Schulz', email: 'mira.schulz@campus.example', rolle: 'studierend', matrikelnummer: '2025-0163', aktiv: true },
     { id: 's4', vorname: 'Can', nachname: 'Yilmaz', email: 'can.yilmaz@campus.example', rolle: 'studierend', matrikelnummer: '2025-0171', aktiv: true },
@@ -283,10 +284,22 @@ function erzeugeDaten(heute = new Date()) {
       { frage: 'Was unterscheidet die Schwerpunkte Medien und IT?', antwort: 'Ab dem 2. Semester studierst du im Schwerpunkt Medien (M) oder IT (I). Etwa jedes sechste Modul läuft dann getrennt, zum Beispiel Medienkonzeption (M) oder Datenbanken (I); alle anderen Module und die Praxistransfer-Projekte besucht ihr gemeinsam. Deinen Schwerpunkt siehst du unter Leistungen im Studienverlauf.' },
       { frage: 'Was ist ein Praxistransfer-Projekt?', antwort: 'In jedem Semester verbindest du die Inhalte mit einer Fragestellung aus deinem Ausbildungsbetrieb und schreibst dazu einen Praxistransferbericht. Jedes Semester hat ein eigenes Thema, im 3. Semester Projektmanagement.' },
     ],
-    formulare: ['Antrag auf Fristverlängerung', 'Antrag auf Anerkennung von Leistungen', 'Attest bei Prüfungsunfähigkeit', 'Reservierung Schnittplatz Medienlabor', 'Adressänderung'],
+    formulare: ['fristverlaengerung', 'pruefungsunfaehigkeit', 'anerkennung', 'schnittplatz', 'adresse'],
   };
 
-  return { version: 3, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
+  // Anträge: zwei offene im Posteingang des Studienbüros, einer von Lena schon genehmigt
+  const antrag = [], pruefung_ausnahme = [], anerkennung = [], raum_reservierung = [];
+  const pMSP = pruefung.find(p => p.kurs_id === M('MSP')).id;
+  const attest = neueDatei('Attest_Yilmaz.pdf', 'application/pdf', 0, 's4', tag(-1, 19, 20), { erzeugen: { art: 'abgabe', titel: 'Ärztliche Arbeitsunfähigkeitsbescheinigung (Beispiel)', von: 's4' } });
+  antrag.push({ id: 1, antragsteller_id: 's4', art: 'fristverlaengerung', status: 'eingereicht', daten: { pruefung: String(pMSP), neue_frist: tag(16).slice(0, 10), begruendung: 'Ich war vom 21. bis 28. September krankgeschrieben und konnte in dieser Zeit nicht an der Hausarbeit arbeiten. Das Attest liegt bei.' }, datei_id: attest, eingereicht_am: tag(-1, 19, 22), bearbeitet_von: null, entschieden_am: null, bescheid: '' });
+  antrag.push({ id: 2, antragsteller_id: 's3', art: 'schnittplatz', status: 'eingereicht', daten: { datum: tag(4).slice(0, 10), von: '10:00', bis: '13:00', zweck: 'Feinschnitt Imagefilm Gruppe 2' }, datei_id: null, eingereicht_am: tag(0, 7, 45), bearbeitet_von: null, entschieden_am: null, bescheid: '' });
+  antrag.push({ id: 3, antragsteller_id: 's1', art: 'schnittplatz', status: 'genehmigt', daten: { datum: tag(2).slice(0, 10), von: '15:00', bis: '18:00', zweck: 'Rohschnitt Imagefilm Gruppe 1' }, datei_id: null, eingereicht_am: tag(-3, 11, 5), bearbeitet_von: 'v1', entschieden_am: tag(-2, 9, 30), bescheid: 'Schnittplatz 2 ist für euch reserviert. Bitte den Schlüssel im Studienbüro abholen.' });
+  raum_reservierung.push({ id: 1, raum_id: 5, user_id: 's1', beginn: tag(2, 15, 0), ende: tag(2, 18, 0), zweck: 'Rohschnitt Imagefilm Gruppe 1', antrag_id: 3 });
+  neueMitteilung({ absender_id: 'v1', anlass: 'antrag', titel: 'Antrag genehmigt: Schnittplatz', text: 'Schnittplatz 2 ist für euch reserviert. Bitte den Schlüssel im Studienbüro abholen.', erstellt_am: tag(-2, 9, 30), link: '#/service/antraege/3' }, ['s1'], ['s1']);
+  neueMitteilung({ absender_id: 's4', anlass: 'neuigkeit', titel: 'Neuer Antrag: Fristverlängerung', text: 'Can Yilmaz hat einen Antrag gestellt (Medienkonvergenz und Social Media).', erstellt_am: tag(-1, 19, 22), link: '#/antraege/1' }, ['v1']);
+  neueMitteilung({ absender_id: 's3', anlass: 'neuigkeit', titel: 'Neuer Antrag: Schnittplatz', text: 'Mira Schulz möchte einen Schnittplatz im Medienlabor reservieren.', erstellt_am: tag(0, 7, 45), link: '#/antraege/2' }, ['v1']);
+
+  return { version: 4, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
 }
 
 // Zerlegt Text in Abschnitte von etwa 500 bis 900 Zeichen entlang der Absätze (für die Suche des Assistenten).

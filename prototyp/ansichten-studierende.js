@@ -10,7 +10,8 @@ ANSICHTEN.studierend = (t, q) => {
     case 'stundenplan': return stundenplan(q);
     case 'module': return t[1] ? sModul(Number(t[1]), t[2] || 'ueberblick') : sModule();
     case 'leistungen': return sLeistungen();
-    case 'service': return sService(t[1] || 'lageplan', q);
+    case 'service': return t[1] === 'antrag' ? antragFormular(t[2]) : t[1] === 'antraege' ? meineAntraege(t[2]) : sService(t[1] || 'lageplan', q);
+    case 'konferenz': return konferenz(Number(t[1]));
     case 'mitteilungen': return mitteilungenSeite(q);
     case 'profil': return profil();
     case 'suche': return suche(q.get('q') || '');
@@ -27,7 +28,7 @@ function sUebersicht() {
   const termine = termineVon(kurse);
   const naechster = termine.find(t => D(t.ende) > jetzt && t.status !== 'ausgefallen');
   const aenderungen = termine.filter(t => t.status !== 'geplant' || t.vertretung_id).filter(t => D(t.ende) > jetzt && tagDiff(t.beginn) <= 14);
-  const fristen = pruefungenVon(kurse).filter(p => D(p.frist) > jetzt);
+  const fristen = pruefungenVon(kurse, u.id).filter(p => D(p.frist) > jetzt && statusVon(p, u.id).code !== 'entschuldigt');
   const neu = meineMitteilungen(u.id).filter(m => !m.gelesen).slice(0, 4);
   const stand = ectsStand(u.id);
 
@@ -68,9 +69,10 @@ function terminGross(t) {
     <div style="min-width:0">
       <a href="${ziel}" class="fett" style="font-size:17px;color:var(--text)">${esc(kursName(t.kurs_id))}</a>
       <p class="leise" style="margin:2px 0 8px">${relTag(t.beginn)[0].toUpperCase() + relTag(t.beginn).slice(1)}, ${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} Uhr · ${esc(t.art)}</p>
-      <div class="zeile klein">${I('ort')}<span>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>, ${esc(byId('raum', t.raum_id).standort)}` : `<a href="${esc(t.online_link)}" target="_blank" rel="noopener">Online-Raum öffnen</a>`}</span></div>
+      <div class="zeile klein">${I('ort')}<span>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>, ${esc(byId('raum', t.raum_id).standort)}` : 'Online per Videokonferenz'}</span></div>
       <div class="zeile klein" style="margin-top:4px">${I('user')}<span>${esc(name(lehr))}</span>${t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : ''}</div>
       ${t.status === 'verlegt' ? `<p class="marke-klein m-warn umbruch" style="margin-top:8px">${esc(t.hinweis)}</p>` : ''}
+      ${!t.raum_id ? `<div style="margin-top:10px">${konferenzKnopf(t, false)}</div>` : ''}
     </div></div>`;
 }
 function fristZeile(p, uid) {
@@ -86,7 +88,8 @@ function stundenplan(q) {
   const u = ich(), ansicht = q.get('ansicht') || 'woche', w = Number(q.get('w') || 0);
   const kurse = kurseVon(u.id).map(k => k.id);
   const termine = termineVon(kurse, u.id);
-  const fristen = rolle() === 'studierend' ? pruefungenVon(kurse).filter(p => p.mit_upload) : [];
+  const fristen = rolle() === 'studierend' ? pruefungenVon(kurse, u.id).filter(p => p.mit_upload && statusVon(p, u.id).code !== 'entschuldigt') : [];
+  const reserv = rolle() === 'studierend' ? reservierungenVon(u.id) : [];
   const montag = new Date(); montag.setHours(0, 0, 0, 0); montag.setDate(montag.getDate() - ((montag.getDay() + 6) % 7) + w * 7);
   const tage = [...Array(6)].map((_, i) => { const d = new Date(montag); d.setDate(d.getDate() + i); return d; });
   const gleich = (a, b) => a.toDateString() === b.toDateString();
@@ -112,11 +115,12 @@ function stundenplan(q) {
       const ts = termine.filter(t => gleich(D(t.beginn), d));
       const fs = fristen.filter(p => gleich(D(p.frist), d));
       const fz = frei(d);
-      const leer = !ts.length && !fs.length && !fz;
+      const leer = !ts.length && !fs.length && !fz && !reserv.some(r => gleich(D(r.beginn), d));
       return `<div class="tag ${gleich(d, new Date()) ? 'heute' : ''} ${leer ? 'leer-tag' : ''}">
         <div class="tag-kopf">${WT[d.getDay()]} ${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${gleich(d, new Date()) ? ' · heute' : ''}</div>
         ${fz ? `<div class="ereignis frei"><b>${esc(fz.bezeichnung)}</b>vorlesungsfrei</div>` : ''}
         ${ts.map(ereignis).join('')}
+        ${reserv.filter(r => gleich(D(r.beginn), d)).map(r => `<a class="ereignis frei" href="#/service/antraege/${r.antrag_id}"><b>Schnittplatz reserviert</b>${fmtZeit(r.beginn)}–${fmtZeit(r.ende)} · ${esc(byId('raum', r.raum_id).bezeichnung)}</a>`).join('')}
         ${fs.map(p => `<a class="ereignis fristtermin" href="#/module/${p.kurs_id}/abgabe"><b>Frist: ${esc(kursName(p.kurs_id))}</b>${esc(p.art)} bis ${fmtZeit(p.frist)} Uhr</a>`).join('')}
         ${leer ? '<span class="klein leise">frei</span>' : ''}
       </div>`;
@@ -141,7 +145,7 @@ function stundenplan(q) {
 }
 function ereignis(t) {
   const kl = t.status === 'ausgefallen' ? 'ausgefallen' : t.status === 'verlegt' ? 'verlegt' : t.art === 'Klausur' ? 'klausur' : '';
-  const ziel = rolle() === 'studierend' ? `#/module/${t.kurs_id}/termine` : rolle() === 'lehrend' ? `#/kurse/${t.kurs_id}` : '#/planung';
+  const ziel = !t.raum_id && t.status !== 'ausgefallen' && rolle() !== 'verwaltung' ? `#/konferenz/${t.id}` : rolle() === 'studierend' ? `#/module/${t.kurs_id}/termine` : rolle() === 'lehrend' ? `#/kurse/${t.kurs_id}` : '#/planung';
   const marke = t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '';
   return `<a class="ereignis ${kl}" href="${ziel}" title="${esc(t.hinweis || '')}"><b>${esc(kursName(t.kurs_id))}</b>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} · ${esc(raumName(t))}${t.art === 'Klausur' ? ' · Klausur' : ''} ${marke}</a>`;
 }
@@ -162,7 +166,7 @@ AKTIONEN['ical-laden'] = () => {
   termineVon(kurse, u.id).forEach(t => ev.push(['BEGIN:VEVENT', `UID:termin-${t.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`, `DTSTART:${z(t.beginn)}`, `DTEND:${z(t.ende)}`,
     `SUMMARY:${txt(kursName(t.kurs_id) + (t.art === 'Klausur' ? ' (Klausur)' : ''))}`, `LOCATION:${txt(raumName(t))}`, `STATUS:${t.status === 'ausgefallen' ? 'CANCELLED' : 'CONFIRMED'}`,
     ...(t.hinweis ? [`DESCRIPTION:${txt(t.hinweis)}`] : []), 'END:VEVENT']));
-  if (u.rolle === 'studierend') pruefungenVon(kurse).filter(p => p.mit_upload).forEach(p => ev.push(['BEGIN:VEVENT', `UID:frist-${p.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`,
+  if (u.rolle === 'studierend') pruefungenVon(kurse, u.id).filter(p => p.mit_upload).forEach(p => ev.push(['BEGIN:VEVENT', `UID:frist-${p.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`,
     `DTSTART:${z(new Date(D(p.frist) - 30 * 6e4).toISOString())}`, `DTEND:${z(p.frist)}`, `SUMMARY:${txt('Abgabefrist ' + kursName(p.kurs_id))}`, `DESCRIPTION:${txt(p.titel)}`, 'END:VEVENT']));
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Online-Campus//Prototyp//DE', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Online-Campus', ...ev.flat(), 'END:VCALENDAR'].join('\r\n');
   herunterladen('online-campus-stundenplan.ics', ics, 'text/calendar');
@@ -171,14 +175,14 @@ AKTIONEN['ical-laden'] = () => {
 };
 
 // ---------- Module ----------
-function naechsteFrist(kid) { const p = db.pruefung.filter(x => x.kurs_id === kid && D(x.frist) > new Date()).sort((a, b) => D(a.frist) - D(b.frist))[0]; return p ? D(p.frist) : null; }
+function naechsteFrist(kid) { const p = pruefungenVon([kid], ich().id).filter(x => D(x.frist) > new Date())[0]; return p ? D(p.frist) : null; }
 function sModule() {
   const u = ich();
   // Nach der nächsten Frist sortiert, nicht alphabetisch (Idee aus der ersten Sitemap)
   const kurse = kurseVon(u.id).sort((a, b) => (naechsteFrist(a.id) || Infinity) - (naechsteFrist(b.id) || Infinity));
   return `${kopfzeile('Module', `${esc(aktSem().bezeichnung)} · sortiert nach der nächsten Frist · <a href="#/leistungen">frühere Semester im Studienverlauf</a>`)}
   <div class="raster raster-2">${kurse.map(k => {
-    const m = modulVon(k), p = db.pruefung.find(x => x.kurs_id === k.id), s = p ? statusVon(p, u.id) : null;
+    const m = modulVon(k), p = persPruefung(db.pruefung.find(x => x.kurs_id === k.id), u.id), s = p ? statusVon(p, u.id) : null;
     const c = p && D(p.frist) > new Date() ? countdown(p.frist) : null;
     const nt = termineVon([k.id]).find(t => D(t.ende) > new Date() && t.status !== 'ausgefallen');
     const neuMat = db.material.filter(x => x.kurs_id === k.id && tagDiff(x.sichtbar_ab) >= -7 && D(x.sichtbar_ab) <= new Date()).length;
@@ -197,7 +201,7 @@ function sModule() {
 function sModul(kid, tab) {
   const u = ich(), k = byId('kurs', kid);
   if (!k || !kurseVon(u.id, true).some(x => x.id === kid)) throw new Error('kein Zugriff');
-  const m = modulVon(k), lehr = lehrendeVon(kid), p = db.pruefung.find(x => x.kurs_id === kid);
+  const m = modulVon(k), lehr = lehrendeVon(kid), p = persPruefung(db.pruefung.find(x => x.kurs_id === kid), u.id);
   const frueher = k.semester_id !== aktSem().id;
   const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis']];
   const inhalt = {
@@ -207,9 +211,9 @@ function sModul(kid, tab) {
       <section class="karte"><h2>Prüfung</h2>${p ? `<p><b>${esc(p.art)}</b>: ${esc(p.titel)}</p><p class="klein leise">${p.mit_upload ? 'Abgabe' : 'Termin'} ${fmtDatum(p.frist)}, ${fmtZeit(p.frist)} Uhr</p><a class="knopf klein" href="#/module/${kid}/${p.mit_upload ? 'abgabe' : 'pruefung'}">${p.mit_upload ? 'Zur Abgabe' : 'Details'}</a>` : '<p class="leise">Keine Prüfung hinterlegt</p>'}</section>
       <section class="karte"><h2>Nächster Termin</h2>${(() => { const t = termineVon([kid]).find(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); return t ? terminGross(t) : '<p class="leise">Keine weiteren Termine</p>'; })()}</section>
     </div>`,
-    termine: () => `<section class="karte"><div class="tabelle-huelle"><table><thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Art</th><th>Status</th></tr></thead><tbody>
+    termine: () => `<section class="karte"><div class="tabelle-huelle"><table><thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Art</th><th>Status</th><th></th></tr></thead><tbody>
       ${termineVon([kid]).map(t => `<tr style="${D(t.ende) < new Date() ? 'opacity:.55' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>` : 'Online'}</td><td>${esc(t.art)}</td>
-      <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '<span class="leise klein">wie geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td></tr>`).join('')}
+      <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '<span class="leise klein">wie geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td><td style="text-align:right">${D(t.ende) > new Date() ? konferenzKnopf(t) : ''}</td></tr>`).join('')}
       </tbody></table></div></section>`,
     materialien: () => materialListe(kid, false),
     pruefung: () => p ? `<section class="karte"><h2>${esc(p.titel)}</h2>
@@ -359,12 +363,13 @@ FORMULARE.abgabe = async (form, fd) => {
     [u.id, ...fd.getAll('mitglied')].forEach(s => db.abgabe_mitglied.push({ abgabe_id: a.id, student_id: s }));
   }
   const datei = { id: 'd' + (db.datei.length + 1) + '-' + Date.now(), dateiname: f.name, mime_typ: f.type || 'application/octet-stream', groesse_bytes: f.size, sha256: hash, hochgeladen_von: u.id, hochgeladen_am: jetzt };
-  datei.ohne_inhalt = !(f.size <= MAX_GESPEICHERT && await inhaltSpeichern(datei.id, f));
+  const lesende = [...new Set([...mitgliederVon(a.id), ...lehrendeVon(p.kurs_id).map(l => l.id), ...db.user.filter(x => x.rolle === 'verwaltung').map(x => x.id)])];
+  datei.ohne_inhalt = !(f.size <= MAX_GESPEICHERT && await inhaltSpeichern(datei.id, f, lesende));
   db.datei.push(datei);
   const version = { id: nextId('abgabeversion'), abgabe_id: a.id, nummer: versionenVon(a.id).length + 1, datei_id: datei.id, hochgeladen_am: jetzt };
   db.abgabeversion.push(version);
   // Serverzeit entscheidet über „verspätet“, nicht der Browser (Regel 2 im Konzept)
-  Object.assign(a, { status: 'eingereicht', eingereicht_am: jetzt, verspaetet: D(jetzt) > D(p.frist), erklaerung_am: jetzt });
+  Object.assign(a, { status: 'eingereicht', eingereicht_am: jetzt, verspaetet: D(jetzt) > D(fristFuer(p, u.id)), erklaerung_am: jetzt });
   sende({ anlass: 'eingang', titel: `Abgabe eingegangen: ${kursName(kid)}`, text: `Version ${version.nummer}, ${f.name}, ${fmtDatum(jetzt)} ${fmtZeit(jetzt)} Uhr. Prüfsumme ${hash.slice(0, 12)}…`, kurs_id: kid, pruefung_id: p.id, empfaenger: mitgliederVon(a.id) });
   letzteBestaetigung = { pid: p.id, versionId: version.id };
   speichern();
@@ -406,10 +411,13 @@ function ectsStand(uid) {
       if (n.wert <= 4) { if (n.bestaetigt_am) endgueltig += m.ects; else vorlaeufig += m.ects; }
     });
   });
+  db.anerkennung.filter(a => a.user_id === uid).forEach(a => { const m = byId('modul', a.modul_id); endgueltig += m.ects; summe += a.wert * m.ects; gewichte += m.ects; });
   return { gesamt: ges, endgueltig, vorlaeufig, schnitt: gewSem ? summeSem / gewSem : null, schnittGesamt: gewichte ? summe / gewichte : null };
 }
 // Stand eines Moduls im Studienverlauf
 function modulStand(m, uid) {
+  const an = db.anerkennung.find(a => a.user_id === uid && a.modul_id === m.id);
+  if (an) return { kl: 'm-gut', text: `${noteFmt(an.wert)} · anerkannt` };
   const k = kurseVon(uid, true).find(x => x.modul_id === m.id);
   if (!k) return { kl: '', text: 'geplant' };
   const p = db.pruefung.find(x => x.kurs_id === k.id), n = p && noteVon(p.id, uid);
@@ -441,7 +449,7 @@ function studienverlauf(u) {
 }
 function sLeistungen() {
   const u = ich(), kurse = kurseVon(u.id).map(k => k.id), st = ectsStand(u.id);
-  const ps = pruefungenVon(kurse);
+  const ps = pruefungenVon(kurse, u.id);
   const offen = ps.filter(p => ['offen', 'eingereicht', 'klausur'].includes(statusVon(p, u.id).code)).length;
   return `${kopfzeile('Leistungen', 'Prüfungen dieses Semesters, Noten und der ganze Studienverlauf.')}
   <div class="raster raster-3">
@@ -482,7 +490,7 @@ AKTIONEN.bescheinigung = el => {
 // ---------- Service ----------
 function sService(tab, q) {
   const s = db.service;
-  const reiter = [['lageplan', 'Lageplan und Räume'], ['kontakt', 'Ansprechpersonen'], ['wissenschaft', 'Wissenschaftliches Arbeiten'], ['formulare', 'Formulare und FAQ']];
+  const reiter = [['lageplan', 'Lageplan und Räume'], ['kontakt', 'Ansprechpersonen'], ['wissenschaft', 'Wissenschaftliches Arbeiten'], ['formulare', 'Formulare und FAQ'], ['antraege', 'Meine Anträge']];
   const aktivRaum = Number(q.get('raum')) || null;
   const inhalt = {
     lageplan: () => `<div class="raster raster-2">
@@ -505,7 +513,7 @@ function sService(tab, q) {
         <li class="zeile dazwischen"><span>${I('datei')} Leitfaden Zitieren (APA 7)</span><button class="knopf klein" data-action="platzhalter" data-text="Der Leitfaden liegt im Modul Praxistransfer 1 unter Materialien (Studienverlauf, 1. Semester).">${I('download')} Laden</button></li>
       </ul></section></div>`,
     formulare: () => `<div class="raster raster-2">
-      <section class="karte"><h2>Formulare</h2><ul class="liste">${s.formulare.map(f => `<li class="zeile dazwischen"><span>${esc(f)}</span><button class="knopf klein" data-action="platzhalter" data-text="Im fertigen Campus öffnet sich hier ein Online-Antrag, der direkt beim Studienbüro landet.">Online stellen</button></li>`).join('')}</ul></section>
+      <section class="karte"><h2>Online-Anträge</h2><p class="klein leise">Direkt an das Studienbüro, mit PDF-Nachweis. Den Stand siehst du unter <a href="#/service/antraege">Meine Anträge</a>.</p><ul class="liste">${s.formulare.map(k => `<li class="zeile dazwischen" style="flex-wrap:wrap"><span style="flex:1 1 200px"><b>${esc(ANTRAGSARTEN[k].name)}</b><br><span class="klein leise">${esc(ANTRAGSARTEN[k].erklaerung)}</span></span><a class="knopf klein" href="#/service/antrag/${k}">Online stellen</a></li>`).join('')}</ul></section>
       <section class="karte"><h2>Häufige Fragen</h2>${s.faq.map(f => `<details style="border-top:1px solid var(--rand);padding:10px 0"><summary class="fett" style="cursor:pointer">${esc(f.frage)}</summary><p style="margin:8px 0 0">${esc(f.antwort)}</p></details>`).join('')}</section></div>`,
   }[tab];
   if (!inhalt) throw new Error('unbekannter Reiter');
@@ -546,8 +554,8 @@ function profil() {
   <div class="raster raster-2">
     <section class="karte"><h2>Persönliche Daten</h2><div class="tabelle-huelle"><table><tbody>
       <tr><th>Name</th><td>${esc(name(u))}</td></tr><tr><th>E-Mail</th><td>${esc(u.email)}</td></tr><tr><th>Rolle</th><td>${rolleText}</td></tr>
-      ${u.matrikelnummer ? `<tr><th>Matrikelnummer</th><td>${esc(u.matrikelnummer)}</td></tr>` : ''}${g ? `<tr><th>Studiengruppe</th><td>${esc(g.name)} · ${esc(g.standort)}</td></tr>` : ''}
-    </tbody></table></div><p class="klein leise abstand">Name oder Anschrift ändern: <a href="#/service/formulare">Formular Adressänderung</a>.</p></section>
+      ${u.matrikelnummer ? `<tr><th>Matrikelnummer</th><td>${esc(u.matrikelnummer)}</td></tr>` : ''}${u.adresse ? `<tr><th>Anschrift</th><td>${esc(u.adresse.strasse)}, ${esc(u.adresse.plz)} ${esc(u.adresse.ort)}</td></tr>` : ''}${g ? `<tr><th>Studiengruppe</th><td>${esc(g.name)} · ${esc(g.standort)}</td></tr>` : ''}
+    </tbody></table></div><p class="klein leise abstand">Anschrift ändern: <a href="#/service/antrag/adresse">Online-Antrag Adressänderung</a>.</p></section>
     <section class="karte"><h2>Anmeldung und Sicherheit</h2>
       <p class="zeile">${I('schloss')} ${u.rolle === 'studierend' ? 'Anmeldung mit E-Mail und Passwort' : 'Anmeldung mit Passwort und Zwei-Faktor-Code'}</p>
       <div class="zeile" style="flex-wrap:wrap"><button class="knopf" data-action="platzhalter" data-text="Im Prototyp gibt es keine echten Passwörter.">Passwort ändern</button><button class="knopf gefahr" data-action="abmelden">Abmelden</button></div></section>
@@ -596,15 +604,20 @@ function loginAnsicht() {
       <section class="karte"><h2>Anmelden</h2>
         <form data-form="login">
           <label class="feld"><span>E-Mail</span><input name="email" type="email" autocomplete="username" placeholder="vorname.nachname@campus.example" required></label>
-          <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="current-password" placeholder="Im Prototyp beliebig"></label>
+          <label class="feld"><span>Passwort</span><input name="passwort" type="password" autocomplete="current-password" placeholder="${BACKEND.aktiv ? 'Passwort' : 'Im Prototyp beliebig'}"></label>
           <button class="knopf primaer" style="width:100%">Anmelden</button>
           <p class="klein abstand" style="margin-bottom:0"><a href="#" data-action="platzhalter" data-text="Im fertigen Campus kommt hier ein Code per E-Mail, kein Link. Links werden von Mail-Scannern oft schon vorab geöffnet.">Passwort vergessen?</a></p>
         </form></section>
-      <section class="karte"><h2>Oder direkt als …</h2><p class="klein leise">Prototyp: Wähle eine Person, um den Campus aus ihrer Sicht zu sehen.</p>
+      <section class="karte"><h2>Oder direkt als …</h2><p class="klein leise">Prototyp: Wähle eine Person, um den Campus aus ihrer Sicht zu sehen.${BACKEND.aktiv ? ' Alle teilen eine gemeinsame Datenbank: Was eine Person ändert, sehen die anderen sofort.' : ''}</p>
         <div class="raster" style="gap:8px">${personen.map(([id, r, t]) => { const u = byId('user', id); return `<button class="person" data-action="als" data-id="${id}"><span class="avatar">${initialen(u)}</span><span><b>${esc(name(u))}</b> <span class="marke-klein">${r}</span><br><span class="klein leise">${t}</span></span></button>`; }).join('')}</div></section>
     </div></div></div>`;
 }
-FORMULARE.login = (f, fd) => {
+FORMULARE.login = async (f, fd) => {
+  if (BACKEND.aktiv) {
+    try { await BACKEND.auth.signInWithEmailAndPassword(String(fd.get('email')).trim(), String(fd.get('passwort'))); }
+    catch (e) { toast('Anmeldung fehlgeschlagen', ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-login-credentials'].includes(e.code) ? 'E-Mail oder Passwort stimmen nicht.' : e.message); }
+    return;
+  }
   const u = db.user.find(x => x.email.toLowerCase() === String(fd.get('email')).trim().toLowerCase());
   if (!u) { toast('Diese E-Mail kennen wir nicht', 'Beispiel: lena.hoffmann@campus.example'); return; }
   AKTIONEN.als({ dataset: { id: u.id } });

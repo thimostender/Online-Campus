@@ -2,7 +2,7 @@
 // Kern: Speicher, Datenzugriff, Mitteilungen, Router, Layout, Aktionen.
 // Die Ansichten stehen in ansichten.js.
 
-const SPEICHER = 'online-campus-v3';
+const SPEICHER = 'online-campus-v4';
 let db;
 let panelOffen = false;
 let panelFilter = 'alle';
@@ -13,7 +13,7 @@ const mitternacht = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0
 function laden() {
   try {
     const s = JSON.parse(localStorage.getItem(SPEICHER));
-    if (!s || s.version !== 3) return null;
+    if (!s || s.version !== 4) return null;
     // Beispieldaten hängen am Erzeugungstag. An jedem neuen Tag wandern alle Zeitpunkte mit,
     // damit Fristen und Termine passen und eigene Änderungen trotzdem erhalten bleiben.
     const tage = Math.round((mitternacht() - s.stichtag) / 864e5);
@@ -34,7 +34,10 @@ function datumVerschieben(daten, tage) {
     });
   });
 }
-function speichern() { try { localStorage.setItem(SPEICHER, JSON.stringify(db)); } catch { /* egal */ } }
+function speichern() {
+  if (typeof BACKEND !== 'undefined' && BACKEND.aktiv) { backendSpeichern(); return; }
+  try { localStorage.setItem(SPEICHER, JSON.stringify(db)); } catch { /* egal */ }
+}
 function neuAufsetzen(sitzung = null) {
   db = erzeugeDaten(new Date());
   db.stichtag = mitternacht();
@@ -123,6 +126,7 @@ const ANLASS_STIL = {
   frist: { icon: 'uhr', kl: 'm-fehler' },
   material: { icon: 'datei', kl: 'm-info' },
   neuigkeit: { icon: 'megafon', kl: 'm-akzent' },
+  antrag: { icon: 'datei', kl: 'm-akzent' },
 };
 const FARBEN = ['#6d4ae6', '#0e9f6e', '#e0613a', '#2563eb', '#c2410c', '#be185d', '#0891b2'];
 
@@ -132,7 +136,8 @@ const ich = () => db && db.sitzung ? byId('user', db.sitzung) : null;
 const rolle = () => ich()?.rolle;
 const name = u => u ? [u.titel, u.vorname, u.nachname].filter(Boolean).join(' ') : 'Online-Campus';
 const initialen = u => (u.vorname[0] + u.nachname[0]).toUpperCase();
-const nextId = tab => db[tab].reduce((m, x) => Math.max(m, typeof x.id === 'number' ? x.id : 0), 0) + 1;
+// Mit Server kleiner Zufallsabstand, damit zwei Personen gleichzeitig keine gleiche ID vergeben
+const nextId = tab => db[tab].reduce((m, x) => Math.max(m, typeof x.id === 'number' ? x.id : 0), 0) + 1 + (typeof BACKEND !== 'undefined' && BACKEND.aktiv ? Math.floor(Math.random() * 40) : 0);
 
 function gruppeVon(uid) {
   const m = db.gruppenmitglied.find(g => g.user_id === uid && !g.bis);
@@ -166,7 +171,8 @@ function termineVon(kursIds, uid = null) {
   return db.termin.filter(t => kursIds.includes(t.kurs_id) || (uid && t.vertretung_id === uid)).sort((a, b) => D(a.beginn) - D(b.beginn));
 }
 const raumName = t => t.raum_id ? byId('raum', t.raum_id).bezeichnung : 'Online';
-const pruefungenVon = kursIds => db.pruefung.filter(p => kursIds.includes(p.kurs_id)).sort((a, b) => D(a.frist) - D(b.frist));
+// Mit uid: Prüfungen mit der persönlichen Frist (genehmigte Fristverlängerung, siehe antraege.js)
+const pruefungenVon = (kursIds, uid = null) => db.pruefung.filter(p => kursIds.includes(p.kurs_id)).map(p => uid ? persPruefung(p, uid) : p).sort((a, b) => D(a.frist) - D(b.frist));
 const mitgliederVon = aid => db.abgabe_mitglied.filter(m => m.abgabe_id === aid).map(m => m.student_id);
 function abgabeVon(pid, uid) {
   return db.abgabe.find(a => a.pruefung_id === pid && db.abgabe_mitglied.some(m => m.abgabe_id === a.id && m.student_id === uid));
@@ -177,18 +183,22 @@ const noteVon = (pid, uid) => db.note.find(n => n.pruefung_id === pid && n.stude
 function zaehlendeVersion(aid) {
   const p = byId('pruefung', byId('abgabe', aid).pruefung_id);
   const vs = versionenVon(aid);
-  const vorFrist = vs.filter(v => D(v.hochgeladen_am) <= D(p.frist));
+  // Gilt für ein Mitglied eine verlängerte Frist, zählt die späteste
+  const frist = mitgliederVon(aid).map(u => fristFuer(p, u)).sort().at(-1) || p.frist;
+  const vorFrist = vs.filter(v => D(v.hochgeladen_am) <= D(frist));
   return (vorFrist.length ? vorFrist : vs).at(-1);
 }
 function statusVon(p, uid) {
   const n = noteVon(p.id, uid);
   if (n && n.freigegeben_am) return { code: 'bewertet', text: 'Bewertet', kl: 'm-gut' };
-  const vorbei = D(p.frist) < new Date();
+  if (ausnahmeFuer(p.id, uid, 'ruecktritt')) return { code: 'entschuldigt', text: 'Entschuldigt (Attest)', kl: 'm-info' };
+  const original = p.frist_original || p.frist, frist = fristFuer({ ...p, frist: original }, uid), verlaengert = frist !== original;
+  const vorbei = D(frist) < new Date();
   const a = p.mit_upload ? abgabeVon(p.id, uid) : null;
   if (a) return vorbei ? { code: 'korrektur', text: a.verspaetet ? 'In Korrektur · verspätet' : 'In Korrektur', kl: 'm-info' } : { code: 'eingereicht', text: 'Eingereicht · ' + versionenVon(a.id).length + '. Version', kl: 'm-gut' };
   if (!p.mit_upload) return vorbei ? { code: 'korrektur', text: 'In Korrektur', kl: 'm-info' } : { code: 'klausur', text: 'Klausur vor Ort', kl: 'm-akzent' };
   if (vorbei) return { code: 'fehlt', text: 'Nicht abgegeben', kl: 'm-fehler' };
-  return { code: 'offen', text: 'Noch nicht abgegeben', kl: tagDiff(p.frist) <= 7 ? 'm-warn' : '' };
+  return { code: 'offen', text: verlaengert ? `Frist verlängert bis ${fmtDatum(frist)}` : 'Noch nicht abgegeben', kl: tagDiff(frist) <= 7 ? 'm-warn' : '' };
 }
 
 // ---------- Mitteilungen ----------
@@ -200,10 +210,10 @@ function einstellungVon(uid, anlassId) {
   return e;
 }
 // Legt eine Mitteilung an und stellt sie je nach Einstellung der Empfänger zu.
-function sende({ absender = null, anlass, titel, text, kurs_id = null, gruppe_id = null, termin_id = null, pruefung_id = null, empfaenger, wichtig = false }) {
+function sende({ absender = null, anlass, titel, text, kurs_id = null, gruppe_id = null, termin_id = null, pruefung_id = null, empfaenger, wichtig = false, link = null }) {
   const id = nextId('mitteilung');
   const jetzt = new Date().toISOString();
-  db.mitteilung.push({ id, absender_id: absender, anlass, titel, text, kurs_id, gruppe_id, termin_id, pruefung_id, wichtig, erstellt_am: jetzt });
+  db.mitteilung.push({ id, absender_id: absender, anlass, titel, text, kurs_id, gruppe_id, termin_id, pruefung_id, wichtig, link, erstellt_am: jetzt });
   const z = { campus: 0, push: 0, email: 0 };
   [...new Set(empfaenger)].forEach(uid => {
     const e = einstellungVon(uid, anlass);
@@ -230,6 +240,7 @@ function alsGelesen(uid, mid) {
   speichern();
 }
 function zielVon(m) {
+  if (m.link) return m.link;
   const r = rolle();
   if (r !== 'studierend') return m.kurs_id && r === 'lehrend' ? `#/kurse/${m.kurs_id}` : '#/mitteilungen';
   if (!m.kurs_id) return '#/mitteilungen';
@@ -244,9 +255,9 @@ const filtere = (liste, f) => FILTER[f] ? liste.filter(m => FILTER[f].includes(m
 // Simuliert den nächtlichen Server-Job: erinnert an Fristen in den nächsten 7 Tagen ohne Abgabe.
 function fristErinnerungen() {
   db.user.filter(u => u.rolle === 'studierend').forEach(u => {
-    pruefungenVon(kurseVon(u.id).map(k => k.id)).forEach(p => {
+    pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).forEach(p => {
       const tage = tagDiff(p.frist);
-      if (!p.mit_upload || tage < 0 || tage > 7 || abgabeVon(p.id, u.id)) return;
+      if (!p.mit_upload || tage < 0 || tage > 7 || abgabeVon(p.id, u.id) || ausnahmeFuer(p.id, u.id, 'ruecktritt')) return;
       const schon = db.mitteilung.some(m => m.anlass === 'frist' && m.pruefung_id === p.id && db.zustellung.some(z => z.mitteilung_id === m.id && z.empfaenger_id === u.id));
       if (schon) return;
       sende({ anlass: 'frist', titel: `Frist ${relTag(p.frist)}: ${kursName(p.kurs_id)}`, text: `${p.titel}. Abgabe bis ${fmtDatum(p.frist)}, ${fmtZeit(p.frist)} Uhr. Bisher ist nichts hochgeladen.`, kurs_id: p.kurs_id, pruefung_id: p.id, empfaenger: [u.id] });
@@ -263,7 +274,7 @@ function parseHash() {
 const NAV = {
   studierend: [['uebersicht', 'Übersicht', 'home'], ['stundenplan', 'Stundenplan', 'kalender'], ['module', 'Module', 'buch'], ['leistungen', 'Leistungen', 'award'], ['service', 'Service', 'hilfe']],
   lehrend: [['uebersicht', 'Übersicht', 'home'], ['kurse', 'Meine Module', 'buch'], ['korrektur', 'Korrektur', 'stift'], ['stundenplan', 'Stundenplan', 'kalender']],
-  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
+  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['antraege', 'Anträge', 'datei'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
 };
 const BEREICH = { studierend: 'Studierende', lehrend: 'Lehrende', verwaltung: 'Verwaltung' };
 
@@ -292,7 +303,7 @@ function layout(aktiv, inhalt) {
   const u = ich(), r = u.rolle, n = ungelesen(u.id);
   const nav = NAV[r];
   const aktivKey = nav.some(x => x[0] === aktiv) ? aktiv : (aktiv === 'module' ? 'module' : '');
-  const zahlen = { korrektur: r === 'lehrend' ? offeneKorrekturen(u.id) : 0, pruefungsamt: r === 'verwaltung' ? db.note.filter(x => x.freigegeben_am && !x.bestaetigt_am).length : 0 };
+  const zahlen = { korrektur: r === 'lehrend' ? offeneKorrekturen(u.id) : 0, pruefungsamt: r === 'verwaltung' ? db.note.filter(x => x.freigegeben_am && !x.bestaetigt_am).length : 0, antraege: r === 'verwaltung' ? offeneAntraege() : 0 };
   const links = nav.map(([k, t, i]) => `<a href="#/${k}" ${aktivKey === k ? 'aria-current="page"' : ''}>${I(i)}<span>${t}</span>${zahlen[k] ? `<span class="zahl">${zahlen[k]}</span>` : ''}</a>`).join('');
   const unter = nav.slice(0, 5).map(([k, t, i]) => `<a href="#/${k}" ${aktivKey === k ? 'aria-current="page"' : ''}>${I(i)}<span>${t.split(' ')[0]}</span></a>`).join('');
   const g = gruppeVon(u.id);
@@ -380,7 +391,7 @@ document.addEventListener('submit', e => {
   const f = e.target.closest('[data-form]');
   if (!f) return;
   e.preventDefault();
-  FORMULARE[f.dataset.form]?.(f, new FormData(f));
+  FORMULARE[f.dataset.form]?.(f, new FormData(f), e);
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-change]');
@@ -400,8 +411,25 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOffen
 window.addEventListener('hashchange', () => { panelOffen = false; render(); window.scrollTo(0, 0); });
 
 Object.assign(AKTIONEN, {
-  als(el) { db.sitzung = el.dataset.id; letzteBestaetigung = null; assistent.verlauf = []; speichern(); fristErinnerungen(); location.hash = '#/uebersicht'; render(); },
+  async als(el) {
+    letzteBestaetigung = null; assistent.verlauf = [];
+    if (BACKEND.aktiv) {
+      const u = db.user.find(x => x.id === el.dataset.id) || erzeugeDaten().user.find(x => x.id === el.dataset.id);
+      location.hash = '#/uebersicht';
+      zeigeLaden(`Anmeldung als ${name(u)} …`);
+      try { await BACKEND.auth.signInWithEmailAndPassword(u.email, DEMO_PASSWORT); }
+      catch (e) { render(); toast('Anmeldung fehlgeschlagen', e.code === 'auth/operation-not-allowed' ? 'In Firebase ist die Anmeldung mit E-Mail und Passwort noch nicht eingeschaltet.' : e.message); }
+      return;
+    }
+    db.sitzung = el.dataset.id; speichern(); fristErinnerungen(); location.hash = '#/uebersicht'; render();
+  },
   async zuruecksetzen() {
+    if (BACKEND.aktiv) {
+      if (db.sitzung !== 'v1') { toast('Nur als Verwaltung', 'Zurücksetzen löscht die Daten aller. Bitte als Petra Lange anmelden.'); return; }
+      if (!confirm('Alle Daten in der gemeinsamen Datenbank löschen und die Beispieldaten neu schreiben? Das betrifft alle, die gerade den Campus nutzen.')) return;
+      await backendBefuellen().catch(e => toast('Zurücksetzen fehlgeschlagen', e.message));
+      return;
+    }
     if (!confirm('Alle Änderungen und hochgeladenen Dateien verwerfen und die Beispieldaten neu laden?')) return;
     await alleInhalteLoeschen();
     neuAufsetzen(db.sitzung); assistent.verlauf = [];
@@ -422,7 +450,7 @@ Object.assign(AKTIONEN, {
     panelOffen = false;
     if (location.hash === el.getAttribute('href')) render();
   },
-  abmelden() { db.sitzung = null; speichern(); location.hash = ''; render(); },
+  abmelden() { location.hash = ''; if (BACKEND.aktiv) { BACKEND.auth.signOut(); return; } db.sitzung = null; speichern(); render(); },
   'dialog-zu'() { dialogZu(); },
 });
 FORMULARE.suche = (f, fd) => { location.hash = '#/suche?q=' + encodeURIComponent(fd.get('q') || ''); };

@@ -7,6 +7,7 @@ ANSICHTEN.lehrend = (t, q) => {
     case 'kurse': return t[1] ? lKurs(Number(t[1]), t[2] || 'termine') : lKurse();
     case 'korrektur': return t[1] ? lKorrektur(Number(t[1])) : lKorrekturen();
     case 'stundenplan': return stundenplan(q);
+    case 'konferenz': return konferenz(Number(t[1]));
     case 'mitteilungen': return mitteilungenSeite(q);
     case 'profil': return profil();
     case 'suche': return suche(q.get('q') || '');
@@ -16,6 +17,7 @@ ANSICHTEN.lehrend = (t, q) => {
 ANSICHTEN.verwaltung = (t, q) => {
   switch (t[0] || 'uebersicht') {
     case 'uebersicht': return vUebersicht();
+    case 'antraege': return vAntraege(t[1], q);
     case 'gruppen': return vGruppen();
     case 'personen': return vPersonen(q);
     case 'planung': return vPlanung();
@@ -31,7 +33,7 @@ ANSICHTEN.verwaltung = (t, q) => {
 
 // ---------- Lehrende: Hilfen ----------
 function korrekturStand(p) {
-  const studis = studisVon(p.kurs_id);
+  const studis = studisVon(p.kurs_id).filter(u => !ausnahmeFuer(p.id, u, 'ruecktritt'));
   const vorbei = D(p.frist) < new Date();
   const abgegeben = p.mit_upload ? studis.filter(s => abgabeVon(p.id, s)).length : (vorbei ? studis.length : 0);
   const bewertet = studis.filter(s => noteVon(p.id, s)).length;
@@ -55,7 +57,7 @@ function lUebersicht() {
   <div class="raster raster-2">
     <section class="karte"><div class="zeile dazwischen"><h2>Nächste Vorlesungen</h2><a class="klein" href="#/stundenplan">Stundenplan</a></div>
       <ul class="liste">${naechste.map(t => `<li class="zeile dazwischen"><span><b>${esc(kursName(t.kurs_id))}</b>${t.vertretung_id === u.id ? ' <span class="marke-klein m-warn">du vertrittst</span>' : ''}<br><span class="klein leise">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} · ${esc(raumName(t))} · ${esc(byId('studiengruppe', byId('kurs', t.kurs_id).gruppe_id).name)}</span></span>
-        ${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">Ändern</button>`}</li>`).join('') || '<li class="leer">Keine Termine</li>'}</ul></section>
+        <span class="zeile" style="gap:6px">${konferenzKnopf(t)}${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">Ändern</button>`}</span></li>`).join('') || '<li class="leer">Keine Termine</li>'}</ul></section>
     <section class="karte"><div class="zeile dazwischen"><h2>Offene Korrekturen</h2><a class="klein" href="#/korrektur">Alle</a></div>
       <ul class="liste">${korr.map(({ p, s }) => `<li><a href="#/korrektur/${p.id}" class="zeile dazwischen" style="color:var(--text);text-decoration:none"><span><b>${esc(kursName(p.kurs_id))}</b><br><span class="klein leise">${esc(p.art)} · Frist ${fmtDatum(p.frist)}</span></span>
         <span class="marke-klein ${s.bewertet < s.abgegeben ? 'm-warn' : 'm-info'}">${s.bewertet < s.abgegeben ? `${s.bewertet} von ${s.abgegeben} bewertet` : `${s.bewertet - s.frei} bereit zur Freigabe`}</span></a></li>`).join('') || '<li class="leer">Nichts offen</li>'}</ul></section>
@@ -95,7 +97,7 @@ function lKurs(kid, tab) {
       <thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>
       ${termineVon([kid]).map(t => { const vorbei = D(t.ende) < new Date(); return `<tr style="${vorbei ? 'opacity:.5' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${esc(raumName(t))}</td>
         <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : '<span class="klein leise">geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td>
-        <td style="text-align:right">${vorbei ? '' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">${I('stift')} Ändern</button>`}</td></tr>`; }).join('')}
+        <td style="text-align:right;white-space:nowrap">${vorbei ? '' : `${konferenzKnopf(t)} <button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">${I('stift')} Ändern</button>`}</td></tr>`; }).join('')}
       </tbody></table></div></section>`,
     materialien: () => `<section class="karte"><h2>Material hochladen</h2>
       <form data-form="material" data-kid="${kid}" class="raster raster-2" style="align-items:end">
@@ -185,7 +187,7 @@ FORMULARE.material = async (f, fd) => {
   const u = ich(), kid = Number(f.dataset.kid), datei = fd.get('datei');
   const jetzt = new Date().toISOString(), ab = fd.get('ab') ? new Date(fd.get('ab')).toISOString() : jetzt;
   const d = { id: 'd' + (db.datei.length + 1) + '-' + Date.now(), dateiname: datei.name, mime_typ: datei.type || 'application/octet-stream', groesse_bytes: datei.size, sha256: (await sha256(datei)) || pseudoHash(datei.name + jetzt), hochgeladen_von: u.id, hochgeladen_am: jetzt };
-  d.ohne_inhalt = !(datei.size <= MAX_GESPEICHERT && await inhaltSpeichern(d.id, datei));
+  d.ohne_inhalt = !(datei.size <= MAX_GESPEICHERT && await inhaltSpeichern(d.id, datei, null));
   db.datei.push(d);
   const mat = { id: nextId('material'), kurs_id: kid, datei_id: d.id, titel: fd.get('titel'), sichtbar_ab: ab, text_status: 'wird ausgelesen' };
   db.material.push(mat);
@@ -248,9 +250,10 @@ function lKorrektur(pid) {
   ${studis.map(x => {
     const a = p.mit_upload ? abgabeVon(pid, x.id) : null, n = noteVon(pid, x.id);
     const v = a ? zaehlendeVersion(a.id) : null, d = v ? byId('datei', v.datei_id) : null;
-    const abgabeTxt = !p.mit_upload ? '<span class="klein leise">Klausur</span>' : a ? (a.verspaetet ? '<span class="marke-klein m-fehler">verspätet</span>' : '<span class="marke-klein m-gut">pünktlich</span>') + (mitgliederVon(a.id).length > 1 ? `<br><span class="klein leise">Gruppe: ${mitgliederVon(a.id).map(y => esc(byId('user', y).vorname)).join(', ')}</span>` : '') : s.vorbei ? '<span class="marke-klein m-fehler">fehlt</span>' : '<span class="klein leise">noch nicht</span>';
+    const abgabeTxt = rt ? '<span class="marke-klein m-info">entschuldigt (Attest)</span>' : (fx !== p.frist ? `<span class="marke-klein m-warn">Frist bis ${fmtDatum(fx)}</span><br>` : '') + (!p.mit_upload ? '<span class="klein leise">Klausur</span>' : a ? (a.verspaetet ? '<span class="marke-klein m-fehler">verspätet</span>' : '<span class="marke-klein m-gut">pünktlich</span>') + (mitgliederVon(a.id).length > 1 ? `<br><span class="klein leise">Gruppe: ${mitgliederVon(a.id).map(y => esc(byId('user', y).vorname)).join(', ')}</span>` : '') : D(fx) < new Date() ? '<span class="marke-klein m-fehler">fehlt</span>' : '<span class="klein leise">noch nicht</span>');
     // Regel: bewertet wird erst nach der Frist, dann stehen alle Versionen fest
-    const kannBewerten = s.vorbei && (p.mit_upload ? !!a : true) && !(n && n.freigegeben_am);
+    const rt = ausnahmeFuer(pid, x.id, 'ruecktritt'), fx = fristFuer(p, x.id);
+    const kannBewerten = !rt && D(fx) < new Date() && (p.mit_upload ? !!a : true) && !(n && n.freigegeben_am);
     return `<tr><td><b>${esc(name(x))}</b><br><span class="klein leise">${esc(x.matrikelnummer)}</span></td><td>${abgabeTxt}</td>
       <td>${d ? `<a href="#" data-action="datei-laden" data-id="${d.id}">${esc(d.dateiname)}</a><br><span class="klein leise">V${v.nummer} · ${bytes(d.groesse_bytes)} · ${fmtDatum(v.hochgeladen_am)}, ${fmtZeit(v.hochgeladen_am)}</span>` : '<span class="leise">–</span>'}</td>
       <td>${n ? `<span class="note">${noteFmt(n.wert)}</span> <span class="marke-klein ${n.bestaetigt_am ? 'm-gut' : n.freigegeben_am ? 'm-info' : 'm-warn'}">${n.bestaetigt_am ? 'endgültig' : n.freigegeben_am ? 'freigegeben' : 'Entwurf'}</span>` : '<span class="leise">–</span>'}</td>

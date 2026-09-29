@@ -15,7 +15,8 @@ function dbOeffnen() {
     r.onerror = () => fehler(r.error);
   });
 }
-async function inhaltSpeichern(id, blob) {
+async function inhaltSpeichern(id, blob, leser) {
+  if (typeof BACKEND !== 'undefined' && BACKEND.aktiv) { try { return await backendInhaltSpeichern(id, blob, leser === undefined ? leserFuerDatei(id) : leser); } catch (e) { console.error(e); return false; } }
   try {
     const d = await dbOeffnen();
     await new Promise((ok, fehler) => { const tx = d.transaction(DATEISPEICHER.store, 'readwrite'); tx.objectStore(DATEISPEICHER.store).put(blob, id); tx.oncomplete = ok; tx.onerror = () => fehler(tx.error); });
@@ -23,12 +24,25 @@ async function inhaltSpeichern(id, blob) {
   } catch { return false; }
 }
 async function inhaltLaden(id) {
+  if (typeof BACKEND !== 'undefined' && BACKEND.aktiv) { try { return await backendInhaltLaden(id); } catch (e) { console.error(e); return null; } }
   try {
     const d = await dbOeffnen();
     return await new Promise((ok, fehler) => { const r = d.transaction(DATEISPEICHER.store).objectStore(DATEISPEICHER.store).get(id); r.onsuccess = () => ok(r.result || null); r.onerror = () => fehler(r.error); });
   } catch { return null; }
 }
+// Wer den Inhalt einer Datei lesen darf: Material alle, Abgaben Mitglieder + Lehrende + Verwaltung, Anhänge Antragstellende + Verwaltung
+function leserFuerDatei(id) {
+  const verwaltung = db.user.filter(u => u.rolle === 'verwaltung').map(u => u.id);
+  if (db.material.some(m => m.datei_id === id)) return null;
+  const v = db.abgabeversion.find(x => x.datei_id === id);
+  if (v) { const a = byId('abgabe', v.abgabe_id), p = byId('pruefung', a.pruefung_id); return [...new Set([...mitgliederVon(a.id), ...lehrendeVon(p.kurs_id).map(l => l.id), ...verwaltung])]; }
+  const an = db.antrag.find(x => x.datei_id === id);
+  if (an) return [an.antragsteller_id, ...verwaltung];
+  const d = byId('datei', id);
+  return d ? [...new Set([d.hochgeladen_von, ...verwaltung])] : null;
+}
 async function alleInhalteLoeschen() {
+  if (typeof BACKEND !== 'undefined' && BACKEND.aktiv) return;
   try { const d = await dbOeffnen(); await new Promise(ok => { const tx = d.transaction(DATEISPEICHER.store, 'readwrite'); tx.objectStore(DATEISPEICHER.store).clear(); tx.oncomplete = ok; tx.onerror = ok; }); } catch { /* egal */ }
 }
 

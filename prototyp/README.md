@@ -8,14 +8,17 @@ Reines HTML, CSS und JavaScript, ohne Build-Schritt.
 
 ## Starten
 
-- **Mit lokalem Server (empfohlen):** `node server.mjs`, dann http://localhost:4180 öffnen.
-- **Ohne Server:** `index.html` doppelklicken. Alles funktioniert. Nur das Auslesen hochgeladener PDFs für den Assistenten kann je nach Browser eingeschränkt sein.
-- **Mit Claude als Assistent:** siehe unten.
-- **Online:** Den Ordner auf GitHub Pages oder Netlify stellen.
+- **Online:** https://thimostender.github.io/Online-Campus/, mit gemeinsamer Datenbank (Firebase).
+- **Lokal:** `node server.mjs`, dann http://localhost:4180. Nutzt dieselbe Datenbank.
+- **Ohne Server:** http://localhost:4180/?lokal oder `index.html` doppelklicken und `?lokal` anhängen. Dann liegt alles nur im eigenen Browser.
 
-Oben in der dunklen Leiste wechselt ihr zwischen drei Sichten (Studierende, Lehrende, Verwaltung).
-„Daten zurücksetzen“ lädt die Beispieldaten neu, das empfiehlt sich vor jeder Vorführung. Eigene Änderungen
-bleiben sonst erhalten, auch über Nacht: Alle Termine und Fristen wandern jeden Tag mit, damit sie zum Datum passen.
+### Gemeinsame Datenbank und Demo-Konten
+
+Alle nutzen dieselbe Datenbank in Firebase (Projekt `online-campus-mit`, Region EU). Ändert Prof. Brandt einen Termin, sieht Lena das in ihrem Browser sofort, ohne neu zu laden. Wer die Benachrichtigungen des Browsers erlaubt, bekommt auch eine echte Push-Nachricht.
+
+Oben in der dunklen Leiste meldet ihr euch mit einem Klick als eine der fiktiven Personen an. Über das Anmeldeformular geht es auch, mit der E-Mail der Person (zum Beispiel `lena.hoffmann@campus.example`) und dem Demo-Passwort **`Campus-d945cc52-Demo`**. Das Passwort ist absichtlich öffentlich: Es gibt nur ausgedachte Personen und Beispieldaten. Tragt deshalb **keine echten personenbezogenen Daten** ein.
+
+**Daten zurücksetzen** geht nur als Petra Lange (Verwaltung) und löscht die Änderungen aller. Termine und Fristen werden dabei auf den heutigen Tag neu berechnet. Das empfiehlt sich vor jeder Präsentation.
 
 ## Vorführung in 7 Minuten
 
@@ -29,6 +32,10 @@ bleiben sonst erhalten, auch über Nacht: Alle Termine und Fristen wandern jeden
    - *Termine:* einen Termin anlegen. Die Raumkonflikt-Prüfung meldet sich, und die Gruppe wird benachrichtigt.
 7. **Dr. Petersen (Login j.petersen@campus.example) › Korrektur › Grundlagen Recht:** bewerten, „Alle Dateien als ZIP“, Noten freigeben. Bei der Social-Media-Hausarbeit ist das Bewerten gesperrt, bis die Frist abgelaufen ist.
 8. **Petra Lange (Verwaltung):** im Prüfungsamt Noten bestätigen, danach steht bei Lena „endgültig“. Unter Stundenplanung Termine für alle Kurse anlegen und ändern, unter Service-Inhalte Ansprechpersonen und FAQ pflegen.
+9. **Online-Antrag:** Lena stellt unter Service › Formulare eine Fristverlängerung mit PDF-Attest. Petra Lange genehmigt sie unter Anträge. Danach hat nur Lena die neue Frist, und der Bescheid lässt sich als PDF laden.
+10. **Online-Vorlesung:** Bei einem Online-Termin (zum Beispiel der Ringvorlesung) auf „Jetzt beitreten“ bzw. als Lehrende „Online-Raum starten“ klicken. Es öffnet sich eine Jitsi-Konferenz direkt im Campus.
+
+**Zum Zusammenspiel zeigen:** Zwei Browserfenster nebeneinander öffnen, eines privat, links als Prof. Brandt und rechts als Lena. Ändert links einen Termin, dann erscheint die Mitteilung rechts sofort.
 
 ## Der Hilfe-Assistent
 
@@ -54,8 +61,29 @@ bleiben sonst erhalten, auch über Nacht: Alle Termine und Fristen wandern jeden
 | `assistent.js` | Hilfe-Assistent: persönliche Antworten, Suche, Oberfläche, Anschluss an ein Sprachmodell |
 | `ansichten-studierende.js` | Übersicht, Stundenplan, Module, Abgabe, Leistungen und Studienverlauf mit Schwerpunkt, Service, Profil, Suche, Login |
 | `ansichten-personal.js` | Lehrende (Termine, Material, Prüfungen, Korrektur, ZIP) und Verwaltung (Planung, Prüfungsamt, Mitteilungen, Inhalte) |
+| `backend.js` | Firebase: Anmeldung, Laden mit Echtzeit-Abos, Speichern der Änderungen, Dateien, Befüllen mit Beispieldaten |
+| `antraege.js` | Online-Anträge: Formulare, Meine Anträge, Posteingang der Verwaltung, Wirkungen |
+| `konferenz.js` | Videokonferenz mit Jitsi Meet, Technik-Test |
 | `server.mjs` / `server-assistent-beispiel.mjs` | lokaler Server, einmal ohne, einmal mit Claude |
 | `vendor/` | pdf.js 3.11 (Apache-Lizenz), lokal, damit die Vorführung ohne Internet läuft |
+
+## Online-Anträge
+
+| Antrag | Nachweis | Wirkung bei Genehmigung |
+|---|---|---|
+| Fristverlängerung | PDF freiwillig | neue Frist nur für diese Person, auch in Korrektur und ZIP berücksichtigt |
+| Attest bei Prüfungsunfähigkeit | PDF Pflicht | Prüfung gilt als entschuldigt, kein Fehlversuch |
+| Anerkennung von Leistungen | PDF Pflicht | Modul wird mit Note und ECTS angerechnet |
+| Reservierung Schnittplatz | – | Reservierung im Stundenplan, vorher Prüfung auf Belegung |
+| Adressänderung | – | neue Anschrift im Profil |
+
+Eine Ablehnung braucht eine Begründung. Die Person bekommt eine Mitteilung, den Stand sieht sie unter Service › Meine Anträge, den Bescheid kann sie als PDF laden.
+
+## Videokonferenz (Jitsi Meet)
+
+Jeder Online-Termin hat einen eigenen, nicht erratbaren Raum auf `meet.jit.si`. Studierende kommen ab 15 Minuten vor Beginn hinein, Lehrende jederzeit. Vorher lassen sich Kamera und Mikrofon testen.
+
+**Einschränkungen des kostenlosen Servers:** Eingebettete Konferenzen enden nach 5 Minuten, im eigenen Tab („In eigenem Tab öffnen“) gibt es keine Grenze. Die erste Person im Raum muss sich bei Jitsi anmelden (Google, GitHub oder Facebook) und wird Moderator. Für den echten Betrieb bräuchte es einen eigenen Jitsi-Server oder ein JaaS-Konto; im Code ist dann nur `JITSI_DOMAIN` in `konferenz.js` zu ändern.
 
 ## Was echt ist und was simuliert
 
@@ -66,11 +94,13 @@ bleiben sonst erhalten, auch über Nacht: Alle Termine und Fristen wandern jeden
 - Termine anlegen und ändern mit Raumkonflikt-Prüfung, Benachrichtigungs-Einstellungen je Anlass und Kanal.
 - Kalenderdatei (.ics), Word-Vorlagen (.rtf), Bescheinigungen, Textauslese und Suche des Assistenten.
 
-**Simuliert:**
-- Anmeldung: Jedes Passwort geht.
-- E-Mail und Push werden nur gezählt und protokolliert.
+**Echt, mit Server:** Anmeldung (Firebase Authentication), gemeinsame Datenbank mit Echtzeit-Aktualisierung (Firestore), Zugriffsrechte als Sicherheitsregeln (`../firebase/firestore.rules`), Online-Anträge, Videokonferenz, Browser-Benachrichtigungen.
+
+**Vereinfacht:**
+- E-Mails werden nur protokolliert (Zustellprotokoll der Verwaltung), weil die Demo-Adressen erfunden sind.
+- Dateien liegen in Stücken in Firestore statt in einem Dateispeicher. Das geht bis 15 MB je Datei, größere werden nur als Metadaten gespeichert. Ein echter Dateispeicher (Firebase Storage) bräuchte den Blaze-Tarif.
+- Metadaten von Abgaben (Dateiname, Zeitpunkt) sind für alle Angemeldeten lesbar, die Inhalte nur für die Berechtigten.
 - Die Übertragung in Teilen ist nur ein Fortschrittsbalken.
-- Alles liegt im Browser (localStorage und IndexedDB). Dateien über 300 MB werden nur als Metadaten gespeichert.
 
 ## Für die Umsetzung im nächsten Semester
 

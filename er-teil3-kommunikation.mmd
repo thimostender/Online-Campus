@@ -8,6 +8,7 @@ erDiagram
     int kurs_id FK "leer = nicht kursbezogen"
     int gruppe_id FK "leer = an alle"
     int termin_id FK "bei Terminänderung"
+    string link "Ziel beim Antippen"
     string anlass "Neuigkeit, Änderung, Note, Frist"
     string titel
     string text
@@ -27,16 +28,16 @@ erDiagram
     bool aktiv
   }
   USER {
-    uuid id PK "Details in Teil 1"
+    uuid id PK "Details in Teil 1 oder 2"
   }
   KURS {
-    int id PK "Details in Teil 1"
+    int id PK "Details in Teil 1 oder 2"
   }
   STUDIENGRUPPE {
-    int id PK "Details in Teil 1"
+    int id PK "Details in Teil 1 oder 2"
   }
   TERMIN {
-    int id PK "Details in Teil 1"
+    int id PK "Details in Teil 1 oder 2"
   }
   USER ||--o{ MITTEILUNG : "verfasst"
   KURS |o--o{ MITTEILUNG : "betrifft"

@@ -17,7 +17,7 @@ flowchart LR
   M --> M1["Modulliste<br/>nach nächster Frist sortiert"]
   M1 --> MS["Modulseite"]
   MS --> MS1["Überblick<br/>Lehrende · ECTS · Inhalt"]
-  MS --> MS2["Termine"]
+  MS --> MS2["Termine<br/>Online: Videokonferenz (Jitsi)"]
   MS --> MS3["Materialien"]
   MS --> MS4["Prüfung<br/>Art · Frist · Anforderungen"]
   MS --> MS5["Abgabe<br/>Upload · Versionen · Eingangsbestätigung"]
@@ -34,7 +34,8 @@ flowchart LR
   SV --> SV2["Ansprechpersonen"]
   SV --> SV3["Wissenschaftliches Arbeiten"]
   SV3 --> SV3a["Vorlagen zum Herunterladen"]
-  SV --> SV4["Formulare und FAQ"]
+  SV --> SV4["Online-Anträge und FAQ<br/>mit PDF-Nachweis"]
+  SV --> SV5["Meine Anträge<br/>Status · Bescheid als PDF"]
 
   C -.-> K["Kopfzeile, immer sichtbar"]
   K -.-> MI["Glocke: Mitteilungen"]
@@ -58,5 +59,5 @@ flowchart LR
   class C root
   class U,SP,M,LE,SV main
   class MS,M1,SV3 sub
-  class U1,U2,U3,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,LOGIN fn
+  class U1,U2,U3,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,SV5,LOGIN fn
   class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI,AS,AS1,AS2 head
