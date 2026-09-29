@@ -38,6 +38,11 @@ Oben in der dunklen Leiste meldet ihr euch mit einem Klick als eine der fiktiven
 11. **Übersicht anpassen:** Auf der Übersicht „Übersicht anpassen“ klicken. Karten per Ziehen oder Pfeilen umsortieren, auf „Breit“ stellen, ausblenden oder weitere Karten einblenden (Die nächsten 7 Tage, Letzte Noten, Meine Anträge, Schnellzugriff, Frag den Assistenten). Die Anordnung gilt auf allen Geräten der Person.
 12. **Monatsansicht:** Stundenplan › Monat. Blättern mit den Pfeilen, ein Klick auf einen Tag zeigt dessen Einträge darunter. Auf dem Handy erscheinen die Einträge als farbige Punkte.
 
+13. **Evaluation:** Als Lena in der Ringvorlesung den Reiter „Evaluation“ öffnen, die Hälfte der Termine ist vorbei. Anonym, einmal je Modul. Prof. Brandt sieht unter Meine Module › Ringvorlesung › Evaluation die Ergebnisse, weil mindestens 3 Rückmeldungen vorliegen. Petra Lange sieht unter „Evaluationen“ den Rücklauf aller Module.
+14. **Umfrage:** Prof. Brandt startet unter Grundlagen Marketing › Umfragen eine Umfrage, Lena stimmt im Modul unter „Umfragen“ ab. Die Ergebnisse erscheinen live.
+15. **Chat:** In jedem Modul der Reiter „Chat“ für Lehrende und Studierende. Nachrichten erscheinen sofort bei allen.
+16. **Lageplan und 3D:** Service › Lageplan mit allen vier Geschossen. „Weg in 3D ablaufen“ startet einen Rundgang aus Ich-Perspektive mit Pfeilen zum Raum: Maus und W A S D, am Treppenhaus E für das Geschoss, auf dem Handy mit dem Finger.
+
 **Zum Zusammenspiel zeigen:** Zwei Browserfenster nebeneinander öffnen, eines privat, links als Prof. Brandt und rechts als Lena. Ändert links einen Termin, dann erscheint die Mitteilung rechts sofort.
 
 ## Der Hilfe-Assistent
@@ -67,6 +72,8 @@ Oben in der dunklen Leiste meldet ihr euch mit einem Klick als eine der fiktiven
 | `backend.js` | Firebase: Anmeldung, Laden mit Echtzeit-Abos, Speichern der Änderungen, Dateien, Befüllen mit Beispieldaten |
 | `antraege.js` | Online-Anträge: Formulare, Meine Anträge, Posteingang der Verwaltung, Wirkungen |
 | `konferenz.js` | Videokonferenz mit Jitsi Meet, Technik-Test |
+| `beteiligung.js` | Evaluation (anonym, einmal je Modul, ab der Hälfte der Termine), Umfragen, Chat im Modul |
+| `gebaeude.js` | Gebäude mit vier Geschossen: 2D-Lageplan je Geschoss und 3D-Rundgang (three.js) mit Wegführung |
 | `uebersicht.js` | Personalisierbare Übersicht: Kartenbaukasten je Rolle, Anpassen, Ziehen und Ablegen |
 | `server.mjs` / `server-assistent-beispiel.mjs` | lokaler Server, einmal ohne, einmal mit Claude |
 | `vendor/` | pdf.js 3.11 (Apache-Lizenz), lokal, damit die Vorführung ohne Internet läuft |

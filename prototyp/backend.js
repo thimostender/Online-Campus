@@ -25,8 +25,10 @@ const SCHLUESSEL = {
   zustellung: r => `${r.mitteilung_id}_${r.empfaenger_id}_${r.kanal}`,
   schwerpunkt_wahl: r => r.user_id,
   pruefung_ausnahme: r => `${r.pruefung_id}_${r.student_id}_${r.art}`,
+  evaluation_teilnahme: r => `${r.kurs_id}_${r.student_id}`,
+  umfrage_teilnahme: r => `${r.umfrage_id}_${r.student_id}`,
 };
-const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung'];
+const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung', 'evaluation_teilnahme', 'evaluation_antwort', 'umfrage', 'umfrage_teilnahme', 'umfrage_stimme', 'chat_nachricht'];
 const docId = (tab, r) => SCHLUESSEL[tab] ? SCHLUESSEL[tab](r) : String(r.id);
 // JSON mit fester Feldreihenfolge: Firestore liefert Felder in eigener Reihenfolge zurück,
 // ein Vergleich ohne Sortierung hielte unveränderte Dokumente für geändert
@@ -64,7 +66,7 @@ function backendStarten() {
     catch (e) { console.error(e); toast('Laden fehlgeschlagen', e.message); }
     BACKEND.geladen = true;
     if (!db.user.some(u => u.id === nutzer.uid)) {
-      document.getElementById('app').innerHTML = demoLeiste() + `<div class="login"><div class="karte login-karte"><h2>Datenbank ist leer</h2><p>Das Konto ist angemeldet, aber in Firestore liegen noch keine Beispieldaten.</p>
+      document.getElementById('app').innerHTML = demoLeiste() + `<div class="login"><div class="karte login-karte"><h2>Datenbank ist leer</h2><p>In der gemeinsamen Datenbank liegen gerade keine Daten, zum Beispiel weil ein Zurücksetzen unterbrochen wurde.</p><p>„Mit Beispieldaten füllen“ stellt den Ausgangsstand her, mit Terminen und Fristen passend zu heute. Das dauert etwa eine halbe Minute, bitte die Seite so lange offen lassen.</p>
         <p>${nutzer.uid === 'v1' ? '<button class="knopf primaer" data-action="backend-befuellen">Mit Beispieldaten füllen</button>' : 'Bitte als Petra Lange (Verwaltung) anmelden und die Datenbank füllen.'}</p><button class="knopf" data-action="abmelden">Abmelden</button></div></div>`;
       return;
     }
@@ -86,6 +88,9 @@ async function abosStarten(uid) {
     if (tab === 'note' && r === 'studierend') return c.where('student_id', '==', uid).where('freigegeben', '==', true);
     if (tab === 'antrag' && r === 'studierend') return c.where('antragsteller_id', '==', uid);
     if (tab === 'antrag' && r !== 'verwaltung') return null;
+    // Evaluationsantworten sehen Studierende nie; ihre Teilnahme nur selbst
+    if (tab === 'evaluation_antwort' && r === 'studierend') return null;
+    if (tab === 'evaluation_teilnahme' && r === 'studierend') return c.where('student_id', '==', uid);
     return c;
   };
   const ersteLadung = TABELLEN.map(tab => new Promise((ok, fehler) => {
@@ -133,6 +138,9 @@ function neuZeichnen(anzahl) {
     const beschaeftigt = (fokus && fokus.matches('input, textarea, select') && fokus.closest('#inhalt, dialog'))
       || document.getElementById('dialog')?.open || location.hash.startsWith('#/konferenz/')
       || document.querySelector('#fortschritt:not([hidden])');
+    // Im Chat nur den Verlauf auffrischen, damit eine angefangene Nachricht nicht verloren geht
+    if (/\/chat$/.test(location.hash) && chatAktualisieren()) { pushBenachrichtigen(); return; }
+    if (location.hash.startsWith('#/service/lageplan3d')) return;
     if (beschaeftigt) { zeichnenGeplant = setTimeout(versuche, 1500); return; }
     render();
     pushBenachrichtigen();
@@ -231,21 +239,26 @@ async function backendInhaltLaden(id) {
 // ---------- Beispieldaten in Firestore schreiben (nur Verwaltung) ----------
 async function backendBefuellen() {
   const fs = BACKEND.fs;
-  zeigeLaden('Alte Daten werden gelöscht …');
-  for (const tab of [...TABELLEN, 'einstellungen', 'service']) {
-    const snap = await fs.collection(tab).get();
-    for (let i = 0; i < snap.docs.length; i += 400) { const b = fs.batch(); snap.docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit(); }
-  }
-  const inhalte = await fs.collection('datei_inhalt').get();
-  for (const d of inhalte.docs) { const teile = await d.ref.collection('teile').get(); const b = fs.batch(); teile.docs.forEach(t => b.delete(t.ref)); b.delete(d.ref); await b.commit(); }
-  zeigeLaden('Beispieldaten werden geschrieben …');
-  const neu = erzeugeDaten(new Date());
-  // Stand leeren, damit alles als neu geschrieben wird
+  // Echtzeit-Abos zuerst beenden: sonst zeichnet jede Löschung die Seite neu und bremst alles aus
   abosBeenden();
-  db = { ...neu, sitzung: 'v1' };
+  BACKEND.geladen = false;
+  const alle = [...TABELLEN, 'einstellungen', 'service'];
+  // Parallel löschen, in Paketen zu 400
+  const loeschen = async docs => { const pakete = []; for (let i = 0; i < docs.length; i += 400) { const b = fs.batch(); docs.slice(i, i + 400).forEach(d => b.delete(d.ref)); pakete.push(b.commit()); } await Promise.all(pakete); };
+  for (let i = 0; i < alle.length; i++) {
+    zeigeLaden(`Alte Daten werden gelöscht … ${Math.round((i / alle.length) * 60)} %`);
+    await loeschen((await fs.collection(alle[i]).get()).docs);
+  }
+  const inhalte = (await fs.collection('datei_inhalt').get()).docs;
+  zeigeLaden(`Alte Dateien werden gelöscht … ${inhalte.length} Dateien`);
+  const teile = (await Promise.all(inhalte.map(d => d.ref.collection('teile').get()))).flatMap(s => s.docs);
+  await loeschen([...teile, ...inhalte]);
+  zeigeLaden('Beispieldaten werden geschrieben … 70 %');
+  db = { ...erzeugeDaten(new Date()), sitzung: 'v1' };
+  BACKEND.stand = {};
   BACKEND.geladen = true;
   await schreibeUnterschiede();
-  zeigeLaden('Beispieldateien werden erzeugt …');
+  zeigeLaden('Beispieldateien werden erzeugt … 85 %');
   await beispielDateienErzeugen();
   await schreibeUnterschiede();
   await abosStarten('v1');

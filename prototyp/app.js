@@ -2,7 +2,7 @@
 // Kern: Speicher, Datenzugriff, Mitteilungen, Router, Layout, Aktionen.
 // Die Ansichten stehen in ansichten.js.
 
-const SPEICHER = 'online-campus-v4';
+const SPEICHER = 'online-campus-v5';
 let db;
 let panelOffen = false;
 let panelFilter = 'alle';
@@ -13,7 +13,7 @@ const mitternacht = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0
 function laden() {
   try {
     const s = JSON.parse(localStorage.getItem(SPEICHER));
-    if (!s || s.version !== 4) return null;
+    if (!s || s.version !== 5) return null;
     // Beispieldaten hängen am Erzeugungstag. An jedem neuen Tag wandern alle Zeitpunkte mit,
     // damit Fristen und Termine passen und eigene Änderungen trotzdem erhalten bleiben.
     const tage = Math.round((mitternacht() - s.stichtag) / 864e5);
@@ -274,7 +274,7 @@ function parseHash() {
 const NAV = {
   studierend: [['uebersicht', 'Übersicht', 'home'], ['stundenplan', 'Stundenplan', 'kalender'], ['module', 'Module', 'buch'], ['leistungen', 'Leistungen', 'award'], ['service', 'Service', 'hilfe']],
   lehrend: [['uebersicht', 'Übersicht', 'home'], ['kurse', 'Meine Module', 'buch'], ['korrektur', 'Korrektur', 'stift'], ['stundenplan', 'Stundenplan', 'kalender']],
-  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['antraege', 'Anträge', 'datei'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
+  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['antraege', 'Anträge', 'datei'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['evaluationen', 'Evaluationen', 'check'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
 };
 const BEREICH = { studierend: 'Studierende', lehrend: 'Lehrende', verwaltung: 'Verwaltung' };
 

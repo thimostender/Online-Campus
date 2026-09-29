@@ -10,7 +10,7 @@ ANSICHTEN.studierend = (t, q) => {
     case 'stundenplan': return stundenplan(q);
     case 'module': return t[1] ? sModul(Number(t[1]), t[2] || 'ueberblick') : sModule();
     case 'leistungen': return sLeistungen();
-    case 'service': return t[1] === 'antrag' ? antragFormular(t[2]) : t[1] === 'antraege' ? meineAntraege(t[2]) : sService(t[1] || 'lageplan', q);
+    case 'service': return t[1] === 'antrag' ? antragFormular(t[2]) : t[1] === 'antraege' ? meineAntraege(t[2]) : t[1] === 'lageplan3d' ? lageplan3dSeite(Number(q.get('raum')) || null) : sService(t[1] || 'lageplan', q);
     case 'konferenz': return konferenz(Number(t[1]));
     case 'mitteilungen': return mitteilungenSeite(q);
     case 'profil': return profil();
@@ -213,7 +213,8 @@ function sModul(kid, tab) {
   if (!k || !kurseVon(u.id, true).some(x => x.id === kid)) throw new Error('kein Zugriff');
   const m = modulVon(k), lehr = lehrendeVon(kid), p = persPruefung(db.pruefung.find(x => x.kurs_id === kid), u.id);
   const frueher = k.semester_id !== aktSem().id;
-  const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis']];
+  const evalOffen = !frueher && evaluationStand(kid).offen && !hatEvaluiert(kid, u.id), umfragenOffen = db.umfrage.filter(x => x.kurs_id === kid && umfrageOffen(x) && !hatAbgestimmt(u.id, x.id)).length;
+  const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis'], ['chat', 'Chat'], ['umfragen', `Umfragen${umfragenOffen ? ` <span class="zahl-punkt">${umfragenOffen}</span>` : ''}`], ['evaluation', `Evaluation${evalOffen ? ' <span class="zahl-punkt">1</span>' : ''}`]];
   const inhalt = {
     ueberblick: () => `<div class="raster raster-2">
       <section class="karte"><h2>Worum es geht</h2><p>${esc(m.beschreibung)}</p><p class="klein leise">${esc(BEREICHE[m.bereich])} · ${m.ue} Unterrichtseinheiten · ${m.workload ? m.workload + ' Stunden Workload · ' : ''}${ectsText(m)} · Kürzel ${esc(m.kuerzel)}</p></section>
@@ -237,6 +238,9 @@ function sModul(kid, tab) {
       </section>` : '<div class="karte leer">Keine Prüfung hinterlegt</div>',
     abgabe: () => sAbgabe(kid, p),
     ergebnis: () => sErgebnis(p),
+    chat: () => chatSeite(kid),
+    umfragen: () => umfragenStudierend(kid),
+    evaluation: () => evaluationStudierend(kid),
   }[tab];
   if (!inhalt) throw new Error('unbekannter Reiter');
   return `<a class="klein zeile" href="${frueher ? '#/leistungen' : '#/module'}" style="gap:4px;margin-bottom:10px">${I('zurueck')} ${frueher ? 'Studienverlauf' : 'Module'}</a>
@@ -506,11 +510,21 @@ function sService(tab, q) {
   const reiter = [['lageplan', 'Lageplan und Räume'], ['kontakt', 'Ansprechpersonen'], ['wissenschaft', 'Wissenschaftliches Arbeiten'], ['formulare', 'Formulare und FAQ'], ['antraege', 'Meine Anträge']];
   const aktivRaum = Number(q.get('raum')) || null;
   const inhalt = {
-    lageplan: () => `<div class="raster raster-2">
-      <section class="karte"><h2>Campus Mitte, 2. und 3. OG</h2>
-        <svg class="lageplan" viewBox="0 0 420 220" role="img" aria-label="Lageplan">${db.raum.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="8" class="${r.id === aktivRaum ? 'aktiv' : ''}"/><text x="${r.x + r.w / 2}" y="${r.y + r.h / 2 + 4}" text-anchor="middle">${esc(r.bezeichnung)}</text>`).join('')}</svg>
-        <p class="klein leise abstand">Musterstraße 1 · Eingang über den Hof, Aufzug links neben der Treppe. Barrierefreier Zugang über die Rampe am Haupteingang.</p></section>
-      <section class="karte"><h2>Räume</h2><ul class="liste">${db.raum.map(r => `<li class="zeile dazwischen"><a href="#/service/lageplan?raum=${r.id}" class="${r.id === aktivRaum ? 'fett' : ''}">${I('ort')} ${esc(r.bezeichnung)}</a><span class="klein leise">${r.plaetze} Plätze</span></li>`).join('')}</ul></section></div>`,
+    lageplan: () => {
+      const gefunden = aktivRaum ? findeRaum(aktivRaum) : null, nr = q.has('g') ? Number(q.get('g')) : gefunden ? gefunden.g.nr : 0, g = GEBAEUDE.geschosse[nr];
+      return `<div class="zeile dazwischen" style="flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div class="umschalter" role="group" aria-label="Geschoss">${GEBAEUDE.geschosse.map(x => `<button data-action="gehe" data-ziel="#/service/lageplan?g=${x.nr}${aktivRaum ? '&raum=' + aktivRaum : ''}" aria-pressed="${x.nr === nr}">${x.kurz}</button>`).join('')}</div>
+        <a class="knopf primaer" href="#/service/lageplan3d${aktivRaum ? '?raum=' + aktivRaum : ''}">${I('pfeil')} ${aktivRaum ? 'Weg in 3D ablaufen' : 'Rundgang in 3D'}</a></div>
+      <section class="karte"><div class="zeile dazwischen" style="flex-wrap:wrap"><h2 style="margin:0">${esc(g.name)}</h2><span class="klein leise">Norden oben · Haupteingang unten (EG)</span></div>
+        <div class="abstand">${lageplanSvg(nr, aktivRaum)}</div>
+        <p class="klein leise" style="margin:8px 0 0">Campus Mitte, Musterstraße 1 · barrierefrei mit Aufzug in alle Geschosse. Treppenhaus und Aufzug liegen in der Mitte gegenüber dem Eingang.</p></section>
+      ${gefunden ? `<div class="hinweis abstand">${I('ort')}<div><b>${esc(gefunden.r.name)}</b> · ${esc(gefunden.g.name)}<br><span class="klein">${esc(wegbeschreibung(aktivRaum))}</span></div></div>` : ''}
+      <div class="raster raster-2 abstand">
+        <section class="karte"><h2>Räume für Veranstaltungen</h2>
+          <ul class="liste">${db.raum.map(r => { const f = findeRaum(r.id); return `<li><a class="zeile dazwischen" href="#/service/lageplan?raum=${r.id}" style="color:var(--text);text-decoration:none"><span class="${r.id === aktivRaum ? 'fett' : ''}">${I('ort')} ${esc(r.bezeichnung)}</span><span class="klein leise">${f ? f.g.kurz : ''} · ${r.plaetze} Plätze</span></a></li>`; }).join('')}</ul>
+          </section>
+        <section class="karte"><h2>Außerdem im Gebäude</h2><ul class="liste">${GEBAEUDE.geschosse.map(x => `<li><a href="#/service/lageplan?g=${x.nr}" class="fett">${esc(x.name)}</a><br><span class="klein leise">${x.raeume.filter(r => !r.raum_id && r.art !== 'wc').map(r => esc(r.name)).join(', ')}</span></li>`).join('')}</ul></section></div>`;
+    },
     kontakt: () => `<div class="raster raster-3">${s.ansprechpersonen.map(a => `<section class="karte"><h3>${esc(a.name)}</h3><p class="klein">${esc(a.aufgabe)}</p>
       <p class="klein" style="margin:0"><a href="mailto:${esc(a.email)}">${esc(a.email)}</a><br>${esc(a.telefon)}<br><span class="leise">${esc(a.zeiten)}</span></p></section>`).join('')}</div>`,
     wissenschaft: () => `<div class="raster raster-2">

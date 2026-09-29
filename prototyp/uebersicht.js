@@ -31,6 +31,12 @@ const KACHELN = {
       const fristen = pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).filter(p => D(p.frist) > new Date() && statusVon(p, u.id).code !== 'entschuldigt');
       return `${kachelKopf('Nächste Abgaben und Prüfungen', '#/leistungen', 'Alle')}<ul class="liste">${fristen.map(p => fristZeile(p, u.id)).join('') || '<li class="leer">Keine offenen Fristen</li>'}</ul>`;
     } },
+    { id: 'beteiligung', titel: 'Offene Umfragen und Evaluationen', render: u => {
+      const us = offeneUmfragen(u.id), es = offeneEvaluationen(u.id);
+      if (!us.length && !es.length) return null;
+      return `<h2>Deine Meinung ist gefragt</h2><ul class="liste">${us.map(x => `<li><a class="zeile dazwischen" href="#/module/${x.kurs_id}/umfragen" style="color:var(--text);text-decoration:none"><span><b>Umfrage</b> · ${esc(kursName(x.kurs_id))}<br><span class="klein leise">${esc(x.frage)}</span></span><span class="marke-klein m-akzent">abstimmen</span></a></li>`).join('')}
+        ${es.map(k => `<li><a class="zeile dazwischen" href="#/module/${k.id}/evaluation" style="color:var(--text);text-decoration:none"><span><b>Evaluation</b> · ${esc(kursName(k.id))}<br><span class="klein leise">${esc(lehrendeVon(k.id).map(l => name(l)).join(', '))} · anonym, etwa 2 Minuten</span></span><span class="marke-klein m-akzent">bewerten</span></a></li>`).join('')}</ul>`;
+    } },
     { id: 'neu', titel: 'Neu für dich', render: u => { const neu = meineMitteilungen(u.id).filter(m => !m.gelesen).slice(0, 4); return `${kachelKopf('Neu für dich', '#/mitteilungen', 'Alle Mitteilungen')}${neu.length ? `<div style="margin:0 -20px -18px">${neu.map(mitteilungsEintrag).join('')}</div>` : '<p class="leer">Du hast alles gelesen.</p>'}`; } },
     { id: 'stand', titel: 'Dein Stand (ECTS)', render: u => {
       const st = ectsStand(u.id);

@@ -76,6 +76,33 @@ service cloud.firestore {
       allow create: if angemeldet();
       allow update: if angemeldet() && eigenes('empfaenger_id') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gelesen_am']);
     }
+    // Evaluation: anonym. Teilnahme (wer) und Antwort (was) getrennt; eine Antwort nur zusammen mit einer
+    // neuen Teilnahme im selben Schreibvorgang, dadurch einmal je Person und Modul. Kein Ändern, kein Löschen.
+    match /evaluation_teilnahme/{id} {
+      allow read: if istLehrend() || (angemeldet() && eigenes('student_id'));
+      allow create: if istStudierend() && wirdEigenes('student_id') && id == string(request.resource.data.kurs_id) + '_' + request.auth.uid;
+    }
+    match /evaluation_antwort/{id} {
+      allow read: if istLehrend();
+      allow create: if istStudierend()
+        && existsAfter(/databases/$(database)/documents/evaluation_teilnahme/$(string(request.resource.data.kurs_id) + '_' + request.auth.uid))
+        && !exists(/databases/$(database)/documents/evaluation_teilnahme/$(string(request.resource.data.kurs_id) + '_' + request.auth.uid));
+    }
+    // Umfragen: Lehrende erstellen und beenden; Stimmen anonym nach demselben Prinzip
+    match /umfrage/{id} { allow read: if angemeldet(); allow create, update: if istLehrend(); }
+    match /umfrage_teilnahme/{id} {
+      allow read: if angemeldet();
+      allow create: if istStudierend() && wirdEigenes('student_id') && id == request.resource.data.umfrage_id + '_' + request.auth.uid;
+    }
+    match /umfrage_stimme/{id} {
+      allow read: if angemeldet();
+      allow create: if istStudierend()
+        && existsAfter(/databases/$(database)/documents/umfrage_teilnahme/$(request.resource.data.umfrage_id + '_' + request.auth.uid))
+        && !exists(/databases/$(database)/documents/umfrage_teilnahme/$(request.resource.data.umfrage_id + '_' + request.auth.uid));
+    }
+    // Chat im Modul: lesen alle Angemeldeten, schreiben nur unter eigenem Namen
+    match /chat_nachricht/{id} { allow read: if angemeldet(); allow create: if angemeldet() && wirdEigenes('autor_id'); }
+
     // Benachrichtigungs-Einstellungen: lesen alle (für die Zustellung), ändern nur die eigenen
     match /einstellungen/{uid} { allow read: if angemeldet(); allow write: if angemeldet() && request.auth.uid == uid; }
   }

@@ -131,7 +131,7 @@ function erzeugeDaten(heute = new Date()) {
   // Kurse: Semester 1 und 2 abgeschlossen, Semester 3 aktuell. Kurs-ID = Modul-ID im aktuellen Semester,
   // frühere Kurse bekommen IDs ab 100. Kurse eines Schwerpunkts besuchen nur dessen Studierende.
   const kurs = [], lehrauftrag = [];
-  const lehrende = { AVM: ['l4'], MKO: ['l4'], DBK: ['l2'], MSP: ['l3'], RVD: ['l2', 'l3'], GMA: ['l1'], GRW: ['l5'], PT3: ['l1'] };
+  const lehrende = { AVM: ['l4'], MKO: ['l4'], DBK: ['l2'], MSP: ['l3'], RVD: ['l2', 'l3', 'l1'], GMA: ['l1'], GRW: ['l5'], PT3: ['l1'] };
   Object.entries(lehrende).forEach(([k, ls]) => {
     const m = modul.find(x => x.kuerzel === k);
     kurs.push({ id: m.id, modul_id: m.id, gruppe_id: 1, semester_id: 3, schwerpunkt: m.schwerpunkt });
@@ -162,9 +162,13 @@ function erzeugeDaten(heute = new Date()) {
     neu(w % 2 ? 'GRW' : 'MSP', 3, mo(w, 1, 18, 0), mo(w, 1, 21, 15));
     neu('MKO', 2, mo(w, 2, 18, 0), mo(w, 2, 21, 15));
     neu('DBK', 4, mo(w, 2, 18, 0), mo(w, 2, 21, 15));
-    neu('RVD', null, mo(w, 3, 18, 0), mo(w, 3, 19, 30), 'Online');
+    // Ringvorlesung als Block (Wochen -4 bis 2, 4 Termine vorbei): Die Evaluation ist schon offen
+    if (w >= -3 + 1 && w <= 2) neu('RVD', null, mo(w, 3, 18, 0), mo(w, 3, 19, 30), 'Online');
     if (w % 2) neu('PT3', null, mo(w, 5, 9, 0), mo(w, 5, 12, 15), 'Online'); else neu('AVM', 5, mo(w, 5, 9, 0), mo(w, 5, 14, 30));
   }
+  // Zwei Termine vor Beginn der Woche -2: zusammen 7 Termine, davon 4 vorbei
+  neu('RVD', null, mo(-4, 3, 18, 0), mo(-4, 3, 19, 30), 'Online');
+  neu('RVD', null, mo(-3, 3, 18, 0), mo(-3, 3, 19, 30), 'Online');
   const finde = (k, iso) => termin.find(t => t.kurs_id === M(k) && t.beginn === iso);
   const mittwoch = finde('MKO', mo(0, 2, 18, 0));
   mittwoch.status = 'verlegt'; mittwoch.raum_id = 1; mittwoch.hinweis = 'Raum geändert: statt Raum 3.11 jetzt Raum 2.04';
@@ -305,7 +309,27 @@ function erzeugeDaten(heute = new Date()) {
   neueMitteilung({ absender_id: 's4', anlass: 'neuigkeit', titel: 'Neuer Antrag: Fristverlängerung', text: 'Can Yilmaz hat einen Antrag gestellt (Medienkonvergenz und Social Media).', erstellt_am: tag(-1, 19, 22), link: '#/antraege/1' }, ['v1']);
   neueMitteilung({ absender_id: 's3', anlass: 'neuigkeit', titel: 'Neuer Antrag: Schnittplatz', text: 'Mira Schulz möchte einen Schnittplatz im Medienlabor reservieren.', erstellt_am: tag(0, 7, 45), link: '#/antraege/2' }, ['v1']);
 
-  return { version: 4, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
+  // Beteiligung: drei Evaluationen der Ringvorlesung (Lena fehlt noch), eine Umfrage, Chat
+  const eid = n => 'beispiel-' + n;
+  const evaluation_teilnahme = ['s2', 's3', 's4'].map(u => ({ kurs_id: M('RVD'), student_id: u, am: tag(-2).slice(0, 10) }));
+  const evaluation_antwort = [
+    { id: eid('e1'), kurs_id: M('RVD'), werte: { verstaendlich: 4, struktur: 3, praxis: 5, material: 4, betreuung: 4, gesamt: 4 }, gut: 'Die Beispiele aus echten Phishing-Mails waren super anschaulich.', besser: 'Die Folien früher hochladen, dann kann man mitschreiben.', am: tag(-3).slice(0, 10) },
+    { id: eid('e2'), kurs_id: M('RVD'), werte: { verstaendlich: 5, struktur: 4, praxis: 4, material: 3, betreuung: 5, gesamt: 5 }, gut: 'Abwechslung durch verschiedene Lehrende.', besser: '', am: tag(-2).slice(0, 10) },
+    { id: eid('e3'), kurs_id: M('RVD'), werte: { verstaendlich: 3, struktur: 3, praxis: 4, material: 2, betreuung: 0, gesamt: 3 }, gut: '', besser: 'Online-Termine um 18 Uhr sind nach der Arbeit anstrengend, lieber mit kurzer Pause.', am: tag(-2).slice(0, 10) },
+  ];
+  const umfrage = [{ id: eid('u1'), kurs_id: M('GMA'), ersteller_id: 'l1', frage: 'Welcher Nachholtermin für den Ausfall am Montag passt euch?', optionen: ['Mittwoch, 18 Uhr', 'Samstag, 10 Uhr', 'Online am Donnerstag, 19:30 Uhr'], erstellt_am: tag(0, 8, 20), endet_am: tag(5, 23, 59), beendet: false }];
+  const umfrage_teilnahme = [['s2', 1], ['s3', 2]].map(([u]) => ({ umfrage_id: eid('u1'), student_id: u, am: tag(0).slice(0, 10) }));
+  const umfrage_stimme = [{ id: eid('s1'), umfrage_id: eid('u1'), option: 1 }, { id: eid('s2'), umfrage_id: eid('u1'), option: 2 }];
+  const chat_nachricht = [
+    { id: eid('c1'), kurs_id: M('GMA'), autor_id: 'l1', text: 'Willkommen im Kurs-Chat! Hier können Sie Fragen zur Vorlesung stellen, ich antworte meist am selben Tag.', erstellt_am: tag(-14, 9, 0) },
+    { id: eid('c2'), kurs_id: M('GMA'), autor_id: 's2', text: 'Gilt das S-O-R-Modell auch für B2B-Kaufentscheidungen?', erstellt_am: tag(-2, 20, 14) },
+    { id: eid('c3'), kurs_id: M('GMA'), autor_id: 'l1', text: 'Gute Frage! Grundsätzlich ja, im B2B entscheiden aber oft mehrere Personen gemeinsam (Buying Center). Das besprechen wir nächste Woche.', erstellt_am: tag(-1, 8, 30) },
+    { id: eid('c4'), kurs_id: M('GMA'), autor_id: 's3', text: 'Danke! Und bitte an der Umfrage zum Nachholtermin teilnehmen 🙂', erstellt_am: tag(0, 9, 5) },
+    { id: eid('c5'), kurs_id: M('AVM'), autor_id: 's5', text: 'Hat jemand den Schlüssel für Schnittplatz 2? Im Studienbüro war niemand.', erstellt_am: tag(-1, 13, 40) },
+    { id: eid('c6'), kurs_id: M('AVM'), autor_id: 'l4', text: 'Das Studienbüro ist freitags nur bis 13 Uhr besetzt. Ich lege Ihnen einen Schlüssel ins Fach vor 1.12.', erstellt_am: tag(-1, 14, 2) },
+  ];
+
+  return { version: 5, evaluation_teilnahme, evaluation_antwort, umfrage, umfrage_teilnahme, umfrage_stimme, chat_nachricht, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
 }
 
 // Zerlegt Text in Abschnitte von etwa 500 bis 900 Zeichen entlang der Absätze (für die Suche des Assistenten).

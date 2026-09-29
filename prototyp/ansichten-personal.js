@@ -18,6 +18,7 @@ ANSICHTEN.verwaltung = (t, q) => {
   switch (t[0] || 'uebersicht') {
     case 'uebersicht': return vUebersicht();
     case 'antraege': return vAntraege(t[1], q);
+    case 'evaluationen': return vEvaluationen();
     case 'gruppen': return vGruppen();
     case 'personen': return vPersonen(q);
     case 'planung': return vPlanung();
@@ -75,7 +76,7 @@ function lKurs(kid, tab) {
   const u = ich(), k = byId('kurs', kid);
   if (!k || !kurseVon(u.id).some(x => x.id === kid)) throw new Error('kein Zugriff');
   const m = modulVon(k), g = byId('studiengruppe', k.gruppe_id);
-  const reiter = [['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefungen', 'Prüfungen'], ['mitteilung', 'Mitteilung an die Gruppe']];
+  const reiter = [['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefungen', 'Prüfungen'], ['mitteilung', 'Mitteilung an die Gruppe'], ['chat', 'Chat'], ['umfragen', 'Umfragen'], ['evaluation', 'Evaluation']];
   const inhalt = {
     termine: () => `${terminFormular(kid)}<section class="karte"><p class="leise">Legst du einen Termin an oder änderst ihn, bekommt ${esc(g.name)} automatisch eine Mitteilung.</p><div class="tabelle-huelle"><table>
       <thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>
@@ -103,6 +104,9 @@ function lKurs(kid, tab) {
         <label class="feld"><span>Maximale Dateigröße (MB)</span><input type="number" name="max_mb" value="100" min="1" max="2000"></label>
         <div><label class="haken"><input type="checkbox" name="mit_upload" checked> Abgabe per Upload</label><label class="haken" style="margin-top:8px"><input type="checkbox" name="gruppenarbeit"> Gruppenarbeit</label></div>
       </div><button class="knopf primaer">Prüfung anlegen</button></form></section>`,
+    chat: () => chatSeite(kid),
+    umfragen: () => umfragenLehrend(kid),
+    evaluation: () => evaluationErgebnis(kid),
     mitteilung: () => `<section class="karte"><h2>Mitteilung an ${esc(g.name)}</h2>
       <form data-form="lmitteilung" data-kid="${kid}">
         <label class="feld"><span>Betreff</span><input name="titel" required placeholder="z. B. Bitte Laptop mitbringen"></label>

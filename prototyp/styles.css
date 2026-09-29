@@ -220,9 +220,8 @@ dialog::backdrop { background: rgba(15, 12, 35, .45); }
 @keyframes rein { from { transform: translateY(10px); opacity: 0; } }
 
 /* Lageplan */
-.lageplan rect { fill: var(--flaeche-2); stroke: var(--rand); stroke-width: 2; }
-.lageplan rect.aktiv { fill: var(--akzent-hell); stroke: var(--akzent); }
-.lageplan text { fill: var(--text); font-size: 12px; font-weight: 600; }
+.lageplan { width: 100%; height: auto; display: block; }
+.lageplan text { font-size: 12px; font-weight: 600; }
 
 /* Login */
 .login { min-height: calc(100vh - 34px); display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(1200px 600px at 10% -10%, var(--akzent-hell), transparent), var(--bg); }
@@ -346,3 +345,48 @@ details > summary::-webkit-details-marker { display: none; }
   .monat-punkte { display: flex; justify-content: center; }
   .kachel-leiste .klein.fett { flex-basis: 100%; }
 }
+
+/* Evaluation, Umfragen */
+:root { --eval-1: #dc2626; --eval-2: #f97316; --eval-3: #eab308; --eval-4: #84cc16; --eval-5: #16a34a; }
+.eval-tabelle th, .eval-tabelle td { text-align: center; font-size: 13px; }
+.eval-tabelle td:first-child, .eval-tabelle th:first-child { text-align: left; min-width: 200px; }
+.eval-tabelle input { width: 20px; height: 20px; accent-color: var(--akzent); }
+.eval-balken { display: flex; height: 12px; border-radius: 999px; overflow: hidden; margin-top: 6px; background: var(--flaeche-2); }
+.umfrage-ergebnis { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.umfrage-ergebnis .balken { height: 10px; margin-top: 4px; }
+.zahl-punkt { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--akzent); color: var(--akzent-text); font-size: 11px; font-weight: 700; margin-left: 4px; }
+
+/* Chat */
+.chat-verlauf { height: min(52vh, 460px); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 14px 4px; margin: 10px 0; border-top: 1px solid var(--rand); border-bottom: 1px solid var(--rand); }
+.chat-nachricht { max-width: 78%; padding: 8px 12px; border-radius: 14px; background: var(--flaeche-2); align-self: flex-start; display: flex; flex-direction: column; gap: 2px; border-bottom-left-radius: 4px; }
+.chat-nachricht.lehrend { background: var(--akzent-hell); }
+.chat-nachricht.eigen { align-self: flex-end; background: var(--akzent); color: var(--akzent-text); border-bottom-left-radius: 14px; border-bottom-right-radius: 4px; }
+.chat-autor { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.chat-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-zeit { font-size: 11px; opacity: .65; align-self: flex-end; }
+.chat-tag { align-self: center; font-size: 12px; color: var(--text-2); background: var(--flaeche-2); padding: 2px 10px; border-radius: 999px; }
+.chat-eingabe { display: flex; gap: 8px; }
+.chat-eingabe input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--rand); border-radius: 12px; background: var(--flaeche); }
+
+/* Lageplan */
+.lageplan text { fill: #1f2937; }
+.lp-raum rect { stroke: #6b7280; stroke-width: 1.2; }
+.lp-raum.aktiv rect:first-child { stroke: #4c1d95; stroke-width: 3; }
+.lp-raum.aktiv text { fill: #fff; font-weight: 800; }
+.lp-raum.buchbar rect:first-child { stroke-width: 1.8; }
+
+/* 3D-Rundgang */
+.dreid-huelle { position: relative; height: min(70vh, 640px); border-radius: 16px; overflow: hidden; background: #111; touch-action: none; user-select: none; }
+.dreid { width: 100%; height: 100%; }
+.dreid canvas { display: block; }
+.dreid-hud { position: absolute; top: 12px; left: 12px; right: 200px; pointer-events: none; }
+.dreid-info { display: inline-block; background: rgba(17, 17, 27, .78); color: #fff; padding: 8px 12px; border-radius: 10px; font-size: 14px; }
+.dreid-ok { color: #4ade80; font-weight: 700; }
+.dreid-menue { pointer-events: auto; display: inline-flex; flex-direction: column; gap: 8px; background: rgba(17, 17, 27, .9); color: #fff; padding: 14px; border-radius: 12px; }
+.dreid-karte { position: absolute; top: 12px; right: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+.dreid-geschosse { position: absolute; bottom: 12px; right: 12px; display: flex; gap: 4px; }
+.dreid-geschosse button { border: 0; border-radius: 8px; padding: 8px 10px; font-weight: 700; background: rgba(255,255,255,.9); cursor: pointer; }
+.dreid-start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(17, 17, 27, .55); color: #fff; text-align: center; cursor: pointer; padding: 20px; }
+.dreid-start[hidden] { display: none; }
+.dreid-start > div { max-width: 460px; background: rgba(17, 17, 27, .85); padding: 18px 20px; border-radius: 14px; line-height: 1.5; }
+@media (max-width: 860px) { .dreid-hud { right: 12px; top: 90px; } .dreid-karte { width: 150px; height: 58px; } }
