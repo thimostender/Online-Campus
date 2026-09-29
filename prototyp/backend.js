@@ -28,6 +28,14 @@ const SCHLUESSEL = {
 };
 const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung'];
 const docId = (tab, r) => SCHLUESSEL[tab] ? SCHLUESSEL[tab](r) : String(r.id);
+// JSON mit fester Feldreihenfolge: Firestore liefert Felder in eigener Reihenfolge zurück,
+// ein Vergleich ohne Sortierung hielte unveränderte Dokumente für geändert
+function stabil(wert) {
+  if (Array.isArray(wert)) return '[' + wert.map(stabil).join(',') + ']';
+  if (wert && typeof wert === 'object') return '{' + Object.keys(wert).sort().filter(k => wert[k] !== undefined).map(k => JSON.stringify(k) + ':' + stabil(wert[k])).join(',') + '}';
+  return JSON.stringify(wert ?? null);
+}
+const fingerabdruck = (tab, r) => stabil(zuDokument(tab, r));
 // Felder, die nur für die Regeln da sind
 function zuDokument(tab, r) {
   const d = JSON.parse(JSON.stringify(r));
@@ -45,6 +53,11 @@ function backendStarten() {
   BACKEND.auth.onAuthStateChanged(async nutzer => {
     abosBeenden();
     if (!nutzer) { db = erzeugeDaten(new Date()); db.sitzung = null; BACKEND.geladen = false; render(); return; }
+    // Zwischenspeicher leeren: Platzhalter der Anmeldeseite oder Daten der vorherigen Sitzung
+    // dürfen nicht als ungespeicherte Änderungen gelten und zum Server geschrieben werden
+    TABELLEN.forEach(tab => { db[tab] = []; });
+    db.einstellungen = {};
+    BACKEND.geladen = false;
     db.sitzung = nutzer.uid;
     zeigeLaden('Daten werden geladen …');
     try { await abosStarten(nutzer.uid); }
@@ -85,8 +98,8 @@ async function abosStarten(uid) {
     }, e => { if (erst) { erst = false; console.warn(tab, e.message); db[tab] = []; ok(); } }));
   }));
   // Einzelne Dokumente: Einstellungen aller Personen, Service-Inhalte
-  BACKEND.abos.push(fs.collection('einstellungen').onSnapshot(snap => { db.einstellungen = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); BACKEND.stand.einstellungen = JSON.stringify(db.einstellungen); }));
-  ersteLadung.push(new Promise(ok => { let erst = true; BACKEND.abos.push(fs.collection('service').doc('inhalte').onSnapshot(d => { if (d.exists) { db.service = d.data(); BACKEND.stand.service = JSON.stringify(db.service); } if (erst) { erst = false; ok(); } else neuZeichnen(1); }, () => ok())); }));
+  BACKEND.abos.push(fs.collection('einstellungen').onSnapshot(snap => { db.einstellungen = Object.fromEntries(snap.docs.map(d => [d.id, d.data()])); Object.entries(db.einstellungen).forEach(([id, e]) => { BACKEND.stand['einstellungen:' + id] = stabil(e); }); }));
+  ersteLadung.push(new Promise(ok => { let erst = true; BACKEND.abos.push(fs.collection('service').doc('inhalte').onSnapshot(d => { if (d.exists) { db.service = d.data(); BACKEND.stand.service = stabil(db.service); } if (erst) { erst = false; ok(); } else neuZeichnen(1); }, () => ok())); }));
   await Promise.all(ersteLadung);
 }
 // Übernimmt den Serverstand einer Tabelle. Vorhandene Objekte werden an Ort und Stelle aktualisiert,
@@ -94,11 +107,11 @@ async function abosStarten(uid) {
 // die noch nicht geschrieben sind (weicht vom letzten Stand ab), bleiben erhalten.
 function tabelleUebernehmen(tab, zeilen) {
   const stand = BACKEND.stand[tab] || {}, vorher = new Map((db[tab] || []).map(r => [docId(tab, r), r]));
-  const offen = new Set([...vorher].filter(([id, r]) => stand[id] !== JSON.stringify(zuDokument(tab, r))).map(([id]) => id));
+  const offen = new Set([...vorher].filter(([id, r]) => stand[id] !== fingerabdruck(tab, r)).map(([id]) => id));
   const neu = [], neuerStand = {};
   zeilen.forEach(z => {
     const id = docId(tab, z), alt = vorher.get(id);
-    neuerStand[id] = JSON.stringify(zuDokument(tab, z));
+    neuerStand[id] = fingerabdruck(tab, z);
     if (alt && offen.has(id)) { neu.push(alt); return; }
     if (alt) { Object.keys(alt).forEach(k => { if (!(k in z)) delete alt[k]; }); Object.assign(alt, z); neu.push(alt); }
     else neu.push(z);
@@ -147,29 +160,36 @@ function backendSpeichern() {
 async function schreibeUnterschiede() {
   const fs = BACKEND.fs, ops = [];
   TABELLEN.forEach(tab => {
-    const alt = BACKEND.stand[tab] || {}, neu = {};
+    const alt = BACKEND.stand[tab] || {};
     (db[tab] || []).forEach(r => {
-      const id = docId(tab, r), json = JSON.stringify(zuDokument(tab, r));
-      neu[id] = json;
-      if (alt[id] !== json) ops.push(b => b.set(fs.collection(tab).doc(id), JSON.parse(json)));
+      const id = docId(tab, r), abdruck = fingerabdruck(tab, r);
+      // Kein Löschen, nur weil eine Zeile lokal fehlt: Das könnte ein veralteter Stand sein.
+      if (alt[id] !== abdruck) ops.push({ ref: fs.collection(tab).doc(id), daten: JSON.parse(JSON.stringify(zuDokument(tab, r))), fertig: () => { (BACKEND.stand[tab] = BACKEND.stand[tab] || {})[id] = abdruck; }, name: `${tab}/${id}` });
     });
-    // Kein Löschen, nur weil eine Zeile lokal fehlt: Das könnte ein veralteter Stand sein.
-    // Gelöscht wird ausschließlich über backendLoeschen().
-    BACKEND.stand[tab] = { ...alt, ...neu };
   });
-  const ein = JSON.stringify(db.einstellungen || {});
-  if (ein !== BACKEND.stand.einstellungen) {
-    const u = ich();
-    if (u && db.einstellungen[u.id]) ops.push(b => b.set(fs.collection('einstellungen').doc(u.id), db.einstellungen[u.id]));
-    BACKEND.stand.einstellungen = ein;
+  const u = ich();
+  if (u && db.einstellungen?.[u.id] && stabil(db.einstellungen[u.id]) !== BACKEND.stand['einstellungen:' + u.id]) {
+    const abdruck = stabil(db.einstellungen[u.id]);
+    ops.push({ ref: fs.collection('einstellungen').doc(u.id), daten: db.einstellungen[u.id], fertig: () => { BACKEND.stand['einstellungen:' + u.id] = abdruck; }, name: 'einstellungen' });
   }
-  const srv = JSON.stringify(db.service);
-  if (srv !== BACKEND.stand.service) { ops.push(b => b.set(fs.collection('service').doc('inhalte'), db.service)); BACKEND.stand.service = srv; }
+  if (db.service && stabil(db.service) !== BACKEND.stand.service) {
+    const abdruck = stabil(db.service);
+    ops.push({ ref: fs.collection('service').doc('inhalte'), daten: db.service, fertig: () => { BACKEND.stand.service = abdruck; }, name: 'service' });
+  }
+  const abgelehnt = [];
   for (let i = 0; i < ops.length; i += 400) {
-    const b = fs.batch();
-    ops.slice(i, i + 400).forEach(op => op(b));
-    await b.commit();
+    const teil = ops.slice(i, i + 400), b = fs.batch();
+    teil.forEach(op => b.set(op.ref, op.daten));
+    try { await b.commit(); teil.forEach(op => op.fertig()); }
+    catch (e) {
+      // Einzeln nachschreiben, damit ein abgelehntes Dokument nicht alle anderen blockiert
+      for (const op of teil) {
+        try { await op.ref.set(op.daten); op.fertig(); }
+        catch (e2) { abgelehnt.push(op.name); op.fertig(); console.warn('Nicht gespeichert:', op.name, e2.code); }
+      }
+    }
   }
+  if (abgelehnt.length) toast('Teilweise nicht gespeichert', `${plural(abgelehnt.length, 'Eintrag', 'Einträge')} ohne Berechtigung: ${abgelehnt.slice(0, 3).join(', ')}`);
 }
 
 // Ausdrückliches Löschen einer Zeile (lokal und auf dem Server)
