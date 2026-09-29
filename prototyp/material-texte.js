@@ -3,10 +3,10 @@
 // Jede Seite ist ein Eintrag in "seiten".
 
 const MATERIAL_TEXTE = {
-  mkg1: {
+  gma1: {
     titel: 'Folien 1: Käuferverhalten und das S-O-R-Modell',
     seiten: [
-      `Verhaltens- und Informationsgrundlagen des Marketing – Einheit 1: Käuferverhalten
+      `Grundlagen Marketing – Einheit 1: Käuferverhalten
 
 Das Käuferverhalten beschreibt, wie Personen und Organisationen Produkte auswählen, kaufen, nutzen und wieder abgeben. Für das Marketing ist es die Grundlage jeder Entscheidung über Produkt, Preis, Kommunikation und Vertrieb.
 
@@ -24,10 +24,10 @@ Man unterscheidet vier Typen von Kaufentscheidungen:
 Involvement bezeichnet die innere Beteiligung, mit der sich eine Person einer Kaufentscheidung zuwendet. Hohes Involvement führt zu aktiver Informationssuche, niedriges Involvement zu passiver Aufnahme von Informationen.`,
     ],
   },
-  mkg2: {
+  gma2: {
     titel: 'Folien 2: Marktforschung – Primär- und Sekundärforschung',
     seiten: [
-      `Verhaltens- und Informationsgrundlagen des Marketing – Einheit 2: Marktforschung
+      `Grundlagen Marketing – Einheit 2: Marktforschung
 
 Marktforschung ist die systematische Gewinnung und Auswertung von Informationen über Märkte als Grundlage für Marketingentscheidungen.
 
@@ -36,9 +36,7 @@ Sekundärforschung (Desk Research) nutzt bereits vorhandene Daten, die ursprüng
 Primärforschung (Field Research) erhebt neue Daten speziell für die eigene Fragestellung. Methoden sind Befragung, Beobachtung und Experiment. Vorteile: aktuell und passgenau. Nachteile: teuer und zeitaufwendig.
 
 Faustregel: Erst Sekundärforschung, dann gezielt Primärforschung für die offenen Fragen.`,
-      `Befragungsformen und Gütekriterien
-
-Befragungen können mündlich (persönlich, telefonisch), schriftlich oder online durchgeführt werden. Online-Befragungen sind günstig und schnell, erreichen aber nicht alle Zielgruppen gleich gut.
+      `Gütekriterien
 
 Gütekriterien jeder Messung:
 – Objektivität: Das Ergebnis ist unabhängig davon, wer misst.
@@ -48,14 +46,38 @@ Gütekriterien jeder Messung:
 Eine Messung kann reliabel, aber nicht valide sein. Eine valide Messung ist dagegen immer auch reliabel.`,
     ],
   },
-  mkgHa: {
-    titel: 'Aufgabenstellung Hausarbeit Marketing',
+  msp1: {
+    titel: 'Folien: Plattformökonomie und Netzwerkeffekte',
     seiten: [
-      `Hausarbeit im Modul Verhaltens- und Informationsgrundlagen des Marketing
+      `Medienkonvergenz / Social Media / Plattformökonomie – Plattformen und Netzwerkeffekte
 
-Thema: Käuferverhalten in der Zielgruppe Ihres Praxisbetriebs
+Eine Plattform bringt zwei oder mehr Gruppen zusammen, die voneinander profitieren, zum Beispiel Käufer und Händler, Nutzer und Werbetreibende oder Fahrgäste und Fahrer. Man spricht von zwei- oder mehrseitigen Märkten.
 
-Aufgabe: Analysieren Sie das Kaufverhalten einer selbst gewählten Zielgruppe Ihres Ausbildungsbetriebs mithilfe des S-O-R-Modells. Leiten Sie daraus zwei konkrete Empfehlungen für die Marketingkommunikation ab. Stützen Sie die Analyse auf mindestens eine eigene kleine Primärerhebung (zum Beispiel fünf Kurzinterviews) und auf Sekundärquellen.
+Netzwerkeffekte entstehen, wenn der Nutzen eines Angebots mit der Zahl der Nutzer steigt.
+Direkte Netzwerkeffekte: Mehr Nutzer derselben Gruppe erhöhen den Nutzen, zum Beispiel bei einem Messenger.
+Indirekte Netzwerkeffekte: Mehr Nutzer auf der einen Seite machen die Plattform für die andere Seite attraktiver, zum Beispiel mehr Käufer für mehr Händler.
+
+Starke Netzwerkeffekte führen oft zu Winner-takes-all-Märkten, in denen eine Plattform den Großteil des Marktes gewinnt. Deshalb subventionieren Plattformen häufig eine Seite, etwa durch kostenlose Nutzung für Endkunden.`,
+      `Medienkonvergenz und Social-Media-Kennzahlen
+
+Medienkonvergenz bezeichnet das Zusammenwachsen früher getrennter Medien, Endgeräte und Branchen, zum Beispiel wenn Fernsehen, Presse und Radio auf demselben Smartphone und denselben Plattformen stattfinden.
+
+Wichtige Social-Media-Kennzahlen:
+– Reichweite: Anzahl der Personen, die einen Beitrag mindestens einmal gesehen haben.
+– Impressionen: Anzahl aller Anzeigen eines Beitrags, auch mehrfach bei derselben Person.
+– Engagement-Rate: Interaktionen (Likes, Kommentare, Teilen, Speichern) geteilt durch die Reichweite, in Prozent.
+
+Beispiel: 240 Interaktionen bei 8.000 erreichten Personen ergeben eine Engagement-Rate von 3 Prozent.`,
+    ],
+  },
+  mspHa: {
+    titel: 'Aufgabenstellung Hausarbeit Medienkonvergenz',
+    seiten: [
+      `Hausarbeit im Modul Medienkonvergenz / Social Media / Plattformökonomie
+
+Thema: Social-Media-Strategie für Ihren Praxisbetrieb
+
+Aufgabe: Analysieren Sie die aktuelle Präsenz Ihres Ausbildungsbetriebs auf zwei Plattformen. Werten Sie die Kennzahlen Reichweite und Engagement-Rate für mindestens zehn Beiträge aus. Ordnen Sie die Plattformen mithilfe der Konzepte Netzwerkeffekte und Plattformökonomie ein und leiten Sie drei konkrete Empfehlungen ab.
 
 Umfang: 12 bis 15 Seiten ohne Verzeichnisse und Anhang.
 Format: Schrift 12 pt, Zeilenabstand 1,5, Zitierweise APA 7.
@@ -64,163 +86,151 @@ Abgabe: als PDF über den Online-Campus bis zur angegebenen Frist.
 Bewertungskriterien: Fragestellung und Aufbau (20 %), theoretische Fundierung (30 %), Analyse und Empfehlungen (35 %), Form und Quellenarbeit (15 %).`,
     ],
   },
-  kor1: {
-    titel: 'Skript Kostenrechnung, Kapitel 1–3',
+  avm1: {
+    titel: 'Skript Postproduktion: Schnitt, Farbe, Ton, Export',
     seiten: [
-      `Kostenrechnung – Kapitel 1: Aufgaben und Grundbegriffe
+      `Audiovisuelle Medien / Postproduktion – Arbeitsschritte
 
-Die Kostenrechnung ist Teil des internen Rechnungswesens. Sie ermittelt, welche Kosten wo und wofür entstehen, und liefert Grundlagen für Preisentscheidungen, Wirtschaftlichkeitskontrolle und Planung.
+Die Postproduktion umfasst alle Arbeitsschritte nach dem Dreh:
+1. Sichtung und Organisation des Materials (Ordnerstruktur, Benennung, Sicherung).
+2. Rohschnitt: grobe Reihenfolge der Szenen nach Drehbuch oder Storyboard.
+3. Feinschnitt: Timing, Übergänge, Rhythmus.
+4. Farbkorrektur und Color Grading.
+5. Tonbearbeitung und Mischung.
+6. Export in das Zielformat.
 
-Kosten sind der bewertete Verbrauch von Gütern und Dienstleistungen zur Erstellung der betrieblichen Leistung. Nicht jeder Aufwand ist Kosten: Neutraler Aufwand (zum Beispiel eine Spende) ist betriebsfremd und gehört nicht in die Kostenrechnung.
+Farbkorrektur gleicht technische Fehler aus, zum Beispiel falschen Weißabgleich oder unterschiedliche Belichtung zwischen Einstellungen. Color Grading gibt dem Film danach einen gewollten Look und eine Stimmung, etwa warm oder kühl.`,
+      `Ton und Export
 
-Die Kostenrechnung gliedert sich in drei Stufen:
-1. Kostenartenrechnung: Welche Kosten sind entstanden? (zum Beispiel Material, Personal, Abschreibungen)
-2. Kostenstellenrechnung: Wo sind die Kosten entstanden? (zum Beispiel Einkauf, Fertigung, Verwaltung, Vertrieb)
-3. Kostenträgerrechnung: Wofür sind die Kosten entstanden? (die einzelnen Produkte oder Aufträge)`,
-      `Kapitel 2: Einzel- und Gemeinkosten, fixe und variable Kosten
+Beim Ton werden Sprache, Atmo, Musik und Effekte auf getrennten Spuren gemischt. Sprache hat Vorrang und sollte immer gut verständlich sein; Musik wird unter Sprache abgesenkt (Ducking).
 
-Einzelkosten lassen sich einem Kostenträger direkt zurechnen, zum Beispiel das Material für ein bestimmtes Produkt. Gemeinkosten entstehen für mehrere Kostenträger gemeinsam, zum Beispiel die Miete der Fertigungshalle. Sie werden über Zuschlagssätze verteilt.
+Export für Online-Plattformen: Container MP4 mit dem Videocodec H.264 oder H.265 und dem Audiocodec AAC. In Europa wird traditionell mit 25 Bildern pro Sekunde gearbeitet. Eine höhere Bitrate bedeutet bessere Qualität, aber größere Dateien.
 
-Variable Kosten ändern sich mit der Ausbringungsmenge (Material, Stücklöhne). Fixe Kosten bleiben innerhalb einer Periode unabhängig von der Menge gleich (Miete, Gehälter, Versicherungen).
-
-Der Betriebsabrechnungsbogen (BAB) verteilt die Gemeinkosten auf die Kostenstellen und ermittelt die Zuschlagssätze, zum Beispiel den Materialgemeinkostenzuschlag.`,
-      `Kapitel 3: Deckungsbeitrag und Break-even-Analyse
-
-Der Deckungsbeitrag pro Stück ist der Verkaufspreis minus die variablen Kosten pro Stück. Er gibt an, wie viel jedes verkaufte Stück zur Deckung der Fixkosten beiträgt.
-
-Break-even-Menge = Fixkosten / Deckungsbeitrag pro Stück
-
-Beispiel: Fixkosten 60.000 Euro, Verkaufspreis 50 Euro, variable Kosten 30 Euro pro Stück. Der Deckungsbeitrag beträgt 20 Euro. Die Break-even-Menge liegt bei 60.000 / 20 = 3.000 Stück. Ab dem 3.001. Stück erzielt das Unternehmen Gewinn.
-
-Die Deckungsbeitragsrechnung ist eine Teilkostenrechnung. Sie eignet sich besonders für kurzfristige Entscheidungen, etwa ob ein Zusatzauftrag angenommen werden soll: Ein Zusatzauftrag lohnt sich kurzfristig, wenn sein Preis mindestens die variablen Kosten deckt und freie Kapazität vorhanden ist.`,
+Gruppenprojekt: Erstellen Sie einen Imagefilm von zwei bis drei Minuten für einen der Praxisbetriebe der Gruppe. Abgabe: Konzept und Drehplan als PDF, der fertige Film als MP4 (höchstens 2 GB), Projektdateien optional als ZIP.`,
     ],
   },
-  kor2: {
-    titel: 'Übungsklausur Kostenrechnung mit Lösungen',
+  rvl1: {
+    titel: 'Ringvorlesung: IT-Sicherheit, CMS und SEO',
     seiten: [
-      `Übungsklausur Kostenrechnung (120 Minuten)
+      `Ringvorlesung Datenkommunikation, CMS, SEO, IT-Sicherheit – Einheit IT-Sicherheit
 
-Aufgabe 1: Ordnen Sie zu, ob Einzel- oder Gemeinkosten vorliegen: Fertigungsmaterial, Gehalt der Geschäftsführung, Strom der Fertigungshalle.
-Lösung: Fertigungsmaterial = Einzelkosten; Gehalt der Geschäftsführung = Gemeinkosten; Strom der Halle = Gemeinkosten (unechte Gemeinkosten, falls nicht gemessen).
+Die drei Schutzziele der Informationssicherheit (CIA-Triade):
+– Vertraulichkeit (Confidentiality): Nur Berechtigte haben Zugriff auf Informationen.
+– Integrität (Integrity): Daten sind vollständig und unverändert.
+– Verfügbarkeit (Availability): Systeme und Daten stehen zur Verfügung, wenn sie gebraucht werden.
 
-Aufgabe 2: Ein Produkt wird für 80 Euro verkauft, die variablen Kosten betragen 45 Euro, die Fixkosten 140.000 Euro. Berechnen Sie die Break-even-Menge.
-Lösung: Deckungsbeitrag = 35 Euro; Break-even-Menge = 140.000 / 35 = 4.000 Stück.
+Phishing ist der Versuch, über gefälschte E-Mails oder Webseiten an Zugangsdaten zu gelangen. Die wirksamste Gegenmaßnahme ist die Zwei-Faktor-Authentifizierung: Neben dem Passwort wird ein zweiter Faktor verlangt, etwa ein Code aus einer App. Ein gestohlenes Passwort allein reicht dann nicht.`,
+      `Einheit CMS und SEO
 
-Aufgabe 3: Erklären Sie den Unterschied zwischen Kostenstellen- und Kostenträgerrechnung.
-Lösung: Die Kostenstellenrechnung fragt, wo Kosten entstehen; die Kostenträgerrechnung, wofür sie entstehen.
+Ein Content-Management-System (CMS) trennt Inhalt und Gestaltung: Redaktionen pflegen Texte und Bilder über eine Oberfläche, ohne Programmierkenntnisse. Beispiele sind WordPress, TYPO3 oder Headless-CMS, die Inhalte nur über eine Schnittstelle ausliefern.
 
-Erlaubte Hilfsmittel in der Klausur: nicht programmierbarer Taschenrechner.`,
+Suchmaschinenoptimierung (SEO) verbessert die Sichtbarkeit in den unbezahlten Suchergebnissen.
+On-Page: aussagekräftiger Title-Tag, Meta-Description, klare Überschriften, schnelle Ladezeit, mobile Darstellung.
+Off-Page: Verweise von anderen, vertrauenswürdigen Seiten (Backlinks).
+
+Der Title-Tag sollte das wichtigste Suchwort enthalten und nicht länger als etwa 60 Zeichen sein, damit er in den Suchergebnissen vollständig angezeigt wird.`,
     ],
   },
-  bil1: {
-    titel: 'Folien Bilanzierung: Aufbau der Bilanz nach HGB',
+  grw1: {
+    titel: 'Skript Grundlagen Recht: Vertrag und Mängelrechte',
     seiten: [
-      `Bilanzierung – Aufbau der Bilanz nach § 266 HGB
+      `Grundlagen Recht der Wirtschaft – Vertragsschluss
 
-Die Bilanz stellt zu einem Stichtag das Vermögen (Aktiva) und dessen Finanzierung (Passiva) gegenüber. Beide Seiten sind immer gleich groß.
+Ein Vertrag kommt durch zwei übereinstimmende Willenserklärungen zustande: Angebot und Annahme (§§ 145 ff. BGB). Eine Werbeanzeige oder die Auslage im Schaufenster ist in der Regel noch kein Angebot, sondern eine Aufforderung zur Abgabe eines Angebots (invitatio ad offerendum).
 
-Aktiva: A. Anlagevermögen (immaterielle Vermögensgegenstände, Sachanlagen, Finanzanlagen), B. Umlaufvermögen (Vorräte, Forderungen, Wertpapiere, liquide Mittel), C. Rechnungsabgrenzungsposten.
+Geschäftsfähigkeit: Kinder unter sieben Jahren sind geschäftsunfähig (§ 104 BGB). Minderjährige von sieben bis 17 Jahren sind beschränkt geschäftsfähig (§ 106 BGB); ihre Verträge brauchen grundsätzlich die Zustimmung der Eltern, außer sie zahlen mit Mitteln, die ihnen dafür überlassen wurden (Taschengeldparagraf, § 110 BGB).
 
-Passiva: A. Eigenkapital, B. Rückstellungen, C. Verbindlichkeiten, D. Rechnungsabgrenzungsposten.
+Beim Kaufvertrag (§ 433 BGB) muss der Verkäufer die Sache frei von Mängeln übergeben, der Käufer den Preis zahlen und die Sache abnehmen.`,
+      `Mängelrechte beim Kauf
 
-Anlagevermögen ist dazu bestimmt, dauernd dem Geschäftsbetrieb zu dienen (§ 247 Abs. 2 HGB). Alles andere Vermögen ist Umlaufvermögen.
+Ist die Sache mangelhaft, hat der Käufer nach § 437 BGB folgende Rechte:
+1. Nacherfüllung: nach Wahl des Käufers Beseitigung des Mangels oder Lieferung einer mangelfreien Sache. Sie hat Vorrang.
+2. Erst wenn die Nacherfüllung scheitert oder eine angemessene Frist verstrichen ist: Rücktritt vom Vertrag oder Minderung des Kaufpreises.
+3. Zusätzlich Schadensersatz, wenn der Verkäufer den Mangel zu vertreten hat.
 
-Wichtige Grundsätze ordnungsmäßiger Buchführung: Vorsichtsprinzip, Realisationsprinzip (Gewinne erst ausweisen, wenn sie realisiert sind), Imparitätsprinzip (drohende Verluste schon ausweisen, wenn sie absehbar sind), Niederstwertprinzip im Umlaufvermögen.`,
+Die Mängelansprüche verjähren bei beweglichen Sachen in zwei Jahren ab Übergabe (§ 438 BGB). Beim Kauf durch Verbraucher von einem Unternehmer wird vermutet, dass ein Mangel, der sich innerhalb eines Jahres zeigt, schon bei Übergabe vorlag (§ 477 BGB).`,
     ],
   },
-  deu1: {
-    titel: 'Folien: Lineare Optimierung (Operations Research)',
+  mko1: {
+    titel: 'Leitfaden Medienkonzeption',
     seiten: [
-      `Digitale Entscheidungsunterstützung – Lineare Optimierung
+      `Medienkonzeption – Aufbau eines Medienkonzepts
 
-Die lineare Optimierung bestimmt die beste Lösung eines Problems mit linearer Zielfunktion und linearen Nebenbedingungen. Typische Fragen: Welche Produktmengen maximieren den Deckungsbeitrag bei begrenzter Maschinenzeit?
+Ein Medienkonzept beschreibt, wie ein Kommunikationsziel mit Medien erreicht werden soll. Es beginnt mit dem Briefing des Auftraggebers und endet mit einem umsetzbaren Plan.
 
-Aufbau eines Modells:
-1. Entscheidungsvariablen festlegen, zum Beispiel x1 und x2 als Produktionsmengen.
-2. Zielfunktion formulieren, zum Beispiel maximiere 40·x1 + 30·x2.
-3. Nebenbedingungen aufstellen, zum Beispiel 2·x1 + 1·x2 ≤ 100 Maschinenstunden.
-4. Nichtnegativität: x1, x2 ≥ 0.
+Bausteine:
+1. Ausgangslage und Briefing: Was will der Auftraggeber, was ist das Problem?
+2. Ziele: messbar formuliert, zum Beispiel nach der SMART-Regel (spezifisch, messbar, attraktiv, realistisch, terminiert).
+3. Zielgruppe: beschrieben mit Personas, also typischen, konkret ausgestalteten Vertretern der Zielgruppe.
+4. Kernbotschaft: ein Satz, den die Zielgruppe mitnehmen soll.
+5. Medienmix und Maßnahmen: welche Kanäle, welche Formate, in welcher Reihenfolge.
+6. Zeitplan, Budget und Erfolgskontrolle.
 
-Bei zwei Variablen lässt sich das Problem grafisch lösen: Die optimale Lösung liegt immer auf einer Ecke des zulässigen Bereichs. Bei mehr Variablen nutzt man das Simplex-Verfahren, in der Praxis zum Beispiel mit dem Excel-Solver.`,
+Abgabe im Modul: Medienkonzept für eine Kampagne Ihres Praxisbetriebs, 10 bis 12 Seiten, als PDF.`,
     ],
   },
-  deu2: {
-    titel: 'Folien: Business Intelligence und Dashboards',
+  dbk1: {
+    titel: 'Folien Datenbanken: ER-Modell und Normalisierung',
     seiten: [
-      `Digitale Entscheidungsunterstützung – Business Intelligence
+      `Datenbanken – Relationales Modell und ER-Modellierung
 
-Business Intelligence (BI) bezeichnet Verfahren, um Unternehmensdaten zu sammeln, aufzubereiten und für Entscheidungen darzustellen.
+Eine relationale Datenbank speichert Daten in Tabellen (Relationen). Jede Zeile ist ein Datensatz, jede Spalte ein Attribut.
 
-Der ETL-Prozess bildet die Grundlage: Extract (Daten aus Quellsystemen wie ERP oder CRM holen), Transform (bereinigen, vereinheitlichen, verknüpfen), Load (in ein Data Warehouse laden).
+Der Primärschlüssel identifiziert jeden Datensatz eindeutig, zum Beispiel eine Kundennummer. Ein Fremdschlüssel verweist auf den Primärschlüssel einer anderen Tabelle und bildet so eine Beziehung ab.
 
-Ein Dashboard zeigt die wichtigsten Kennzahlen (KPIs) auf einen Blick. Gute Dashboards beantworten eine konkrete Frage, zeigen höchstens fünf bis sieben Kennzahlen und machen Abweichungen vom Ziel sofort sichtbar.
+Im Entity-Relationship-Modell (ER-Modell) werden Entitäten, Attribute und Beziehungen vor der Umsetzung grafisch geplant. Kardinalitäten geben an, wie viele Datensätze miteinander verbunden sein können: 1:1, 1:n oder n:m. Eine n:m-Beziehung wird in der Datenbank über eine eigene Zwischentabelle umgesetzt.`,
+      `Normalisierung
 
-Gruppenprojekt: Entwickeln Sie für Ihren Praxisbetrieb ein Konzept für ein Dashboard. Abgabe: Konzept als PDF, optional ein Prototyp als ZIP und ein Demo-Video als MP4 (höchstens 2 GB).`,
+Normalisierung vermeidet Redundanzen und damit Widersprüche in den Daten.
+Erste Normalform (1NF): Jedes Attribut enthält nur einen einzigen, unteilbaren Wert.
+Zweite Normalform (2NF): 1NF und jedes Nicht-Schlüsselattribut hängt vom gesamten Primärschlüssel ab, nicht nur von einem Teil davon.
+Dritte Normalform (3NF): 2NF und kein Nicht-Schlüsselattribut hängt von einem anderen Nicht-Schlüsselattribut ab (keine transitiven Abhängigkeiten).
+
+Beispiel für einen Verstoß gegen die 3NF: In einer Tabelle Mitarbeiter stehen Abteilungsnummer und Abteilungsname. Der Name hängt von der Abteilungsnummer ab, nicht vom Mitarbeiter. Lösung: eine eigene Tabelle Abteilung.
+
+SQL-Grundgerüst: SELECT Spalten FROM Tabelle WHERE Bedingung; Tabellen werden mit JOIN … ON verknüpft.`,
     ],
   },
-  arb1: {
-    titel: 'Skript Arbeitsrecht: Kündigung und Kündigungsschutz',
+  dbk2: {
+    titel: 'Übungsklausur Datenbanken mit Lösungen',
     seiten: [
-      `Arbeitsrecht – Kündigungsfristen nach § 622 BGB
+      `Übungsklausur Datenbanken (90 Minuten)
 
-Die gesetzliche Grundkündigungsfrist beträgt vier Wochen zum Fünfzehnten oder zum Ende eines Kalendermonats. Während einer vereinbarten Probezeit von höchstens sechs Monaten kann mit einer Frist von zwei Wochen gekündigt werden.
+Aufgabe 1: Welche Normalform verletzt eine Tabelle Bestellung mit den Spalten BestellNr, KundenNr, KundenName?
+Lösung: Die 3NF, weil KundenName von KundenNr abhängt (transitive Abhängigkeit). KundenName gehört in eine Tabelle Kunde.
 
-Für eine Kündigung durch den Arbeitgeber verlängert sich die Frist mit der Dauer der Betriebszugehörigkeit, jeweils zum Ende eines Kalendermonats:
-2 Jahre: 1 Monat, 5 Jahre: 2 Monate, 8 Jahre: 3 Monate, 10 Jahre: 4 Monate, 12 Jahre: 5 Monate, 15 Jahre: 6 Monate, 20 Jahre: 7 Monate.
+Aufgabe 2: Geben Sie alle Kunden aus Lüneburg aus.
+Lösung: SELECT * FROM Kunde WHERE Ort = 'Lüneburg';
 
-Die Kündigung bedarf der Schriftform (§ 623 BGB). Eine Kündigung per E-Mail oder WhatsApp ist unwirksam.`,
-      `Kündigungsschutzgesetz (KSchG)
+Aufgabe 3: Wie wird eine n:m-Beziehung zwischen Student und Kurs umgesetzt?
+Lösung: Über eine Zwischentabelle Belegung mit den Fremdschlüsseln StudentID und KursID, die zusammen den Primärschlüssel bilden.
 
-Das Kündigungsschutzgesetz gilt, wenn das Arbeitsverhältnis länger als sechs Monate besteht (§ 1 KSchG) und im Betrieb in der Regel mehr als zehn Arbeitnehmer beschäftigt sind (§ 23 KSchG).
-
-Dann ist eine ordentliche Kündigung nur wirksam, wenn sie sozial gerechtfertigt ist. Das Gesetz kennt drei Gründe:
-1. Personenbedingte Gründe, zum Beispiel lang andauernde Krankheit mit negativer Prognose.
-2. Verhaltensbedingte Gründe, zum Beispiel wiederholte Pflichtverletzungen, in der Regel nach vorheriger Abmahnung.
-3. Betriebsbedingte Gründe, zum Beispiel Wegfall des Arbeitsplatzes; hier ist eine Sozialauswahl nötig.
-
-Eine Kündigungsschutzklage muss innerhalb von drei Wochen nach Zugang der Kündigung erhoben werden (§ 4 KSchG).`,
+Erlaubte Hilfsmittel: keine.`,
     ],
   },
-  bep1: {
-    titel: 'Presentation Skills: Structure and Signposting',
+  ptp3: {
+    titel: 'Leitfaden Praxistransfer 3: Projektmanagement',
     seiten: [
-      `Business English – Presentation Skills
+      `Praxistransfer-Projekt des 3. Semesters – Schwerpunkt Projektmanagement
 
-A clear presentation has three parts: introduction, main part and conclusion.
-
-Introduction: greet the audience, introduce yourself and the topic, and give an overview. Example: "Today I'd like to talk about our new sales strategy. I've divided my talk into three parts."
-
-Signposting helps the audience follow you: "Let's move on to …", "This brings me to my next point …", "To sum up …".
-
-Conclusion: summarise the key points, give a recommendation and invite questions: "Thank you for your attention. I'm happy to take any questions."
-
-Assessment of the presentation: content and structure (40 %), language (30 %), delivery and visuals (30 %). Please upload your slides and handout as PDF or PPTX.`,
-    ],
-  },
-  ptp1: {
-    titel: 'Leitfaden Praxistransferbericht',
-    seiten: [
-      `Praxistransfer-Projekt (PTP) – Leitfaden für den Bericht
-
-Im Praxistransfer-Projekt verbinden Sie die Inhalte eines Semesters mit einer konkreten Fragestellung aus Ihrem Ausbildungsbetrieb.
+Im Praxistransfer-Projekt verbinden Sie die Inhalte des Semesters mit einem realen Projekt aus Ihrem Ausbildungsbetrieb. Im 3. Semester liegt der Fokus auf dem Projektmanagement.
 
 Aufbau des Berichts:
 1. Deckblatt mit Betrieb, betrieblicher Betreuung und Semester
-2. Einleitung: Ausgangssituation und Fragestellung im Betrieb
-3. Theoretische Grundlagen aus den Modulen des Semesters
-4. Analyse und Lösungsvorschlag
-5. Fazit und Reflexion des eigenen Lernprozesses
-6. Literaturverzeichnis und Eigenständigkeitserklärung
+2. Projektauftrag: Ausgangslage, Ziel, Umfang, Auftraggeber
+3. Stakeholder-Analyse: wer ist betroffen, wer entscheidet, wer muss informiert werden
+4. Projektplan mit Meilensteinen und Verantwortlichkeiten
+5. Umsetzung und Umgang mit Risiken
+6. Fazit und Reflexion des eigenen Lernprozesses
+7. Literaturverzeichnis und Eigenständigkeitserklärung
 
-Umfang: 10 bis 12 Seiten. Der Bericht muss von der betrieblichen Betreuung zur Kenntnis genommen werden; die Bestätigung laden Sie als zweite Seite oder als eigene Datei mit hoch.
-
-Vertrauliche Betriebsdaten dürfen anonymisiert werden. Kennzeichnen Sie das im Text.`,
+Umfang: 10 bis 12 Seiten. Die betriebliche Betreuung bestätigt die Kenntnisnahme; die Bestätigung laden Sie mit hoch. Vertrauliche Betriebsdaten dürfen anonymisiert werden.`,
     ],
   },
   mwa1: {
     titel: 'Leitfaden Zitieren (APA 7)',
     seiten: [
-      `Methoden des wissenschaftlichen Arbeitens – Zitieren nach APA 7
+      `Praxistransfer 1: Wissenschaftliches Arbeiten – Zitieren nach APA 7
 
 Im Text wird mit Autor, Jahr und bei wörtlichen Zitaten mit Seite belegt: (Meffert et al., 2019, S. 112).
 

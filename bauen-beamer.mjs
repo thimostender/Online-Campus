@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 // Die Titelzeile im Mermaid-Kopf steht auf der Folie schon als Überschrift
 // Für die Folie: waagerecht anordnen und Kommentare weglassen, damit die Schrift groß bleibt
-const WICHTIG = new Set(['name', 'titel', 'rolle', 'status', 'frist', 'art', 'wert', 'freigegeben_am', 'bestaetigt_am', 'sha256', 'nummer', 'verspaetet', 'anlass', 'kanal', 'gelesen_am', 'beginn', 'ende', 'von', 'bis', 'ects', 'bezeichnung', 'gruppenarbeit', 'wichtig', 'aktiv', 'erklaerung_am', 'sichtbar_ab']);
+const WICHTIG = new Set(['schwerpunkt', 'plansemester', 'name', 'titel', 'rolle', 'status', 'frist', 'art', 'wert', 'freigegeben_am', 'bestaetigt_am', 'sha256', 'nummer', 'verspaetet', 'anlass', 'kanal', 'gelesen_am', 'beginn', 'ende', 'von', 'bis', 'ects', 'bezeichnung', 'gruppenarbeit', 'wichtig', 'aktiv', 'erklaerung_am', 'sichtbar_ab']);
 const nurWichtiges = text => text.split('\n').filter(z => {
   const m = z.match(/^\s{4}\w+ (\w+)(?: (PK|FK|UK))?/);
   return !m || m[2] || WICHTIG.has(m[1]);

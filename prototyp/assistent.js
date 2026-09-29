@@ -114,9 +114,10 @@ function persoenlicheAntwort(frage, u) {
     const st = ectsStand(u.id);
     return { html: `Du hast <b>${st.endgueltig} von ${st.gesamt} ECTS</b> endgültig erreicht${st.vorlaeufig ? `, dazu ${st.vorlaeufig} ECTS mit vorläufiger Note` : ''}. ${st.schnittGesamt ? `Dein Durchschnitt über alle Semester liegt bei ${noteFmt(st.schnittGesamt)}.` : ''}`, quellen: [{ quelle: 'Studienverlauf', link: '#/leistungen' }] };
   }
-  if (/(wahlfach|wahlpflicht|vertiefung|wf ?[12])/.test(n) && s) {
-    const w = db.wahlpflicht_wahl.find(x => x.user_id === u.id);
-    return { html: `Ab dem 5. Semester belegst du entweder <b>WF 1 Marketing</b> (Marktforschungsmethoden, Strategisches Marketingmanagement, Innovationsmanagement) oder <b>WF 2 Controlling</b> (Strategisches, Operatives und Bereichs-Controlling). ${w ? `Du hast ${WAHLFAECHER[w.wahlfach]} gewählt.` : 'Du hast noch nicht gewählt.'} <a href="#/leistungen">Zum Studienverlauf</a>` };
+  if (/(schwerpunkt|medien oder it|wahl)/.test(n) && s) {
+    const sp = schwerpunktVon(u.id), anderer = sp === 'M' ? 'I' : 'M';
+    const eigene = db.modul.filter(m => m.schwerpunkt === sp).map(m => esc(m.kurztitel));
+    return { html: `Du studierst im <b>${SCHWERPUNKTE[sp]}</b>. Dazu gehören ${eigene.length} eigene Module, zum Beispiel ${eigene.slice(0, 4).join(', ')}. Die Module im ${SCHWERPUNKTE[anderer]} laufen parallel, alle übrigen besucht ihr gemeinsam. <a href="#/leistungen">Zum Studienverlauf</a>` };
   }
   if (/(aenderung|ausfall|faellt aus|verlegt|vertretung)/.test(n)) {
     const ts = termineVon(kursIds, u.id).filter(t => D(t.ende) > jetzt && (t.status !== 'geplant' || t.vertretung_id)).slice(0, 5);
@@ -165,8 +166,10 @@ async function beantworte(frage) {
 // ---------- Oberfläche ----------
 function assistentVorschlaege() {
   const r = rolle();
-  if (r === 'studierend') return ['Wann ist meine nächste Abgabe?', 'Was habe ich morgen?', 'Wie berechne ich die Break-even-Menge?', 'Welche Kündigungsfrist gilt nach 5 Jahren?', 'Wie viele ECTS habe ich?'];
-  if (r === 'lehrend') return ['Was muss ich noch korrigieren?', 'Wann ist meine nächste Vorlesung?', 'Was steht im Leitfaden Praxistransferbericht?'];
+  if (r === 'studierend') return schwerpunktVon(ich().id) === 'I'
+    ? ['Wann ist meine nächste Abgabe?', 'Was ist die dritte Normalform?', 'Was bedeutet die CIA-Triade?', 'Wie lange verjähren Mängelansprüche?', 'Wie viele ECTS habe ich?']
+    : ['Wann ist meine nächste Abgabe?', 'Was habe ich morgen?', 'Was ist ein indirekter Netzwerkeffekt?', 'Wie lange verjähren Mängelansprüche?', 'Wie viele ECTS habe ich?'];
+  if (r === 'lehrend') return ['Was muss ich noch korrigieren?', 'Wann ist meine nächste Vorlesung?', 'Was gehört in den Praxistransferbericht zum Projektmanagement?'];
   return ['Wer ist für Fristverlängerungen zuständig?', 'Was bedeutet vorläufig bei einer Note?'];
 }
 function assistentRendern() {

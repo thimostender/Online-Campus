@@ -328,7 +328,7 @@ function vGruppen() {
   <div class="raster raster-2 abstand">
     <section class="karte"><h2>${esc(sem.bezeichnung)}</h2><p>${fmtDatumJ(sem.beginn)} – ${fmtDatumJ(sem.ende)}</p>
       <h3>Vorlesungsfreie Zeiten</h3><ul class="liste">${db.vorlesungsfreie_zeit.map(v => `<li class="zeile dazwischen"><span>${esc(v.bezeichnung)}</span><span class="leise">${fmtDatumJ(v.beginn)} – ${fmtDatumJ(v.ende)}</span></li>`).join('')}</ul></section>
-    <section class="karte"><h2>Mitglieder BWL-2025-A</h2><ul class="liste">${db.gruppenmitglied.filter(m => m.gruppe_id === 1).map(m => { const x = byId('user', m.user_id); return `<li class="zeile dazwischen"><span>${esc(name(x))}</span><span class="klein leise">seit ${fmtDatumJ(m.von)}</span></li>`; }).join('')}</ul>
+    <section class="karte"><h2>Mitglieder ${esc(db.studiengruppe[0].name)}</h2><ul class="liste">${db.gruppenmitglied.filter(m => m.gruppe_id === 1).map(m => { const x = byId('user', m.user_id); return `<li class="zeile dazwischen"><span>${esc(name(x))} <span class="marke-klein m-akzent">${esc(SCHWERPUNKTE[schwerpunktVon(x.id)] || '')}</span></span><span class="klein leise">seit ${fmtDatumJ(m.von)}</span></li>`; }).join('')}</ul>
       <p class="klein leise abstand" style="margin:0">Die Mitgliedschaft hat ein Von- und Bis-Datum. So lassen sich Gruppenwechsel und Wiederholer abbilden, ohne alte Noten zu verlieren.</p></section>
   </div>`;
 }

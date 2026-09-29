@@ -20,7 +20,7 @@ erDiagram
   STUDIENGRUPPE {
     int id PK
     int studiengang_id FK
-    string name "z. B. BWL-2025-A"
+    string name "z. B. MIT-2025-A"
     string standort
   }
   GRUPPENMITGLIED {
@@ -28,6 +28,11 @@ erDiagram
     int gruppe_id FK
     date von
     date bis "leer = aktuell"
+  }
+  SCHWERPUNKT_WAHL {
+    uuid user_id FK
+    string schwerpunkt "M oder I, ab dem 2. Semester"
+    datetime gewaehlt_am
   }
   SEMESTER {
     int id PK
@@ -47,24 +52,20 @@ erDiagram
     string nr "laut Modulstruktur, z. B. 25 (1)"
     string kuerzel
     string titel
-    string bereich "z. B. Wertschöpfung, Recht"
+    string bereich "z. B. Mediendesign, Recht"
     int plansemester "1 bis 6"
     int ue "Unterrichtseinheiten"
     int workload "Stunden"
     int ects
-    int wahlfach "leer = Pflicht, 1 Marketing, 2 Controlling"
+    string schwerpunkt "leer = gemeinsam, M = Medien, I = IT"
     string beschreibung
-  }
-  WAHLPFLICHT_WAHL {
-    uuid user_id FK
-    int wahlfach
-    datetime gewaehlt_am
   }
   KURS {
     int id PK
     int modul_id FK
     int gruppe_id FK
     int semester_id FK
+    string schwerpunkt "leer = ganze Gruppe, sonst nur M oder I"
   }
   LEHRAUFTRAG {
     int kurs_id FK
@@ -100,4 +101,4 @@ erDiagram
   KURS ||--o{ TERMIN : "plant"
   RAUM |o--o{ TERMIN : "Ort von"
   USER |o--o{ TERMIN : "vertritt"
-  USER ||--o| WAHLPFLICHT_WAHL : "wählt"
+  USER ||--o| SCHWERPUNKT_WAHL : "wählt"

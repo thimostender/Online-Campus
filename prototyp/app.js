@@ -2,7 +2,7 @@
 // Kern: Speicher, Datenzugriff, Mitteilungen, Router, Layout, Aktionen.
 // Die Ansichten stehen in ansichten.js.
 
-const SPEICHER = 'online-campus-v2';
+const SPEICHER = 'online-campus-v3';
 let db;
 let panelOffen = false;
 let panelFilter = 'alle';
@@ -13,7 +13,7 @@ const mitternacht = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0
 function laden() {
   try {
     const s = JSON.parse(localStorage.getItem(SPEICHER));
-    if (!s || s.version !== 2) return null;
+    if (!s || s.version !== 3) return null;
     // Beispieldaten hängen am Erzeugungstag. An jedem neuen Tag wandern alle Zeitpunkte mit,
     // damit Fristen und Termine passen und eigene Änderungen trotzdem erhalten bleiben.
     const tage = Math.round((mitternacht() - s.stichtag) / 864e5);
@@ -138,6 +138,8 @@ function gruppeVon(uid) {
   const m = db.gruppenmitglied.find(g => g.user_id === uid && !g.bis);
   return m ? byId('studiengruppe', m.gruppe_id) : null;
 }
+// Schwerpunkt Medien (M) oder IT (I), gewählt vor dem 2. Semester
+const schwerpunktVon = uid => db.schwerpunkt_wahl.find(w => w.user_id === uid)?.schwerpunkt || null;
 // Das Semester, in dem heute liegt
 function aktSem() {
   const h = new Date().toISOString().slice(0, 10);
@@ -147,7 +149,7 @@ function aktSem() {
 function kurseVon(uid, alle = false) {
   const u = byId('user', uid), sem = aktSem().id;
   let liste;
-  if (u.rolle === 'studierend') { const g = gruppeVon(uid); liste = db.kurs.filter(k => k.gruppe_id === g?.id); }
+  if (u.rolle === 'studierend') { const g = gruppeVon(uid), sp = schwerpunktVon(uid); liste = db.kurs.filter(k => k.gruppe_id === g?.id && (!k.schwerpunkt || k.schwerpunkt === sp)); }
   else if (u.rolle === 'lehrend') { const ids = db.lehrauftrag.filter(l => l.lehrender_id === uid).map(l => l.kurs_id); liste = db.kurs.filter(k => ids.includes(k.id)); }
   else liste = db.kurs;
   return alle ? liste : liste.filter(k => k.semester_id === sem);
@@ -158,7 +160,7 @@ const farbeVon = kid => FARBEN[(byId('kurs', kid).modul_id - 1) % FARBEN.length]
 const lehrendeVon = kid => db.lehrauftrag.filter(l => l.kurs_id === kid).map(l => byId('user', l.lehrender_id));
 function studisVon(kid) {
   const k = byId('kurs', kid);
-  return db.gruppenmitglied.filter(g => g.gruppe_id === k.gruppe_id && !g.bis).map(g => g.user_id);
+  return db.gruppenmitglied.filter(g => g.gruppe_id === k.gruppe_id && !g.bis).map(g => g.user_id).filter(u => !k.schwerpunkt || schwerpunktVon(u) === k.schwerpunkt);
 }
 function termineVon(kursIds, uid = null) {
   return db.termin.filter(t => kursIds.includes(t.kurs_id) || (uid && t.vertretung_id === uid)).sort((a, b) => D(a.beginn) - D(b.beginn));

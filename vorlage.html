@@ -95,12 +95,12 @@
 <tr><td>Zeit und Ort</td><td>TERMIN, RAUM, VORLESUNGSFREIE_ZEIT</td><td>Stundenplan und Ferien. Aus den Terminen entsteht das Kalender-Abo.</td></tr>
 <tr><td>Prüfen</td><td>PRUEFUNG, ABGABE, ABGABE_MITGLIED, ABGABEVERSION, NOTE</td><td>Vom Anlegen der Prüfung über den Upload bis zur freigegebenen Note</td></tr>
 <tr><td>Dateien und Material</td><td>DATEI, MATERIAL, MATERIAL_ABSCHNITT</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme; die Dateien selbst liegen im Objektspeicher. Hochgeladene Lehrmaterialien werden ausgelesen und in Abschnitte mit Seitenzahl zerlegt, aus denen der Hilfe-Assistent antwortet.</td></tr>
-<tr><td>Studienverlauf</td><td>MODUL (mit Nr., Bereich, Plansemester, UE, Workload), WAHLPFLICHT_WAHL</td><td>Bildet die Modulstruktur BWL (B.A.) mit 6 Semestern, 180 ECTS und den Wahlfächern WF 1 Marketing und WF 2 Controlling ab.</td></tr>
+<tr><td>Studienverlauf und Schwerpunkt</td><td>MODUL (mit Nr., Bereich, Plansemester, UE, Workload, Schwerpunkt), SCHWERPUNKT_WAHL, KURS.schwerpunkt</td><td>Bildet die Modulstruktur Medien- und IT-Management (B.A.) ab: 6 Semester, 180 ECTS, ab dem 2. Semester Schwerpunkt Medien (M) oder IT (I). Parallelmodule wie Medienkonzeption (M) und Datenbanken (I) laufen zur selben Zeit; ein Kurs mit Schwerpunkt erscheint nur bei dessen Studierenden.</td></tr>
 <tr><td>Kommunikation</td><td>MITTEILUNG, ZUSTELLUNG, BENACHRICHTIGUNG_EINSTELLUNG</td><td>Was wurde gesendet, an wen, über welchen Kanal, und wurde es gelesen?</td></tr>
 </table>
 
 <h3>So entsteht der persönliche Stundenplan</h3>
-<p><code>USER → GRUPPENMITGLIED (aktuell) → STUDIENGRUPPE → KURS (dieses Semester) → TERMIN</code>, dazu der RAUM und bei Vertretung die vertretende Person. Die Fristen kommen auf demselben Weg über <code>KURS → PRUEFUNG.frist</code> dazu. Eine Abfrage liefert also Termine und Abgaben gemeinsam, wie es eure Sitemap vorsieht („alle Termine und Abgaben“).</p>
+<p><code>USER → GRUPPENMITGLIED (aktuell) → STUDIENGRUPPE → KURS (dieses Semester, gemeinsam oder eigener Schwerpunkt) → TERMIN</code>, dazu der RAUM und bei Vertretung die vertretende Person. Die Fristen kommen auf demselben Weg über <code>KURS → PRUEFUNG.frist</code> dazu. Eine Abfrage liefert also Termine und Abgaben gemeinsam, wie es eure Sitemap vorsieht („alle Termine und Abgaben“).</p>
 
 <h3>Regeln, die das Modell allein nicht erzwingt</h3>
 <ol>

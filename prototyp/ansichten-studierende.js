@@ -31,7 +31,7 @@ function sUebersicht() {
   const neu = meineMitteilungen(u.id).filter(m => !m.gelesen).slice(0, 4);
   const stand = ectsStand(u.id);
 
-  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(gruppeVon(u.id).name)} · ${esc(aktSem().bezeichnung)}`)}
+  return `${kopfzeile(`${gruss()}, ${esc(u.vorname)}`, `${fmtLang(jetzt)} · ${esc(gruppeVon(u.id).name)} · ${SCHWERPUNKTE[schwerpunktVon(u.id)] || ''} · ${esc(aktSem().bezeichnung)}`)}
   ${aenderungen.length ? `<div class="hinweis warn" style="margin-bottom:16px">${I('warn')}<div><b>${plural(aenderungen.length, 'Änderung', 'Änderungen')} in deinem Stundenplan</b>
     <ul class="liste" style="margin-top:6px">${aenderungen.map(t => `<li style="padding:6px 0;border:0"><a href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul></div></div>` : ''}
   <div class="raster raster-2">
@@ -417,41 +417,28 @@ function modulStand(m, uid) {
   return k.semester_id === aktSem().id ? { kurs: k, kl: 'm-info', text: 'läuft' } : { kurs: k, kl: 'm-fehler', text: 'offen' };
 }
 function studienverlauf(u) {
-  const sg = byId('studiengang', gruppeVon(u.id).studiengang_id);
-  const wahl = db.wahlpflicht_wahl.find(w => w.user_id === u.id);
+  const sg = byId('studiengang', gruppeVon(u.id).studiengang_id), sp = schwerpunktVon(u.id);
   const semName = n => { const k = kurseVon(u.id, true).find(x => modulVon(x).plansemester === n); return k ? byId('semester', k.semester_id).bezeichnung : ''; };
   const aktuellesPlansemester = Math.max(...kurseVon(u.id).map(k => modulVon(k).plansemester));
   const zeile = m => { const st = modulStand(m, u.id); const inhalt = `<span class="kuerzel" style="width:34px;height:34px;font-size:10.5px;border-radius:9px;background:${FARBEN[(m.id - 1) % FARBEN.length]}">${esc(m.kuerzel)}</span>
-      <span style="flex:1;min-width:0"><span class="klein fett" style="display:block">${esc(m.kurztitel)}</span><span class="klein leise">${m.ects ? m.ects + ' ECTS' : m.ue + ' UE, ohne eigene ECTS'}</span></span>
+      <span style="flex:1;min-width:0"><span class="klein fett" style="display:block">${esc(m.kurztitel)}${m.schwerpunkt ? ` <span class="marke-klein m-akzent">${m.schwerpunkt}</span>` : ''}</span><span class="klein leise">${m.ects ? m.ects + ' ECTS' : m.ue + ' UE, ohne eigene ECTS'}</span></span>
       <span class="marke-klein ${st.kl}">${esc(st.text)}</span>`;
     return `<li>${st.kurs ? `<a class="zeile" href="#/module/${st.kurs.id}${st.note ? '/ergebnis' : ''}" style="color:var(--text);text-decoration:none">${inhalt}</a>` : `<div class="zeile" style="opacity:.75">${inhalt}</div>`}</li>`;
   };
-  const wahlBox = sem => {
-    const opt = [1, 2].map(w => { const mods = db.modul.filter(m => m.wahlfach === w && m.plansemester === sem); return `<div style="flex:1;min-width:0"><b class="klein">${WAHLFAECHER[w]}</b><ul class="klein leise" style="padding-left:16px;margin:4px 0 8px">${mods.map(m => `<li>${esc(m.kurztitel)}</li>`).join('')}</ul></div>`; }).join('');
-    return `<li><div class="hinweis" style="display:block"><b class="klein">Wahlpflicht: noch nicht gewählt</b><div class="zeile oben" style="gap:12px;margin-top:6px">${opt}</div>
-      <div class="zeile" style="flex-wrap:wrap"><button class="knopf klein" data-action="wahlfach" data-wf="1">WF 1 wählen</button><button class="knopf klein" data-action="wahlfach" data-wf="2">WF 2 wählen</button></div></div></li>`;
-  };
   const karten = [1, 2, 3, 4, 5, 6].map(n => {
-    const mods = db.modul.filter(m => m.plansemester === n && (!m.wahlfach || (wahl && m.wahlfach === wahl.wahlfach)));
-    const cp = db.modul.filter(m => m.plansemester === n && (!m.wahlfach || m.wahlfach === (wahl?.wahlfach || 1))).reduce((s, m) => s + m.ects, 0);
-    const hatWahl = db.modul.some(m => m.plansemester === n && m.wahlfach);
-    return `<section class="karte ${n === aktuellesPlansemester ? 'aktuell' : ''}" style="${n === aktuellesPlansemester ? 'border-color:var(--akzent);box-shadow:0 0 0 1px var(--akzent)' : ''}">
+    // Module des eigenen Schwerpunkts plus alle gemeinsamen Module
+    const mods = db.modul.filter(m => m.plansemester === n && (!m.schwerpunkt || m.schwerpunkt === sp));
+    const cp = mods.reduce((s, m) => s + m.ects, 0);
+    return `<section class="karte" style="${n === aktuellesPlansemester ? 'border-color:var(--akzent);box-shadow:0 0 0 1px var(--akzent)' : ''}">
       <div class="zeile dazwischen"><h3 style="margin:0">${n}. Semester</h3><span class="klein leise">${cp} ECTS</span></div>
       <p class="klein leise" style="margin:0 0 8px">${esc(semName(n)) || (n > aktuellesPlansemester ? 'geplant' : '')}${n === aktuellesPlansemester ? ' · <b style="color:var(--akzent)">aktuell</b>' : ''}</p>
-      <ul class="liste">${mods.filter(m => m.bereich !== 'PTP').map(zeile).join('')}${hatWahl && !wahl ? wahlBox(n) : ''}${mods.filter(m => m.bereich === 'PTP').map(zeile).join('')}</ul></section>`;
+      <ul class="liste">${mods.filter(m => m.bereich !== 'PTP').map(zeile).join('')}${mods.filter(m => m.bereich === 'PTP').map(zeile).join('')}</ul></section>`;
   }).join('');
   return `<section class="abstand"><div class="zeile dazwischen" style="flex-wrap:wrap;margin:22px 0 10px"><h2 style="margin:0">Studienverlauf ${esc(sg.name)} (${esc(sg.abschluss)})</h2>
-    <span class="klein leise">${esc(sg.einrichtung)} · ${sg.semester} Semester · ${sg.ects_gesamt} ECTS${wahl ? ` · ${WAHLFAECHER[wahl.wahlfach]} <a href="#" data-action="wahlfach" data-wf="0">ändern</a>` : ''}</span></div>
+    <span class="klein leise">${sg.semester} Semester · ${sg.ects_gesamt} ECTS${sp ? ` · <b>${SCHWERPUNKTE[sp]}</b> seit dem 2. Semester` : ''}</span></div>
+    <p class="klein leise" style="margin:0 0 12px">Module mit <span class="marke-klein m-akzent">${sp || 'M'}</span> gehören zu deinem Schwerpunkt, alle anderen besucht ihr gemeinsam. Die Parallelmodule des anderen Schwerpunkts sind ausgeblendet.</p>
     <div class="raster raster-3">${karten}</div></section>`;
 }
-AKTIONEN.wahlfach = (el, e) => {
-  e.preventDefault();
-  const u = ich(), wf = Number(el.dataset.wf);
-  db.wahlpflicht_wahl = db.wahlpflicht_wahl.filter(w => w.user_id !== u.id);
-  if (wf) db.wahlpflicht_wahl.push({ user_id: u.id, wahlfach: wf, gewaehlt_am: new Date().toISOString() });
-  speichern(); render();
-  toast(wf ? `${WAHLFAECHER[wf]} gewählt` : 'Wahl zurückgesetzt', wf ? 'Änderbar bis zum Ende des 4. Semesters' : '');
-};
 function sLeistungen() {
   const u = ich(), kurse = kurseVon(u.id).map(k => k.id), st = ectsStand(u.id);
   const ps = pruefungenVon(kurse);
@@ -515,7 +502,7 @@ function sService(tab, q) {
       <section class="karte"><h2>Vorlagen zum Herunterladen</h2><ul class="liste">
         <li class="zeile dazwischen"><span>${I('datei')} Vorlage Hausarbeit (Word)</span><button class="knopf klein" data-action="vorlage" data-art="hausarbeit">${I('download')} Laden</button></li>
         <li class="zeile dazwischen"><span>${I('datei')} Deckblatt (Word)</span><button class="knopf klein" data-action="vorlage" data-art="deckblatt">${I('download')} Laden</button></li>
-        <li class="zeile dazwischen"><span>${I('datei')} Leitfaden Zitieren (APA 7)</span><button class="knopf klein" data-action="platzhalter" data-text="Der Leitfaden liegt im Modul Wissenschaftliches Arbeiten unter Materialien.">${I('download')} Laden</button></li>
+        <li class="zeile dazwischen"><span>${I('datei')} Leitfaden Zitieren (APA 7)</span><button class="knopf klein" data-action="platzhalter" data-text="Der Leitfaden liegt im Modul Praxistransfer 1 unter Materialien (Studienverlauf, 1. Semester).">${I('download')} Laden</button></li>
       </ul></section></div>`,
     formulare: () => `<div class="raster raster-2">
       <section class="karte"><h2>Formulare</h2><ul class="liste">${s.formulare.map(f => `<li class="zeile dazwischen"><span>${esc(f)}</span><button class="knopf klein" data-action="platzhalter" data-text="Im fertigen Campus öffnet sich hier ein Online-Antrag, der direkt beim Studienbüro landet.">Online stellen</button></li>`).join('')}</ul></section>
@@ -602,7 +589,7 @@ function suche(begriff) {
 
 // ---------- Login ----------
 function loginAnsicht() {
-  const personen = [['s1', 'Studierende', 'Stundenplan, Abgaben hochladen, Noten ansehen'], ['s2', 'Studierende', 'Mitglied derselben Projektgruppe'], ['l1', 'Lehrende', 'Termine ändern, Material hochladen, korrigieren'], ['v1', 'Verwaltung', 'Noten bestätigen, Mitteilungen an alle']];
+  const personen = [['s1', 'Studierende', 'Schwerpunkt Medien: Stundenplan, Abgaben, Noten'], ['s2', 'Studierende', 'Schwerpunkt IT, gleiche Projektgruppe wie Lena'], ['l1', 'Lehrende', 'Termine ändern, Material hochladen, korrigieren'], ['v1', 'Verwaltung', 'Noten bestätigen, Mitteilungen an alle']];
   return `<div class="login"><div class="login-karte">
     <div class="marke" style="padding:0 0 18px;font-size:20px"><div class="logo">OC</div><div>Online-Campus<small>Studium, Stundenplan und Prüfungen an einem Ort</small></div></div>
     <div class="raster raster-2">
