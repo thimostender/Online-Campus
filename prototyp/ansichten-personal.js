@@ -8,6 +8,7 @@ ANSICHTEN.lehrend = (t, q) => {
     case 'korrektur': return t[1] ? lKorrektur(Number(t[1])) : lKorrekturen();
     case 'stundenplan': return stundenplan(q);
     case 'konferenz': return konferenz(Number(t[1]));
+    case 'anwesenheit': return t[1] ? anwesenheitSeite(Number(t[1])) : lAnwesenheit();
     case 'mitteilungen': return mitteilungenSeite(q);
     case 'profil': return profil();
     case 'suche': return suche(q.get('q') || '');
@@ -19,6 +20,8 @@ ANSICHTEN.verwaltung = (t, q) => {
     case 'uebersicht': return vUebersicht();
     case 'antraege': return vAntraege(t[1], q);
     case 'evaluationen': return vEvaluationen();
+    case 'anwesenheit-uebersicht': return vAnwesenheit(q);
+    case 'anwesenheit': return anwesenheitSeite(Number(t[1]));
     case 'gruppen': return vGruppen();
     case 'personen': return vPersonen(q);
     case 'planung': return vPlanung();
@@ -80,9 +83,9 @@ function lKurs(kid, tab) {
   const inhalt = {
     termine: () => `${terminFormular(kid)}<section class="karte"><p class="leise">Legst du einen Termin an oder änderst ihn, bekommt ${esc(g.name)} automatisch eine Mitteilung.</p><div class="tabelle-huelle"><table>
       <thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>
-      ${termineVon([kid]).map(t => { const vorbei = D(t.ende) < new Date(); return `<tr style="${vorbei ? 'opacity:.5' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${esc(raumName(t))}</td>
+      ${termineVon([kid]).map(t => { const vorbei = D(t.ende) < new Date(); return `<tr style="${vorbei ? 'opacity:.72' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${esc(raumName(t))}</td>
         <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : '<span class="klein leise">geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td>
-        <td style="text-align:right;white-space:nowrap">${vorbei ? '' : `${konferenzKnopf(t)} <button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">${I('stift')} Ändern</button>`}</td></tr>`; }).join('')}
+        <td style="text-align:right;white-space:nowrap">${anwesenheitKnopf(t)} ${vorbei ? '' : `${konferenzKnopf(t)} <button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">${I('stift')} Ändern</button>`}</td></tr>`; }).join('')}
       </tbody></table></div></section>`,
     materialien: () => `<section class="karte"><h2>Material hochladen</h2>
       <form data-form="material" data-kid="${kid}" class="raster raster-2" style="align-items:end">
@@ -303,19 +306,6 @@ function vGruppen() {
     <section class="karte"><h2>Mitglieder ${esc(db.studiengruppe[0].name)}</h2><ul class="liste">${db.gruppenmitglied.filter(m => m.gruppe_id === 1).map(m => { const x = byId('user', m.user_id); return `<li class="zeile dazwischen"><span>${esc(name(x))} <span class="marke-klein m-akzent">${esc(SCHWERPUNKTE[schwerpunktVon(x.id)] || '')}</span></span><span class="klein leise">seit ${fmtDatumJ(m.von)}</span></li>`; }).join('')}</ul>
       <p class="klein leise abstand" style="margin:0">Die Mitgliedschaft hat ein Von- und Bis-Datum. So lassen sich Gruppenwechsel und Wiederholer abbilden, ohne alte Noten zu verlieren.</p></section>
   </div>`;
-}
-function vPersonen(q) {
-  const f = q.get('rolle') || '';
-  const liste = db.user.filter(x => !f || x.rolle === f);
-  const fk = (k, t) => `<button data-action="gehe" data-ziel="#/personen${k ? '?rolle=' + k : ''}" aria-pressed="${f === k}">${t}</button>`;
-  const rt = { studierend: ['Studierende', 'm-akzent'], lehrend: ['Lehrende', 'm-info'], verwaltung: ['Verwaltung', 'm-warn'] };
-  return `${kopfzeile('Personen & Rollen', 'Rechte hängen an der Rolle, nicht an der einzelnen Person.')}
-  <section class="karte"><div class="filter" style="padding:0 0 12px">${fk('', 'Alle')}${fk('studierend', 'Studierende')}${fk('lehrend', 'Lehrende')}${fk('verwaltung', 'Verwaltung')}</div>
-  <div class="tabelle-huelle"><table><thead><tr><th>Name</th><th>Rolle</th><th>E-Mail</th><th>Zuordnung</th><th>Status</th></tr></thead><tbody>
-  ${liste.map(x => `<tr><td class="fett">${esc(name(x))}</td><td><span class="marke-klein ${rt[x.rolle][1]}">${rt[x.rolle][0]}</span></td><td class="klein">${esc(x.email)}</td>
-    <td class="klein">${x.rolle === 'studierend' ? esc(gruppeVon(x.id)?.name || '–') + ' · ' + esc(x.matrikelnummer) : x.rolle === 'lehrend' ? kurseVon(x.id).map(k => esc(modulVon(k).kuerzel)).join(', ') : 'Studienbüro'}</td>
-    <td><span class="marke-klein m-gut">aktiv</span></td></tr>`).join('')}
-  </tbody></table></div></section>`;
 }
 function vPlanung() {
   const ab = new Date(); ab.setHours(0, 0, 0, 0);

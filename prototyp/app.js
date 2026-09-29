@@ -273,8 +273,8 @@ function parseHash() {
 }
 const NAV = {
   studierend: [['uebersicht', 'Übersicht', 'home'], ['stundenplan', 'Stundenplan', 'kalender'], ['module', 'Module', 'buch'], ['leistungen', 'Leistungen', 'award'], ['service', 'Service', 'hilfe']],
-  lehrend: [['uebersicht', 'Übersicht', 'home'], ['kurse', 'Meine Module', 'buch'], ['korrektur', 'Korrektur', 'stift'], ['stundenplan', 'Stundenplan', 'kalender']],
-  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['antraege', 'Anträge', 'datei'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['evaluationen', 'Evaluationen', 'check'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
+  lehrend: [['uebersicht', 'Übersicht', 'home'], ['kurse', 'Meine Module', 'buch'], ['korrektur', 'Korrektur', 'stift'], ['anwesenheit', 'Anwesenheit', 'check'], ['stundenplan', 'Stundenplan', 'kalender']],
+  verwaltung: [['uebersicht', 'Übersicht', 'home'], ['antraege', 'Anträge', 'datei'], ['gruppen', 'Gruppen & Semester', 'gruppe'], ['personen', 'Personen & Rollen', 'user'], ['planung', 'Stundenplanung', 'kalender'], ['pruefungsamt', 'Prüfungsamt', 'award'], ['evaluationen', 'Evaluationen', 'check'], ['anwesenheit-uebersicht', 'Anwesenheit', 'uhr'], ['nachrichten', 'Mitteilungen', 'megafon'], ['inhalte', 'Service-Inhalte', 'hilfe']],
 };
 const BEREICH = { studierend: 'Studierende', lehrend: 'Lehrende', verwaltung: 'Verwaltung' };
 

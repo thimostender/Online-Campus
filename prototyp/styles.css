@@ -390,3 +390,20 @@ details > summary::-webkit-details-marker { display: none; }
 .dreid-start[hidden] { display: none; }
 .dreid-start > div { max-width: 460px; background: rgba(17, 17, 27, .85); padding: 18px 20px; border-radius: 14px; line-height: 1.5; }
 @media (max-width: 860px) { .dreid-hud { right: 12px; top: 90px; } .dreid-karte { width: 150px; height: 58px; } }
+
+/* Anwesenheit */
+.anw-wahl { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.anw-wahl button { border: 1px solid var(--rand); background: var(--flaeche); border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-2); }
+.anw-wahl button:hover:not(:disabled) { border-color: var(--akzent); color: var(--akzent); }
+.anw-wahl button.gewaehlt { border-color: transparent; }
+.anw-wahl button:disabled { opacity: .5; cursor: default; }
+.anw-matrix th, .anw-matrix td { text-align: center; padding: 6px 4px; }
+.anw-matrix th:first-child, .anw-matrix td:first-child { text-align: left; white-space: nowrap; }
+
+/* Person anlegen */
+
+.person-form [data-nur] { display: none; }
+.person-form[data-rolle="studierend"] [data-nur~="studierend"], .person-form[data-rolle="lehrend"] [data-nur~="lehrend"] { display: block; }
+.person-kurse { max-height: 200px; overflow: auto; display: grid; gap: 6px; padding: 8px; border: 1px solid var(--rand); border-radius: 10px; }
+.startpasswort { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.startpasswort code { font-size: 20px; letter-spacing: .06em; padding: 8px 12px; border-radius: 8px; background: var(--flaeche-2, rgba(127,127,127,.12)); user-select: all; }

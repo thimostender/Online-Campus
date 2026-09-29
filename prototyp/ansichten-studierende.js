@@ -222,9 +222,9 @@ function sModul(kid, tab) {
       <section class="karte"><h2>Prüfung</h2>${p ? `<p><b>${esc(p.art)}</b>: ${esc(p.titel)}</p><p class="klein leise">${p.mit_upload ? 'Abgabe' : 'Termin'} ${fmtDatum(p.frist)}, ${fmtZeit(p.frist)} Uhr</p><a class="knopf klein" href="#/module/${kid}/${p.mit_upload ? 'abgabe' : 'pruefung'}">${p.mit_upload ? 'Zur Abgabe' : 'Details'}</a>` : '<p class="leise">Keine Prüfung hinterlegt</p>'}</section>
       <section class="karte"><h2>Nächster Termin</h2>${(() => { const t = termineVon([kid]).find(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); return t ? terminGross(t) : '<p class="leise">Keine weiteren Termine</p>'; })()}</section>
     </div>`,
-    termine: () => `<section class="karte"><div class="tabelle-huelle"><table><thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Art</th><th>Status</th><th></th></tr></thead><tbody>
+    termine: () => `<section class="karte"><div class="tabelle-huelle"><table><thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Art</th><th>Status</th><th>Anwesenheit</th><th></th></tr></thead><tbody>
       ${termineVon([kid]).map(t => `<tr style="${D(t.ende) < new Date() ? 'opacity:.55' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>` : 'Online'}</td><td>${esc(t.art)}</td>
-      <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '<span class="leise klein">wie geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td><td style="text-align:right">${D(t.ende) > new Date() ? konferenzKnopf(t) : ''}</td></tr>`).join('')}
+      <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '<span class="leise klein">wie geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td><td>${anwesenheitMarke(t, u.id)}</td><td style="text-align:right">${D(t.ende) > new Date() ? konferenzKnopf(t) : ''}</td></tr>`).join('')}
       </tbody></table></div></section>`,
     materialien: () => materialListe(kid, false),
     pruefung: () => p ? `<section class="karte"><h2>${esc(p.titel)}</h2>
@@ -585,7 +585,7 @@ function profil() {
     </tbody></table></div><p class="klein leise abstand">Anschrift ändern: <a href="#/service/antrag/adresse">Online-Antrag Adressänderung</a>.</p></section>
     <section class="karte"><h2>Anmeldung und Sicherheit</h2>
       <p class="zeile">${I('schloss')} ${u.rolle === 'studierend' ? 'Anmeldung mit E-Mail und Passwort' : 'Anmeldung mit Passwort und Zwei-Faktor-Code'}</p>
-      <div class="zeile" style="flex-wrap:wrap"><button class="knopf" data-action="platzhalter" data-text="Im Prototyp gibt es keine echten Passwörter.">Passwort ändern</button><button class="knopf gefahr" data-action="abmelden">Abmelden</button></div></section>
+      <div class="zeile" style="flex-wrap:wrap"><button class="knopf" data-action="passwort-aendern">Passwort ändern</button><button class="knopf gefahr" data-action="abmelden">Abmelden</button></div></section>
   </div>
   <section class="karte abstand"><h2>Benachrichtigungen</h2>
     <p class="leise">Lege je Anlass fest, wie du informiert wirst. Im Campus (Glocke) erscheint immer alles. Push setzt voraus, dass du den Campus als App auf dem Handy installiert hast.</p>

@@ -69,7 +69,7 @@ const KACHELN = {
     { id: 'vorlesungen', titel: 'Nächste Vorlesungen', render: u => {
       const liste = termineVon(kurseVon(u.id).map(k => k.id), u.id).filter(t => D(t.ende) > new Date()).slice(0, 5);
       return `${kachelKopf('Nächste Vorlesungen', '#/stundenplan', 'Stundenplan')}<ul class="liste">${liste.map(t => `<li class="zeile dazwischen" style="flex-wrap:wrap"><span><b>${esc(kursName(t.kurs_id))}</b>${t.vertretung_id === u.id ? ' <span class="marke-klein m-warn">du vertrittst</span>' : ''}<br><span class="klein leise">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} · ${esc(raumName(t))} · ${esc(byId('studiengruppe', byId('kurs', t.kurs_id).gruppe_id).name)}</span></span>
-        <span class="zeile" style="gap:6px">${konferenzKnopf(t)}${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">Ändern</button>`}</span></li>`).join('') || '<li class="leer">Keine Termine</li>'}</ul>`;
+        <span class="zeile" style="gap:6px">${anwesenheitKnopf(t)}${konferenzKnopf(t)}${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : `<button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">Ändern</button>`}</span></li>`).join('') || '<li class="leer">Keine Termine</li>'}</ul>`;
     } },
     { id: 'korrekturen', titel: 'Offene Korrekturen', render: u => {
       const korr = pruefungenVon(kurseVon(u.id).map(k => k.id)).map(p => ({ p, s: korrekturStand(p) })).filter(x => x.s.vorbei && x.s.frei < x.s.abgegeben);

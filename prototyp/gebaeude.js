@@ -130,7 +130,11 @@ function textTafel(text, breite = 3, hoehe = 0.6, hintergrund = '#4c1d95', schri
   g.fillStyle = schrift; g.font = `600 ${Math.round(c.height * 0.5)}px -apple-system, Helvetica, Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, c.width / 2, c.height / 2, c.width - 20);
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  return new THREE.Mesh(new THREE.PlaneGeometry(breite, hoehe), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+  // Zwei einseitige Flächen Rücken an Rücken: von jeder Seite richtig herum lesbar, nie gespiegelt
+  const geo = new THREE.PlaneGeometry(breite, hoehe), stoff = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+  const tafel = new THREE.Group(), vorn = new THREE.Mesh(geo, stoff), hinten = new THREE.Mesh(geo, stoff);
+  hinten.rotation.y = Math.PI; tafel.add(vorn, hinten);
+  return tafel;
 }
 function geschossBauen(nr) {
   const S = DREI, THREE = S.THREE, G = GEBAEUDE, g = G.geschosse[nr];

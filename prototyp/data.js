@@ -88,6 +88,7 @@ function erzeugeDaten(heute = new Date()) {
   const tag = (versatz, h = 0, m = 0) => { const d = new Date(heute); d.setHours(h, m, 0, 0); d.setDate(d.getDate() + versatz); return d.toISOString(); };
   const wt = (heute.getDay() + 6) % 7; // Montag der aktuellen Woche
   const mo = (woche, plus, h, m) => tag(-wt + woche * 7 + plus, h, m);
+  const D_ = iso => new Date(iso);
   const zufall = text => parseInt(pseudoHash(text).slice(0, 8), 16) / 0xffffffff; // stabil, nicht zufällig
 
   const user = [
@@ -329,7 +330,18 @@ function erzeugeDaten(heute = new Date()) {
     { id: eid('c6'), kurs_id: M('AVM'), autor_id: 'l4', text: 'Das Studienbüro ist freitags nur bis 13 Uhr besetzt. Ich lege Ihnen einen Schlüssel ins Fach vor 1.12.', erstellt_am: tag(-1, 14, 2) },
   ];
 
-  return { version: 5, evaluation_teilnahme, evaluation_antwort, umfrage, umfrage_teilnahme, umfrage_stimme, chat_nachricht, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
+  // Anwesenheit für alle vergangenen Termine; Can liegt knapp unter der Mindestquote
+  const anwesenheit = [];
+  termin.filter(t => t.art !== 'Klausur' && t.status !== 'ausgefallen' && D_(t.ende) < heute && kurs.some(k => k.id === t.kurs_id && k.semester_id === 3)).forEach(t => {
+    const k = kurs.find(x => x.id === t.kurs_id);
+    studis.filter(u => !k.schwerpunkt || spVon(u) === k.schwerpunkt).forEach(u => {
+      const z = zufall('anw' + t.id + u);
+      const status = u === 's4' ? (z < 0.4 ? 'fehlt' : z < 0.5 ? 'entschuldigt' : 'anwesend') : (z < 0.06 ? 'fehlt' : z < 0.12 ? 'entschuldigt' : z < 0.2 ? 'verspaetet' : 'anwesend');
+      anwesenheit.push({ termin_id: t.id, student_id: u, status, erfasst_von: lehrauftrag.find(l => l.kurs_id === t.kurs_id)?.lehrender_id || 'l1', erfasst_am: t.beginn });
+    });
+  });
+
+  return { version: 5, anwesenheit, evaluation_teilnahme, evaluation_antwort, umfrage, umfrage_teilnahme, umfrage_stimme, chat_nachricht, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
 }
 
 // Zerlegt Text in Abschnitte von etwa 500 bis 900 Zeichen entlang der Absätze (für die Suche des Assistenten).

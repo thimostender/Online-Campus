@@ -27,8 +27,9 @@ const SCHLUESSEL = {
   pruefung_ausnahme: r => `${r.pruefung_id}_${r.student_id}_${r.art}`,
   evaluation_teilnahme: r => `${r.kurs_id}_${r.student_id}`,
   umfrage_teilnahme: r => `${r.umfrage_id}_${r.student_id}`,
+  anwesenheit: r => `${r.termin_id}_${r.student_id}`,
 };
-const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung', 'evaluation_teilnahme', 'evaluation_antwort', 'umfrage', 'umfrage_teilnahme', 'umfrage_stimme', 'chat_nachricht'];
+const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung', 'evaluation_teilnahme', 'evaluation_antwort', 'umfrage', 'umfrage_teilnahme', 'umfrage_stimme', 'chat_nachricht', 'anwesenheit'];
 const docId = (tab, r) => SCHLUESSEL[tab] ? SCHLUESSEL[tab](r) : String(r.id);
 // JSON mit fester Feldreihenfolge: Firestore liefert Felder in eigener Reihenfolge zurück,
 // ein Vergleich ohne Sortierung hielte unveränderte Dokumente für geändert
@@ -62,6 +63,12 @@ function backendStarten() {
     BACKEND.geladen = false;
     db.sitzung = nutzer.uid;
     zeigeLaden('Daten werden geladen …');
+    // Gesperrte oder nie angelegte Konten: die Regeln verweigern schon das eigene Profil
+    if (nutzer.uid !== 'v1') {
+      let ok = false;
+      try { const p = await BACKEND.fs.collection('user').doc(nutzer.uid).get(); ok = p.exists && p.data().aktiv !== false; } catch (e) { ok = false; }
+      if (!ok) { await BACKEND.auth.signOut(); toast('Kein Zugang', 'Dieses Konto ist deaktiviert oder nicht im Campus angelegt. Bitte wende dich an die Verwaltung.'); return; }
+    }
     try { await abosStarten(nutzer.uid); }
     catch (e) { console.error(e); toast('Laden fehlgeschlagen', e.message); }
     BACKEND.geladen = true;
@@ -91,6 +98,7 @@ async function abosStarten(uid) {
     // Evaluationsantworten sehen Studierende nie; ihre Teilnahme nur selbst
     if (tab === 'evaluation_antwort' && r === 'studierend') return null;
     if (tab === 'evaluation_teilnahme' && r === 'studierend') return c.where('student_id', '==', uid);
+    if (tab === 'anwesenheit' && r === 'studierend') return c.where('student_id', '==', uid);
     return c;
   };
   const ersteLadung = TABELLEN.map(tab => new Promise((ok, fehler) => {
