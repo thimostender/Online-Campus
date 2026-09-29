@@ -1,0 +1,90 @@
+---
+title: Teil 1: Personen, Gruppen und Lehrangebot
+---
+erDiagram
+  USER {
+    uuid id PK
+    string vorname
+    string nachname
+    string email UK
+    string rolle "studierend, lehrend, verwaltung, admin"
+    string matrikelnummer "nur Studierende"
+    bool aktiv
+  }
+  STUDIENGANG {
+    int id PK
+    string name "z. B. Betriebswirtschaft"
+    string abschluss "VWA-Diplom oder Bachelor"
+  }
+  STUDIENGRUPPE {
+    int id PK
+    int studiengang_id FK
+    string name "z. B. BWL-2025-A"
+    string standort
+  }
+  GRUPPENMITGLIED {
+    uuid user_id FK
+    int gruppe_id FK
+    date von
+    date bis "leer = aktuell"
+  }
+  SEMESTER {
+    int id PK
+    string bezeichnung "WiSe 2026/27"
+    date beginn
+    date ende
+  }
+  VORLESUNGSFREIE_ZEIT {
+    int id PK
+    int semester_id FK
+    string bezeichnung
+    date beginn
+    date ende
+  }
+  MODUL {
+    int id PK
+    string kuerzel
+    string titel
+    int ects
+    string beschreibung
+  }
+  KURS {
+    int id PK
+    int modul_id FK
+    int gruppe_id FK
+    int semester_id FK
+  }
+  LEHRAUFTRAG {
+    int kurs_id FK
+    uuid lehrender_id FK
+    string rolle "verantwortlich oder mitwirkend"
+  }
+  RAUM {
+    int id PK
+    string standort
+    string bezeichnung
+    int plaetze
+  }
+  TERMIN {
+    int id PK
+    int kurs_id FK
+    int raum_id FK "leer bei online"
+    uuid vertretung_id FK "leer = laut Lehrauftrag"
+    datetime beginn
+    datetime ende
+    string art "Vorlesung, Klausur, Online"
+    string online_link
+    string status "geplant, verlegt, ausgefallen"
+  }
+  STUDIENGANG ||--o{ STUDIENGRUPPE : "hat"
+  STUDIENGRUPPE ||--o{ GRUPPENMITGLIED : "umfasst"
+  USER ||--o{ GRUPPENMITGLIED : "gehört zu"
+  MODUL ||--o{ KURS : "läuft als"
+  STUDIENGRUPPE ||--o{ KURS : "belegt"
+  SEMESTER ||--o{ KURS : "im"
+  SEMESTER ||--o{ VORLESUNGSFREIE_ZEIT : "enthält"
+  KURS ||--|{ LEHRAUFTRAG : "gelehrt durch"
+  USER ||--o{ LEHRAUFTRAG : "hat"
+  KURS ||--o{ TERMIN : "plant"
+  RAUM |o--o{ TERMIN : "Ort von"
+  USER |o--o{ TERMIN : "vertritt"

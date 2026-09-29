@@ -1,0 +1,47 @@
+---
+title: Teil 3: Mitteilungen und Benachrichtigungen
+---
+erDiagram
+  MITTEILUNG {
+    int id PK
+    uuid absender_id FK
+    int kurs_id FK "leer = nicht kursbezogen"
+    int gruppe_id FK "leer = an alle"
+    int termin_id FK "bei Terminänderung"
+    string anlass "Neuigkeit, Änderung, Note, Frist"
+    string titel
+    string text
+    datetime erstellt_am
+  }
+  ZUSTELLUNG {
+    int mitteilung_id FK
+    uuid empfaenger_id FK
+    string kanal "Campus, E-Mail, Push"
+    datetime gesendet_am
+    datetime gelesen_am
+  }
+  BENACHRICHTIGUNG_EINSTELLUNG {
+    uuid user_id FK
+    string anlass
+    string kanal
+    bool aktiv
+  }
+  USER {
+    uuid id PK "Details in Teil 1"
+  }
+  KURS {
+    int id PK "Details in Teil 1"
+  }
+  STUDIENGRUPPE {
+    int id PK "Details in Teil 1"
+  }
+  TERMIN {
+    int id PK "Details in Teil 1"
+  }
+  USER ||--o{ MITTEILUNG : "verfasst"
+  KURS |o--o{ MITTEILUNG : "betrifft"
+  MITTEILUNG ||--o{ ZUSTELLUNG : "zugestellt als"
+  USER ||--o{ ZUSTELLUNG : "empfängt"
+  USER ||--o{ BENACHRICHTIGUNG_EINSTELLUNG : "legt fest"
+  STUDIENGRUPPE |o--o{ MITTEILUNG : "adressiert"
+  TERMIN |o--o{ MITTEILUNG : "Anlass für"

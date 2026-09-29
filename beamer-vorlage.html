@@ -1,0 +1,67 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Datenmodell für den Beamer</title>
+<style>
+@page { size: 338.67mm 190.5mm; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1c1b29; }
+.folie { width: 338.67mm; height: 190.5mm; padding: 12mm 14mm 10mm; display: grid; grid-template-columns: 1fr 64mm; grid-template-rows: auto 1fr; gap: 6mm 10mm; break-after: page; overflow: hidden; }
+.folie:last-child { break-after: auto; }
+h1 { grid-column: 1 / -1; margin: 0; font-size: 24pt; color: #4c1d95; }
+h1 small { display: block; font-size: 12pt; color: #6b7280; font-weight: 500; margin-top: 2mm; }
+.bild { display: flex; align-items: center; justify-content: center; min-height: 0; }
+.bild svg { width: 100%; max-width: 100% !important; max-height: 150mm; height: auto; }
+aside { background: #f5f3ff; border-radius: 5mm; padding: 7mm; font-size: 12.5pt; line-height: 1.45; }
+aside h2 { margin: 0 0 3mm; font-size: 14pt; color: #4c1d95; }
+aside ul { margin: 0; padding-left: 5mm; } aside li { margin-bottom: 3mm; }
+.grau { color: #6b7280; font-size: 10pt; margin-top: 5mm; }
+.titel { display: flex; flex-direction: column; justify-content: center; grid-template-columns: none; }
+.titel h1 { font-size: 36pt; }
+.bloecke { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; margin-top: 12mm; }
+.block { border-radius: 5mm; padding: 7mm; font-size: 13pt; }
+.block b { display: block; font-size: 16pt; margin-bottom: 3mm; }
+</style></head><body>
+
+<section class="folie titel">
+  <h1>Datenmodell Online-Campus<small>21 Tabellen in drei Bereichen</small></h1>
+  <div class="bloecke">
+    <div class="block" style="background:#ede9fe"><b>1 · Personen und Lehrangebot</b>Wer studiert mit wem, welches Modul läuft wann in welchem Raum.</div>
+    <div class="block" style="background:#dbeafe"><b>2 · Prüfen und Abgaben</b>Vom Upload über Versionen bis zur freigegebenen und bestätigten Note.</div>
+    <div class="block" style="background:#dcfce7"><b>3 · Kommunikation</b>Wer wurde wann über welchen Kanal benachrichtigt.</div>
+  </div>
+  <p class="grau">Auf den Folien stehen nur Schlüssel und die wichtigsten Felder. Tabellen mit nur einer „id“ sind in einem anderen Teil beschrieben. Alle Felder stehen im Handout „Sitemap und Datenmodell“.</p>
+</section>
+
+<section class="folie">
+  <h1>1 · Personen, Gruppen und Lehrangebot</h1>
+  <div class="bild"><pre class="mermaid">%%TEIL1%%</pre></div>
+  <aside><h2>Kernaussagen</h2><ul>
+    <li>Studierende gehören zu einer <b>Studiengruppe</b>, nicht einzeln zu Modulen.</li>
+    <li>Ein <b>Kurs</b> ist ein Modul, das eine Gruppe in einem Semester belegt.</li>
+    <li>Der persönliche Stundenplan entsteht automatisch: Person → Gruppe → Kurs → Termin.</li>
+    <li>Termine haben einen Status (geplant, verlegt, ausgefallen) und eine mögliche Vertretung.</li></ul></aside>
+</section>
+
+<section class="folie">
+  <h1>2 · Prüfen, Abgaben und Dateien</h1>
+  <div class="bild"><pre class="mermaid">%%TEIL2%%</pre></div>
+  <aside><h2>Kernaussagen</h2><ul>
+    <li>Jeder Upload wird eine neue <b>Version</b>, nichts wird überschrieben.</li>
+    <li>Die <b>Prüfsumme</b> belegt, dass die Datei unverändert ist.</li>
+    <li>Eine Abgabe kann mehrere Mitglieder haben, jede Person bekommt eine eigene Note.</li>
+    <li>Noten sind erst mit <b>freigegeben_am</b> sichtbar und erst mit <b>bestaetigt_am</b> endgültig.</li></ul></aside>
+</section>
+
+<section class="folie">
+  <h1>3 · Mitteilungen und Benachrichtigungen</h1>
+  <div class="bild"><pre class="mermaid">%%TEIL3%%</pre></div>
+  <aside><h2>Kernaussagen</h2><ul>
+    <li>Eine <b>Mitteilung</b> entsteht einmal, zum Beispiel bei einer Terminänderung.</li>
+    <li>Je Empfänger und Kanal gibt es eine <b>Zustellung</b> mit Zeitpunkt und Lesestatus.</li>
+    <li>Die <b>Einstellungen</b> legen fest, ob per Campus, Push oder E-Mail zugestellt wird.</li>
+    <li>Die Eingangsbestätigung einer Abgabe geht immer per E-Mail, sie ist der Nachweis.</li></ul></aside>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: { fontSize: '16px', primaryColor: '#ede9fe', primaryBorderColor: '#7c3aed', lineColor: '#6b7280' }, er: { useMaxWidth: false } });
+  mermaid.run();
+</script></body></html>

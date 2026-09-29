@@ -1,0 +1,58 @@
+flowchart LR
+  C(("Online-Campus<br/>Studierende"))
+  LOGIN["Login<br/>E-Mail + Passwort · Passwort vergessen"] --> C
+
+  C --> U["1 · Übersicht"]
+  U --> U1["Heute: nächste Vorlesung<br/>mit Raum und Änderung"]
+  U --> U2["Nächste Abgaben<br/>mit Countdown"]
+  U --> U3["Neue Noten und<br/>Mitteilungen"]
+
+  C --> SP["2 · Stundenplan"]
+  SP --> SP1["Woche · Monat · Liste<br/>Termine und Abgaben"]
+  SP --> SP2["Änderungen farbig markiert"]
+  SP --> SP3["Kalender-Abo (iCal)<br/>für Outlook, Google, Apple"]
+  SP --> SP4["Vorlesungsfreie Zeiten"]
+
+  C --> M["3 · Module"]
+  M --> M1["Modulliste<br/>nach nächster Frist sortiert"]
+  M1 --> MS["Modulseite"]
+  MS --> MS1["Überblick<br/>Lehrende · ECTS · Inhalt"]
+  MS --> MS2["Termine"]
+  MS --> MS3["Materialien"]
+  MS --> MS4["Prüfung<br/>Art · Frist · Anforderungen"]
+  MS --> MS5["Abgabe<br/>Upload · Versionen · Eingangsbestätigung"]
+  MS --> MS6["Ergebnis und Feedback"]
+
+  C --> LE["4 · Leistungen"]
+  LE --> LE1["Alle Abgaben<br/>offen · eingereicht · bewertet"]
+  LE --> LE2["Noten und ECTS-Stand"]
+  LE --> LE3["Bescheinigungen<br/>herunterladen"]
+
+  C --> SV["5 · Service"]
+  SV --> SV1["Lageplan und Räume"]
+  SV --> SV2["Ansprechpersonen"]
+  SV --> SV3["Wissenschaftliches Arbeiten"]
+  SV3 --> SV3a["Vorlagen zum Herunterladen"]
+  SV --> SV4["Formulare und FAQ"]
+
+  C -.-> K["Kopfzeile, immer sichtbar"]
+  K -.-> MI["Glocke: Mitteilungen"]
+  MI -.-> MI1["Neuigkeiten"]
+  MI -.-> MI2["Änderungen"]
+  MI -.-> MI3["Nachrichten (optional)"]
+  K -.-> PR["Profil"]
+  PR -.-> PR1["Persönliche Daten"]
+  PR -.-> PR2["Benachrichtigungen<br/>je Anlass und Kanal"]
+  PR -.-> PR3["Abmelden"]
+  K -.-> HI["Suche und Hilfe-Chatbot<br/>(optional)"]
+
+  classDef root fill:#fecdd3,stroke:#e11d48,color:#111
+  classDef main fill:#ddd6fe,stroke:#7c3aed,color:#111,font-weight:bold
+  classDef sub fill:#dbeafe,stroke:#3b82f6,color:#111
+  classDef fn fill:#dcfce7,stroke:#16a34a,color:#111
+  classDef head fill:#fef3c7,stroke:#d97706,color:#111
+  class C root
+  class U,SP,M,LE,SV main
+  class MS,M1,SV3 sub
+  class U1,U2,U3,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,LOGIN fn
+  class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI head

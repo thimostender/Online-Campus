@@ -1,0 +1,188 @@
+erDiagram
+  USER {
+    uuid id PK
+    string vorname
+    string nachname
+    string email UK
+    string rolle "studierend, lehrend, verwaltung, admin"
+    string matrikelnummer "nur Studierende"
+    bool aktiv
+  }
+  STUDIENGANG {
+    int id PK
+    string name "z. B. Betriebswirtschaft"
+    string abschluss "VWA-Diplom oder Bachelor"
+  }
+  STUDIENGRUPPE {
+    int id PK
+    int studiengang_id FK
+    string name "z. B. BWL-2025-A"
+    string standort
+  }
+  GRUPPENMITGLIED {
+    uuid user_id FK
+    int gruppe_id FK
+    date von
+    date bis "leer = aktuell"
+  }
+  SEMESTER {
+    int id PK
+    string bezeichnung "WiSe 2026/27"
+    date beginn
+    date ende
+  }
+  VORLESUNGSFREIE_ZEIT {
+    int id PK
+    int semester_id FK
+    string bezeichnung
+    date beginn
+    date ende
+  }
+  MODUL {
+    int id PK
+    string kuerzel
+    string titel
+    int ects
+    string beschreibung
+  }
+  KURS {
+    int id PK
+    int modul_id FK
+    int gruppe_id FK
+    int semester_id FK
+  }
+  LEHRAUFTRAG {
+    int kurs_id FK
+    uuid lehrender_id FK
+    string rolle "verantwortlich oder mitwirkend"
+  }
+  RAUM {
+    int id PK
+    string standort
+    string bezeichnung
+    int plaetze
+  }
+  TERMIN {
+    int id PK
+    int kurs_id FK
+    int raum_id FK "leer bei online"
+    uuid vertretung_id FK "leer = laut Lehrauftrag"
+    datetime beginn
+    datetime ende
+    string art "Vorlesung, Klausur, Online"
+    string online_link
+    string status "geplant, verlegt, ausgefallen"
+  }
+  DATEI {
+    uuid id PK
+    string dateiname
+    string mime_typ
+    int groesse_bytes
+    string sha256 "belegt, dass die Datei unverändert ist"
+    uuid hochgeladen_von FK
+    datetime hochgeladen_am
+  }
+  MATERIAL {
+    int id PK
+    int kurs_id FK
+    uuid datei_id FK
+    string titel
+    datetime sichtbar_ab
+  }
+  PRUEFUNG {
+    int id PK
+    int kurs_id FK
+    string art "Klausur, Hausarbeit, PTP, Referat, Projekt"
+    string titel
+    datetime frist
+    bool mit_upload
+    bool gruppenarbeit
+    int max_mb
+    string formate "z. B. pdf, docx, zip"
+    decimal gewicht
+  }
+  ABGABE {
+    int id PK
+    int pruefung_id FK
+    string status "entwurf, eingereicht, bewertet"
+    datetime eingereicht_am
+    bool verspaetet
+    datetime erklaerung_am "Eigenständigkeitserklärung"
+  }
+  ABGABE_MITGLIED {
+    int abgabe_id FK
+    uuid student_id FK
+  }
+  ABGABEVERSION {
+    int id PK
+    int abgabe_id FK
+    int nummer
+    uuid datei_id FK
+    datetime hochgeladen_am
+  }
+  NOTE {
+    int id PK
+    int pruefung_id FK
+    uuid student_id FK
+    int abgabe_id FK "leer bei Klausur"
+    decimal wert
+    string feedback
+    uuid bewertet_von FK
+    datetime freigegeben_am "leer = noch unsichtbar"
+    datetime bestaetigt_am "leer = vorläufig"
+  }
+  MITTEILUNG {
+    int id PK
+    uuid absender_id FK
+    int kurs_id FK "leer = nicht kursbezogen"
+    int gruppe_id FK "leer = an alle"
+    int termin_id FK "bei Terminänderung"
+    string anlass "Neuigkeit, Änderung, Note, Frist"
+    string titel
+    string text
+    datetime erstellt_am
+  }
+  ZUSTELLUNG {
+    int mitteilung_id FK
+    uuid empfaenger_id FK
+    string kanal "Campus, E-Mail, Push"
+    datetime gesendet_am
+    datetime gelesen_am
+  }
+  BENACHRICHTIGUNG_EINSTELLUNG {
+    uuid user_id FK
+    string anlass
+    string kanal
+    bool aktiv
+  }
+
+  STUDIENGANG ||--o{ STUDIENGRUPPE : "hat"
+  STUDIENGRUPPE ||--o{ GRUPPENMITGLIED : "umfasst"
+  USER ||--o{ GRUPPENMITGLIED : "gehört zu"
+  MODUL ||--o{ KURS : "läuft als"
+  STUDIENGRUPPE ||--o{ KURS : "belegt"
+  SEMESTER ||--o{ KURS : "im"
+  SEMESTER ||--o{ VORLESUNGSFREIE_ZEIT : "enthält"
+  KURS ||--|{ LEHRAUFTRAG : "gelehrt durch"
+  USER ||--o{ LEHRAUFTRAG : "hat"
+  KURS ||--o{ TERMIN : "plant"
+  RAUM |o--o{ TERMIN : "Ort von"
+  USER |o--o{ TERMIN : "vertritt"
+  KURS ||--o{ MATERIAL : "stellt bereit"
+  MATERIAL }o--|| DATEI : "ist"
+  KURS ||--o{ PRUEFUNG : "prüft mit"
+  PRUEFUNG ||--o{ ABGABE : "erhält"
+  ABGABE ||--|{ ABGABE_MITGLIED : "von"
+  USER ||--o{ ABGABE_MITGLIED : "reicht ein"
+  ABGABE ||--|{ ABGABEVERSION : "hat"
+  ABGABEVERSION }o--|| DATEI : "ist"
+  PRUEFUNG ||--o{ NOTE : "ergibt"
+  USER ||--o{ NOTE : "erhält"
+  ABGABE |o--o{ NOTE : "bewertet in"
+  USER ||--o{ MITTEILUNG : "verfasst"
+  KURS |o--o{ MITTEILUNG : "betrifft"
+  MITTEILUNG ||--o{ ZUSTELLUNG : "zugestellt als"
+  USER ||--o{ ZUSTELLUNG : "empfängt"
+  USER ||--o{ BENACHRICHTIGUNG_EINSTELLUNG : "legt fest"
+  STUDIENGRUPPE |o--o{ MITTEILUNG : "adressiert"
+  TERMIN |o--o{ MITTEILUNG : "Anlass für"

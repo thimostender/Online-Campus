@@ -1,0 +1,79 @@
+---
+title: Teil 2: Prüfen, Abgaben und Dateien
+---
+erDiagram
+  PRUEFUNG {
+    int id PK
+    int kurs_id FK
+    string art "Klausur, Hausarbeit, PTP, Referat, Projekt"
+    string titel
+    datetime frist
+    bool mit_upload
+    bool gruppenarbeit
+    int max_mb
+    string formate "z. B. pdf, docx, zip"
+    decimal gewicht
+  }
+  ABGABE {
+    int id PK
+    int pruefung_id FK
+    string status "entwurf, eingereicht, bewertet"
+    datetime eingereicht_am
+    bool verspaetet
+    datetime erklaerung_am "Eigenständigkeitserklärung"
+  }
+  ABGABE_MITGLIED {
+    int abgabe_id FK
+    uuid student_id FK
+  }
+  ABGABEVERSION {
+    int id PK
+    int abgabe_id FK
+    int nummer
+    uuid datei_id FK
+    datetime hochgeladen_am
+  }
+  DATEI {
+    uuid id PK
+    string dateiname
+    string mime_typ
+    int groesse_bytes
+    string sha256 "belegt, dass die Datei unverändert ist"
+    uuid hochgeladen_von FK
+    datetime hochgeladen_am
+  }
+  MATERIAL {
+    int id PK
+    int kurs_id FK
+    uuid datei_id FK
+    string titel
+    datetime sichtbar_ab
+  }
+  NOTE {
+    int id PK
+    int pruefung_id FK
+    uuid student_id FK
+    int abgabe_id FK "leer bei Klausur"
+    decimal wert
+    string feedback
+    uuid bewertet_von FK
+    datetime freigegeben_am "leer = noch unsichtbar"
+    datetime bestaetigt_am "leer = vorläufig"
+  }
+  USER {
+    uuid id PK "Details in Teil 1"
+  }
+  KURS {
+    int id PK "Details in Teil 1"
+  }
+  KURS ||--o{ MATERIAL : "stellt bereit"
+  MATERIAL }o--|| DATEI : "ist"
+  KURS ||--o{ PRUEFUNG : "prüft mit"
+  PRUEFUNG ||--o{ ABGABE : "erhält"
+  ABGABE ||--|{ ABGABE_MITGLIED : "von"
+  USER ||--o{ ABGABE_MITGLIED : "reicht ein"
+  ABGABE ||--|{ ABGABEVERSION : "hat"
+  ABGABEVERSION }o--|| DATEI : "ist"
+  PRUEFUNG ||--o{ NOTE : "ergibt"
+  USER ||--o{ NOTE : "erhält"
+  ABGABE |o--o{ NOTE : "bewertet in"

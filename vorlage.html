@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<title>Online-Campus: Sitemap und Datenmodell</title>
+<style>
+  @page { size: A4 portrait; margin: 16mm 16mm 14mm; }
+  @page gross { size: A3 landscape; margin: 12mm; }
+  @page quer { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { font: 10pt/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1f2937; margin: 0; }
+  h1 { font-size: 22pt; margin: 0 0 4px; color: #4c1d95; }
+  h2 { font-size: 14pt; color: #4c1d95; margin: 18px 0 6px; border-bottom: 2px solid #ddd6fe; padding-bottom: 3px; }
+  h3 { font-size: 11.5pt; margin: 12px 0 4px; }
+  .unter { color: #6b7280; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 7px; border-bottom: 1px solid #e5e7eb; }
+  th { background: #f5f3ff; color: #4c1d95; }
+  tr { break-inside: avoid; }
+  .seite-gross { page: gross; break-before: page; }
+  .seite-quer { page: quer; break-before: page; }
+  .neu { break-before: page; }
+  .mermaid { display: flex; justify-content: center; }
+  .seite-gross .mermaid svg { max-width: 100% !important; max-height: 245mm; height: auto; }
+  .seite-quer .mermaid svg { width: 100%; max-width: 100% !important; max-height: 150mm; height: auto; }
+  .kasten { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 8px 12px; margin: 10px 0; break-inside: avoid; }
+  .warn { background: #fef2f2; border-left-color: #dc2626; }
+  .legende span { display: inline-block; padding: 1px 8px; border-radius: 4px; margin-right: 8px; font-size: 9pt; border: 1px solid; }
+  ol, ul { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 2px 0; }
+  code { font-size: 9pt; background: #f3f4f6; padding: 0 3px; border-radius: 3px; }
+</style></head><body>
+
+<h1>Online-Campus: Sitemap und Datenmodell</h1>
+<p class="unter">Überarbeitung von Sitemap (Miro) und ER-Diagramm (Mermaid) · Grundlage für Meilenstein 3 und 5 · Stand 28.09.2026</p>
+
+<h2>Was sich ändert, und warum</h2>
+<table>
+<tr><th style="width:27%">Befund in der alten Fassung</th><th style="width:36%">Änderung</th><th>Begründung</th></tr>
+<tr><td>Upload ist das Kernproblem, aber das Datenmodell kennt keine Abgabe. Die Note hängt direkt an der Prüfung.</td><td>Neue Tabellen <b>ABGABE</b>, <b>ABGABEVERSION</b> und <b>DATEI</b>. Die Note verweist auf die Abgabe.</td><td>Studierende brauchen einen Nachweis: Was wurde wann abgegeben? Jede Version bleibt erhalten, mit Prüfsumme und Zeitstempel. So gibt es später keinen Streit darüber, ob etwas pünktlich war.</td></tr>
+<tr><td>Gruppenarbeiten bei „größeren Projekten“ lassen sich nicht abbilden.</td><td><b>ABGABE_MITGLIED</b>: Eine Abgabe kann mehrere Studierende haben, jede Person bekommt trotzdem eine eigene Note.</td><td>Laut Briefing laufen genau diese Projekte heute über fremde Plattformen.</td></tr>
+<tr><td>Keine Studiengruppen und keine Semester, nur eine Belegung pro Person und Modul (ENROLLMENT).</td><td><b>STUDIENGRUPPE</b>, <b>GRUPPENMITGLIED</b>, <b>SEMESTER</b>. Ein <b>KURS</b> ist ein Modul, das eine Gruppe in einem Semester belegt.</td><td>An der VWA studiert eine feste Gruppe gemeinsam. Der persönliche Stundenplan ergibt sich daraus automatisch, niemand muss Module einzeln zuordnen.</td></tr>
+<tr><td>Raum ist ein Textfeld, eine Vertretung ist nicht vorgesehen, Ausfälle lassen sich nicht markieren.</td><td>Eigene Tabelle <b>RAUM</b>. Bei <b>TERMIN</b> kommen Status (geplant, verlegt, ausgefallen) und Vertretung dazu.</td><td>„Raum geändert“ und „fällt aus“ sind die häufigsten Nachrichten. Sie müssen eine Mitteilung auslösen können.</td></tr>
+<tr><td>Die rote Zeile „automatische E-Mail“ hat keine Grundlage im Datenmodell.</td><td><b>MITTEILUNG</b>, <b>ZUSTELLUNG</b> und <b>BENACHRICHTIGUNG_EINSTELLUNG</b></td><td>Nachweisbar, wer was wann bekommen und gelesen hat. Studierende legen je Anlass selbst fest, ob per E-Mail, Push oder nur im Campus.</td></tr>
+<tr><td>Materialien (Folien, Skripte) fehlen.</td><td><b>MATERIAL</b> mit Datum für die Sichtbarkeit</td><td>Das ist der zweithäufigste Grund, warum Studierende die Plattform öffnen.</td></tr>
+<tr><td>In der Sitemap fehlen Login, Startseite nach dem Login, Profil und der Bereich für Lehrende.</td><td>Die neue Sitemap beginnt beim Login mit der <b>Übersicht</b>. Lehrende und Verwaltung haben eigene Bereiche.</td><td>Das Briefing verlangt ausdrücklich ein Backend für Lehrende, die alte Sitemap zeigt nur die Seite der Studierenden.</td></tr>
+<tr><td>„Allgemeine Infos“ ist eine Sammelkiste, „Mitteilungen“ steht als eigener Hauptpunkt neben den Terminen.</td><td>Daraus wird <b>Service</b>. Die Mitteilungen wandern als <b>Glocke</b> in die Kopfzeile.</td><td>Eine Sammelkiste ist genau das Navigationsproblem der alten Website. Mitteilungen gehören auf jede Seite, nicht nur auf einen Menüpunkt.</td></tr>
+<tr><td>Termine liegen doppelt: unter Vorlesungsplan und unter Prüfungen/Module.</td><td><b>Stundenplan</b> zeigt alles zeitlich, die <b>Modulseite</b> alles zu einem Modul. <b>Leistungen</b> bündelt Abgaben und Noten über alle Module.</td><td>Drei Fragen, drei Einstiege: „Was steht diese Woche an?“, „Was gehört zu Modul X?“, „Wie stehe ich insgesamt?“. Dahinter liegen dieselben Daten.</td></tr>
+</table>
+
+<h2>Navigationskonzept</h2>
+<ul>
+<li><b>Fünf Hauptpunkte</b>: Übersicht, Stundenplan, Module, Leistungen, Service. Mobil erscheinen sie als Leiste unten mit fünf Symbolen, am Desktop als Seitenleiste links.</li>
+<li><b>Kopfzeile auf jeder Seite</b>: Glocke für Mitteilungen mit Zähler, Profil, Suche. Der Chatbot ist optional und würde über die Suche erreichbar sein.</li>
+<li><b>Die Übersicht beantwortet die Frage „Was muss ich heute wissen?“</b>: nächste Vorlesung mit Raum, nächste Frist mit Countdown, alles Neue seit dem letzten Besuch. Wer nur kurz nachschaut, muss nicht weiterklicken.</li>
+<li><b>Die Modulliste ist nach der nächsten Frist sortiert</b> und nicht alphabetisch. Diese Idee stammt aus eurer Sitemap und bleibt.</li>
+<li><b>Rollen</b>: Wer lehrt und studiert, zum Beispiel Tutoren, schaltet oben zwischen den Bereichen um. Die Rechte hängen an der Rolle, nicht an der Person.</li>
+</ul>
+
+<div class="seite-gross">
+<h2>Sitemap: Studierende</h2>
+<p class="legende"><span style="background:#ddd6fe;border-color:#7c3aed">Hauptpunkt</span><span style="background:#dbeafe;border-color:#3b82f6">Unterseite</span><span style="background:#dcfce7;border-color:#16a34a">Inhalt / Funktion</span><span style="background:#fef3c7;border-color:#d97706">Kopfzeile, auf jeder Seite</span></p>
+<pre class="mermaid">%%SITEMAP_STUDIERENDE%%</pre>
+</div>
+
+<div class="seite-quer">
+<h2>Sitemap: Lehrende und Verwaltung</h2>
+<div style="display:flex;gap:10mm;align-items:flex-start;justify-content:center"><pre class="mermaid" style="flex:0 0 58%;margin:0">%%SITEMAP_LEHRENDE%%</pre><pre class="mermaid" style="flex:0 0 32%;margin:0">%%SITEMAP_VERWALTUNG%%</pre></div>
+</div>
+
+<div class="neu">
+<h2>Wann eine Benachrichtigung verschickt wird</h2>
+<table>
+<tr><th>Auslöser</th><th>Wer bekommt sie</th><th>Standardkanal</th><th>Abbestellbar</th></tr>
+<tr><td>Termin verlegt, Raum geändert oder Termin fällt aus</td><td>Studiengruppe des Kurses</td><td>Push + E-Mail</td><td>Push ja, E-Mail nein, wenn weniger als 24 h vorher</td></tr>
+<tr><td>Note freigegeben</td><td>Betroffene Person</td><td>Push + E-Mail (ohne Note im Text, nur Link)</td><td>ja</td></tr>
+<tr><td>Abgabe eingegangen</td><td>Alle Mitglieder der Abgabe</td><td>E-Mail mit Zeitstempel und Prüfsumme</td><td>nein, das ist der Nachweis</td></tr>
+<tr><td>Frist in 7 Tagen / 24 Stunden, noch nichts abgegeben</td><td>Betroffene Personen</td><td>Push</td><td>ja</td></tr>
+<tr><td>Neues Material</td><td>Studiengruppe des Kurses</td><td>nur im Campus (Glocke)</td><td>ja</td></tr>
+<tr><td>Neuigkeit der Verwaltung</td><td>alle oder eine Gruppe</td><td>im Campus + E-Mail</td><td>ja, außer „wichtig“</td></tr>
+</table>
+<div class="kasten"><b>Warum die Note nicht in der E-Mail steht:</b> E-Mails landen auf Diensthandys und in geteilten Postfächern. Noten sind personenbezogene Daten, deshalb nur ein Link, der Anmeldung verlangt.</div>
+<div class="kasten"><b>Push statt nur E-Mail:</b> Berufsbegleitend Studierende lesen dienstliche E-Mails tagsüber, private oft erst abends. Eine Raumänderung um 17 Uhr erreicht sie per E-Mail zu spät. Push setzt eine installierbare Web-App (PWA) oder eine App voraus. Das gehört ins technische Konzept.</div>
+</div>
+
+<div class="seite-gross">
+<h2>Datenmodell (ER-Diagramm)</h2>
+<pre class="mermaid">%%ER_MODELL%%</pre>
+</div>
+
+<div class="neu">
+<h2>Die Tabellen im Überblick</h2>
+<table>
+<tr><th style="width:24%">Bereich</th><th style="width:34%">Tabellen</th><th>Aufgabe</th></tr>
+<tr><td>Personen und Gruppen</td><td>USER, STUDIENGANG, STUDIENGRUPPE, GRUPPENMITGLIED</td><td>Wer ist wer, und wer studiert mit wem? Die Mitgliedschaft hat Datumsangaben, damit Gruppenwechsel und Wiederholer abgebildet werden.</td></tr>
+<tr><td>Lehrangebot</td><td>MODUL, SEMESTER, KURS, LEHRAUFTRAG</td><td>Das MODUL ist der Katalogeintrag, der KURS seine Durchführung für eine Gruppe in einem Semester. Er ersetzt ENROLLMENT und TEACHING.</td></tr>
+<tr><td>Zeit und Ort</td><td>TERMIN, RAUM, VORLESUNGSFREIE_ZEIT</td><td>Stundenplan und Ferien. Aus den Terminen entsteht das Kalender-Abo.</td></tr>
+<tr><td>Prüfen</td><td>PRUEFUNG, ABGABE, ABGABE_MITGLIED, ABGABEVERSION, NOTE</td><td>Vom Anlegen der Prüfung über den Upload bis zur freigegebenen Note</td></tr>
+<tr><td>Dateien</td><td>DATEI, MATERIAL</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme. Die Dateien selbst liegen im Objektspeicher, nicht in der Datenbank.</td></tr>
+<tr><td>Kommunikation</td><td>MITTEILUNG, ZUSTELLUNG, BENACHRICHTIGUNG_EINSTELLUNG</td><td>Was wurde gesendet, an wen, über welchen Kanal, und wurde es gelesen?</td></tr>
+</table>
+
+<h3>So entsteht der persönliche Stundenplan</h3>
+<p><code>USER → GRUPPENMITGLIED (aktuell) → STUDIENGRUPPE → KURS (dieses Semester) → TERMIN</code>, dazu der RAUM und bei Vertretung die vertretende Person. Die Fristen kommen auf demselben Weg über <code>KURS → PRUEFUNG.frist</code> dazu. Eine Abfrage liefert also Termine und Abgaben gemeinsam, wie es eure Sitemap vorsieht („alle Termine und Abgaben“).</p>
+
+<h3>Regeln, die das Modell allein nicht erzwingt</h3>
+<ol>
+<li><b>Versionen werden nie überschrieben.</b> Ein neuer Upload erzeugt eine neue ABGABEVERSION, bewertet wird die letzte vor der Frist.</li>
+<li><b>Die Frist prüft der Server</b>, nicht der Browser. „Verspätet“ setzt das System nach der Serverzeit bei Eingang der letzten Datei.</li>
+<li><b>Noten sind erst mit <code>freigegeben_am</code> sichtbar.</b> Erst dann wird die Mitteilung ausgelöst. Lehrende können also in Ruhe korrigieren.</li>
+<li><b>Nur eigene Daten</b>: Studierende sehen ausschließlich ihre eigenen Abgaben und Noten. Lehrende sehen nur Abgaben aus Kursen mit Lehrauftrag.</li>
+<li><b>Große Dateien</b> werden in Teilen hochgeladen und bei Abbruch fortgesetzt. Das ist das Problem, das heute zu fremden Plattformen führt.</li>
+</ol>
+
+<h3>Unsere Annahmen</h3>
+<p>Wir entwickeln das Konzept eigenständig, ohne Vorgaben der VWA. Wo Vorgaben fehlen, legen wir selbst fest, was gilt, und begründen es. Jede Annahme ist so umgesetzt, dass sie sich später ändern lässt, ohne das Modell umzubauen.</p>
+<table>
+<tr><th style="width:22%">Thema</th><th style="width:36%">Festlegung</th><th>Begründung</th></tr>
+<tr><td>Gruppenarbeiten</td><td>Gemeinsame Abgabe, aber eine eigene Note je Person</td><td>Unterschiedliche Beiträge lassen sich fair bewerten. Bei einer Einzelarbeit hat die Abgabe einfach nur ein Mitglied.</td></tr>
+<tr><td>Freigabe der Noten</td><td>Lehrende geben die Note frei, dann sehen Studierende sie als <i>vorläufig</i>. Die Verwaltung bestätigt sie später als <i>endgültig</i>.</td><td>Studierende erfahren ihre Note schnell, und Bescheinigungen enthalten trotzdem nur bestätigte Noten. Neue Felder: <code>freigegeben_am</code>, <code>bestaetigt_am</code>.</td></tr>
+<tr><td>Eigenständigkeitserklärung</td><td>Pflicht-Häkchen vor dem Einreichen, mit Zeitstempel gespeichert (<code>erklaerung_am</code>)</td><td>Ersetzt die unterschriebene Papierseite. Eine automatische Plagiatsprüfung kommt erst nach dem MVP, weil sie einen externen Dienst mit eigenen Datenschutzfragen braucht.</td></tr>
+<tr><td>Anmeldung</td><td>Eigenes Login mit E-Mail und Passwort, Zwei-Faktor-Anmeldung für Lehrende und Verwaltung. Die Anbindung an ein bestehendes Konto (SSO über OpenID Connect) ist vorbereitet.</td><td>Funktioniert ohne fremdes System. Falls eine Hochschule später ihr eigenes Login anbinden will, muss nichts umgebaut werden.</td></tr>
+<tr><td>Dateigröße</td><td>Standard 100&nbsp;MB je Datei, einstellbar je Prüfung bis 2&nbsp;GB. Der Upload läuft in Teilen und setzt nach einem Abbruch fort.</td><td>Videoprojekte in Full HD erreichen schnell 1&nbsp;GB. Genau solche Projekte laufen heute über fremde Plattformen.</td></tr>
+<tr><td>Aufbewahrung</td><td>Abgaben und Noten bleiben 5&nbsp;Jahre nach Studienende erhalten, danach löscht das System sie automatisch. Die Frist ist als Einstellung hinterlegt.</td><td>Die DSGVO verlangt eine festgelegte Löschfrist. Den Wert muss eine echte Hochschule an ihre Prüfungsordnung anpassen, deshalb ist er einstellbar.</td></tr>
+</table>
+
+<h3>Bewusst weggelassen</h3>
+<p>Nachrichten zwischen Personen (Messenger) und Chatbot. Beide sind im Briefing optional. Für den Messenger kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Der Chatbot braucht kein eigenes Datenmodell, er liest die bestehenden Daten. Beides erst nach dem MVP.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: 'default',
+    flowchart: { useMaxWidth: false, htmlLabels: true, nodeSpacing: 18, rankSpacing: 45 },
+    er: { useMaxWidth: false } , fontFamily: '-apple-system, Helvetica Neue, Arial, sans-serif' });
+  mermaid.run().then(() => document.body.setAttribute('data-fertig', '1'));
+</script>
+</body></html>

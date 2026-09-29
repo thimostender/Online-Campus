@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Online-Campus</title>
+  <meta name="description" content="Klickbarer Prototyp eines Online-Campus mit Lernplattform">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236d4ae6'/%3E%3Ctext x='16' y='21' font-family='Arial' font-size='13' font-weight='700' fill='white' text-anchor='middle'%3EOC%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script>try { const t = localStorage.getItem('oc-thema'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body>
+  <div id="app"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <dialog id="dialog"></dialog>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="ansichten-studierende.js"></script>
+  <script src="ansichten-personal.js"></script>
+  <script>
+    db = laden();
+    if (!db) neuAufsetzen();
+    fristErinnerungen();
+    render();
+  </script>
+</body>
+</html>

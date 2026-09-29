@@ -1,0 +1,13 @@
+flowchart LR
+  V(("Bereich<br/>Verwaltung"))
+  V --> V1["Studiengruppen und Semester"]
+  V --> V2["Personen und Rollen"]
+  V --> V3["Stundenplanung<br/>Kurse · Räume · Termine"]
+  V --> V4["Prüfungsamt<br/>Noten endgültig bestätigen"]
+  V --> V5["Mitteilungen an alle"]
+  V --> V6["Service-Inhalte pflegen<br/>Ansprechpersonen · Vorlagen · FAQ"]
+  classDef root fill:#fecdd3,stroke:#e11d48,color:#111
+  classDef main fill:#ddd6fe,stroke:#7c3aed,color:#111,font-weight:bold
+  classDef fn fill:#dcfce7,stroke:#16a34a,color:#111
+  class V root
+  class V1,V2,V3,V4,V5,V6 main

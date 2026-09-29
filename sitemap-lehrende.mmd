@@ -1,0 +1,23 @@
+flowchart LR
+  L(("Bereich<br/>Lehrende"))
+  L --> L1["Übersicht"]
+  L1 --> L1a["Nächste Vorlesungen"]
+  L1 --> L1b["Offene Korrekturen<br/>mit Frist"]
+  L --> L2["Meine Module"]
+  L2 --> L2a["Materialien hochladen<br/>mit Freigabedatum"]
+  L2 --> L2b["Termin ändern oder absagen<br/>(löst Mitteilung aus)"]
+  L2 --> L2c["Prüfung anlegen<br/>Art · Frist · Formate · Gruppe ja/nein"]
+  L2 --> L2d["Mitteilung an die Gruppe"]
+  L --> L3["Korrektur"]
+  L3 --> L3a["Abgaben-Liste<br/>pünktlich · verspätet · fehlt"]
+  L3 --> L3b["Alle Dateien als ZIP"]
+  L3 --> L3c["Bewerten mit Feedback"]
+  L3 --> L3d["Noten freigeben<br/>(erst dann sichtbar)"]
+
+
+  classDef root fill:#fecdd3,stroke:#e11d48,color:#111
+  classDef main fill:#ddd6fe,stroke:#7c3aed,color:#111,font-weight:bold
+  classDef fn fill:#dcfce7,stroke:#16a34a,color:#111
+  class L root
+  class L1,L2,L3 main
+  class L1a,L1b,L2a,L2b,L2c,L2d,L3a,L3b,L3c,L3d fn
