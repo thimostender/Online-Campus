@@ -27,4 +27,5 @@ Modelle
 - street_lamp_01: https://polyhaven.com/a/street_lamp_01
 
 Eigene Bauteile (Tische, Regale mit Büchern, Monitore, Sofas, Bäume, Treppe, Fahrradbügel) und alle Schilder sind
-selbst erstellt; die Schildertexte sind erfunden.
+selbst erstellt; die Schildertexte sind erfunden. Die Menschen (`prototyp/campus3d-menschen.js`) entstehen im Browser
+aus Grundformen, ohne fremde Vorlage.

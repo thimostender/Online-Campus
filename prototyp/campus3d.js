@@ -74,12 +74,13 @@ async function campusStarten(startOrt) {
   // geschoss -1: noch keins gesetzt, damit das erste Setzen (auch per Direktlink) immer greift
   const S = C3; S.laeuft = true; S.geschoss = -1; S.lauf = Symbol('lauf'); const lauf = S.lauf;
   const prozent = document.getElementById('c3-prozent');
-  let THREE, OrbitControls, GLTFLoader, DRACOLoader, RoomEnvironment;
+  let THREE, OrbitControls, GLTFLoader, DRACOLoader, RoomEnvironment, mergeGeometries;
   try {
     THREE = await import('three');
-    [{ OrbitControls }, { GLTFLoader }, { DRACOLoader }, { RoomEnvironment }] = await Promise.all([
+    [{ OrbitControls }, { GLTFLoader }, { DRACOLoader }, { RoomEnvironment }, { mergeGeometries }] = await Promise.all([
       import('three/addons/controls/OrbitControls.js'), import('three/addons/loaders/GLTFLoader.js'),
-      import('three/addons/loaders/DRACOLoader.js'), import('three/addons/environments/RoomEnvironment.js')]);
+      import('three/addons/loaders/DRACOLoader.js'), import('three/addons/environments/RoomEnvironment.js'),
+      import('three/addons/utils/BufferGeometryUtils.js')]);
   } catch (e) { console.error(e); c3Fehler('3D-Bibliothek nicht erreichbar. Bitte Internetverbindung prüfen.'); return; }
   if (S.lauf !== lauf) return;
   S.THREE = THREE;
@@ -147,6 +148,11 @@ async function campusStarten(startOrt) {
   // Hintergrundgelände bis zum Horizont, damit der Rand des Modells nicht sichtbar wird
   const weit = new THREE.Mesh(new THREE.CircleGeometry(400, 48), new THREE.MeshBasicMaterial({ color: 0x8aa86a }));
   weit.rotation.x = -Math.PI / 2; weit.position.set(30, -0.05, 10); szene.add(weit);
+  // Menschen (campus3d-menschen.js): je Geschoss eine Gruppe, die wie die Möbel mit abhebt
+  if (typeof c3Menschen === 'function') {
+    S.menschen = c3Menschen(THREE, mergeGeometries);
+    for (const [n, g] of Object.entries(S.menschen.gruppen)) { szene.add(g); S.einheiten[n] = [g]; }
+  }
 
   // Ausgangslage je Einheit für das Abheben der Geschosse
   S.basisY = {}; for (const [n, liste] of Object.entries(S.einheiten)) S.basisY[n] = liste[0].position.y;
@@ -284,7 +290,7 @@ function c3Geschoss(n, sofort = false) {
   document.querySelectorAll('[data-action="c3-geschoss"]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)));
   S.ziele = {};
   for (const name of Object.keys(S.einheiten)) {
-    const t = /^(g|m|laub|fenster)(\d)$/.exec(name), ueber = name === 'dach' ? n < 4 : t ? Number(t[2]) > n : false;
+    const t = /^(g|m|laub|fenster|leute)(\d)$/.exec(name), ueber = name === 'dach' ? n < 4 : t ? Number(t[2]) > n : false;
     S.ziele[name] = ueber ? 24 : 0;
     if (sofort) for (const o of S.einheiten[name]) { o.position.y = S.basisY[name] + S.ziele[name]; o.visible = !ueber; }
     else if (!ueber) for (const o of S.einheiten[name]) o.visible = true;
@@ -307,6 +313,7 @@ function c3Animieren(dt, t) {
     S.kamera.position.lerpVectors(f.von, f.nach, e); S.steuer.target.lerpVectors(f.vonZ, f.nachZ, e);
     if (p >= 1) S.flug = null;
   }
+  S.menschen?.tick(dt);
   S.leuchte.material.opacity = S.leuchtet && S.geschoss === 0 ? 0.45 + 0.35 * Math.sin(t / 380) : 0;
 }
 
@@ -368,7 +375,7 @@ function campusBeenden() {
   S.laeuft = false; S.lauf = null;
   S.renderer.setAnimationLoop(null); S.ro?.disconnect(); document.removeEventListener('keydown', S.taste);
   S.szene.traverse(o => { o.geometry?.dispose(); const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => { for (const k of ['map', 'lightMap', 'normalMap', 'roughnessMap']) x[k]?.dispose(); x.dispose(); }); });
-  S.renderer.dispose(); S.renderer = null; S.orte = {}; S.einheiten = {}; S.raumRahmen = null; S.raumAktuell = null;
+  S.renderer.dispose(); S.renderer = null; S.menschen = null; S.orte = {}; S.einheiten = {}; S.raumRahmen = null; S.raumAktuell = null;
 }
 
 AKTIONEN['c3-geschoss'] = el => c3Geschoss(Number(el.dataset.n));
