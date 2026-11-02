@@ -60,6 +60,7 @@ function campusSeite(q) {
   ${drei ? `<div class="c3-buehne" id="c3-buehne">
     <canvas id="c3-leinwand" aria-hidden="true"></canvas>
     <div class="c3-stifte" id="c3-stifte"></div>
+    <div class="c3-raumname" id="c3-raumname" hidden></div>
     <div class="c3-geschosse" role="group" aria-label="Geschoss wählen">${['Haus', 'EG', '1. OG', '2. OG', '3. OG'].map((t, i) => `<button data-action="c3-geschoss" data-n="${i === 0 ? 4 : i - 1}" aria-pressed="false">${t}</button>`).join('')}</div>
     <div class="c3-tafel" id="c3-tafel" hidden></div>
     <div class="c3-laden" id="c3-laden">Campus wird geladen … <span id="c3-prozent"></span></div>
@@ -105,7 +106,7 @@ async function campusStarten(startOrt) {
   // Modell und Lichtkarten laden; Fortschritt aus den Bytes des GLB
   const lader = new THREE.TextureLoader(), draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
   const gl = new GLTFLoader().setDRACOLoader(draco);
-  const stand = '?v=202611021408';
+  const stand = '?v=202611021420';
   let gltf;
   try {
     gltf = await gl.loadAsync(C3_ORDNER + 'campus.glb' + stand, e => { if (e.total && prozent) prozent.textContent = Math.round(e.loaded / e.total * 100) + ' %'; });
@@ -165,8 +166,16 @@ async function campusStarten(startOrt) {
   // Zeigen und Klicken
   let runter = null;
   leinwand.addEventListener('pointerdown', e => { runter = [e.clientX, e.clientY]; });
-  leinwand.addEventListener('pointermove', e => { const k = c3OrtAm(e); c3Hover(k); leinwand.style.cursor = k ? 'pointer' : ''; });
-  leinwand.addEventListener('pointerup', e => { if (runter && Math.hypot(e.clientX - runter[0], e.clientY - runter[1]) < 6) { const k = c3OrtAm(e); if (k) c3Oeffnen(k); } runter = null; });
+  leinwand.addEventListener('pointermove', e => { const k = c3OrtAm(e); c3Hover(k); leinwand.style.cursor = k ? 'pointer' : ''; if (e.pointerType === 'mouse') c3RaumZeigen(k ? null : e); });
+  leinwand.addEventListener('pointerleave', () => c3RaumZeigen(null));
+  leinwand.addEventListener('pointerup', e => {
+    if (runter && Math.hypot(e.clientX - runter[0], e.clientY - runter[1]) < 6) {
+      const k = c3OrtAm(e);
+      if (k) c3Oeffnen(k);
+      else if (e.pointerType !== 'mouse') { c3RaumZeigen(e); clearTimeout(S.raumUhr); S.raumUhr = setTimeout(() => c3RaumZeigen(null), 2200); }  // Touch: Name kurz zeigen
+    }
+    runter = null;
+  });
   S.taste = e => { if (!C3.laeuft || e.target.closest('input, textarea')) return; if (/^[0-3]$/.test(e.key)) c3Geschoss(Number(e.key)); if (e.key === 'h' || e.key === 'H') c3Geschoss(4); if (e.key === 'Escape') c3TafelZu(); };
   document.addEventListener('keydown', S.taste);
 
@@ -222,6 +231,40 @@ function c3OrtAm(e) {
   return S.strahl.intersectObjects(sichtbar, false)[0]?.object.userData.ort || null;
 }
 const c3OrtSichtbar = o => o && (o.geschoss === 'aussen' || C3.geschoss === 4 || o.geschoss === C3.geschoss);
+// Raumname unter dem Zeiger: Strahl gegen die Bodenebene des sichtbaren Geschosses, Raum aus GEBAEUDE
+function c3RaumAm(e) {
+  const S = C3, THREE = S.THREE, g = S.geschoss; if (g < 0 || g > 3) return null;
+  const r = e.target.getBoundingClientRect ? S.renderer.domElement.getBoundingClientRect() : null; if (!r) return null;
+  S.zeiger.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  S.strahl.setFromCamera(S.zeiger, S.kamera);
+  const p = new THREE.Vector3(); if (!S.strahl.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -c3y(g)), p)) return null;
+  const G = GEBAEUDE, x = p.x, z = p.z; if (x < 0 || x > G.breite || z < 0 || z > G.tiefe) return null;
+  const r_ = G.geschosse[g].raeume.find(q => { const b = raumBereich(q); return x >= b.x1 && x <= b.x2 && z >= b.z1 && z <= b.z2; });
+  if (r_) return { name: r_.name, b: raumBereich(r_), g };
+  if (z >= G.flur[0] && z <= G.flur[1]) return { name: 'Flur', b: { x1: 0, x2: G.breite, z1: G.flur[0], z2: G.flur[1] }, g };
+  const k = G.kern; if (x >= k.x1 && x <= k.x2 && z <= k.z2) return { name: 'Treppenhaus und Aufzug', b: { x1: k.x1, x2: k.x2, z1: k.z1, z2: k.z2 }, g };
+  return null;
+}
+function c3RaumZeigen(e) {
+  const S = C3, schild = document.getElementById('c3-raumname'); if (!schild || !S.THREE) return;
+  const raum = e ? c3RaumAm(e) : null;
+  if (!S.raumRahmen) {
+    // Halbdurchsichtige Bodenfläche statt Linie: WebGL zeichnet Linien nur ein Pixel breit
+    S.raumRahmen = new S.THREE.Mesh(new S.THREE.PlaneGeometry(1, 1), new S.THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }));
+    S.raumRahmen.rotation.x = -Math.PI / 2; S.raumRahmen.renderOrder = 5; S.szene.add(S.raumRahmen);
+  }
+  if (!raum) { schild.hidden = true; S.raumRahmen.visible = false; S.raumAktuell = null; return; }
+  const r = S.renderer.domElement.getBoundingClientRect();
+  schild.hidden = false; schild.textContent = raum.name;
+  schild.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
+  const schluessel = raum.g + raum.name;
+  if (S.raumAktuell !== schluessel) {
+    const { x1, x2, z1, z2 } = raum.b, y = c3y(raum.g) + 0.03;
+    S.raumRahmen.scale.set(x2 - x1, z2 - z1, 1); S.raumRahmen.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+    S.raumAktuell = schluessel;
+  }
+  S.raumRahmen.visible = true;
+}
 function c3Hover(k) { for (const [key, o] of Object.entries(C3.orte)) { o.linie.visible = key === k && c3OrtSichtbar(o); o.stift.classList.toggle('aktiv', key === k); } }
 
 function c3StifteSetzen() {
@@ -246,7 +289,7 @@ function c3Geschoss(n, sofort = false) {
     if (sofort) for (const o of S.einheiten[name]) { o.position.y = S.basisY[name] + S.ziele[name]; o.visible = !ueber; }
     else if (!ueber) for (const o of S.einheiten[name]) o.visible = true;
   }
-  c3Hover(null);
+  c3Hover(null); if (S.raumRahmen) S.raumRahmen.visible = false;
 }
 
 function c3Animieren(dt, t) {
@@ -325,7 +368,7 @@ function campusBeenden() {
   S.laeuft = false; S.lauf = null;
   S.renderer.setAnimationLoop(null); S.ro?.disconnect(); document.removeEventListener('keydown', S.taste);
   S.szene.traverse(o => { o.geometry?.dispose(); const m = o.material; if (m) (Array.isArray(m) ? m : [m]).forEach(x => { for (const k of ['map', 'lightMap', 'normalMap', 'roughnessMap']) x[k]?.dispose(); x.dispose(); }); });
-  S.renderer.dispose(); S.renderer = null; S.orte = {}; S.einheiten = {};
+  S.renderer.dispose(); S.renderer = null; S.orte = {}; S.einheiten = {}; S.raumRahmen = null; S.raumAktuell = null;
 }
 
 AKTIONEN['c3-geschoss'] = el => c3Geschoss(Number(el.dataset.n));

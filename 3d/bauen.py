@@ -69,7 +69,7 @@ M = {
     "sockel": material("sockel", "brick_wall_001", farbe=rgb(0x9c9a96), kachel=1.2),
     "putz": material("putz", "plastered_wall_02", farbe=rgb(0xf4f2ee), kachel=2.5, normalstaerke=0.4),
     "decke": material("decke", farbe=rgb(0xf2f1ee), rauh=0.9),
-    "terrazzo": material("terrazzo", "terrazzo_tiles", farbe=rgb(0xc9cbcc), kachel=2.0),
+    "terrazzo": material("terrazzo", "concrete_floor_02", farbe=rgb(0xe2e4e7), kachel=3.0, normalstaerke=0.5),
     "holz": material("holz", "oak_wood_planks", kachel=2.0),
     "estrich": material("estrich", "concrete_floor_02", farbe=rgb(0xc9ccd0), kachel=2.5),
     "fliese": material("fliese", "floor_tiles_06", kachel=1.0),
@@ -88,7 +88,8 @@ M = {
     "tischbein": material("tischbein", farbe=rgb(0x4b4f57), metall=0.4, rauh=0.4),
     "polster": material("polster", farbe=rgb(0x6d5bd0), rauh=0.85),
     "polster2": material("polster2", farbe=rgb(0x2f6f6a), rauh=0.85),
-    "regal": material("regal", farbe=rgb(0xc7a77d), rauh=0.6),
+    "regal": material("regal", farbe=rgb(0xe3cfaa), rauh=0.6),
+    "teppich": material("teppich", farbe=rgb(0x5d6f9e), rauh=0.95),
     "monitor": material("monitor", farbe=rgb(0x111318), rauh=0.25),
     "tresen": material("tresen", farbe=rgb(0xe9e4dc), rauh=0.45),
     "rinde": material("rinde", farbe=rgb(0x5a4a3a), rauh=0.9),
@@ -101,7 +102,7 @@ M = {
     "geschossschild": material("geschossschild", karte="schilder/geschoss.png", rauh=0.4),
     "anzeige": material("anzeige", karte="schilder/anzeige.png", strahlt=1.0, rauh=0.3),
 }
-BUCH = [material(f"buch{i}", farbe=rgb(c), rauh=0.7) for i, c in enumerate((0x7f1d1d, 0x1e3a8a, 0x14532d, 0x78350f, 0x4c1d95, 0x334155, 0xa16207, 0x0f766e))]
+BUCH = [material(f"buch{i}", farbe=rgb(c), rauh=0.7) for i, c in enumerate((0x7f1d1d, 0x1e3a8a, 0x14532d, 0x78350f, 0x4c1d95, 0x334155, 0xa16207, 0x0f766e, 0xb45309, 0x9f1239, 0x1d4ed8, 0xe7e2d6, 0xd97706, 0x065f46))]
 
 # --- Sammelnetze ---------------------------------------------------------------------
 EINHEITEN = {}
@@ -206,7 +207,7 @@ def fenster(achse, c1, c2, pos, yu, u0, u1, einheit_n, n):
         tafel(M["glas"], c2 - c1, u1 - u0, pos, yu + (u0 + u1) / 2, (c1 + c2) / 2, "+x", f"fenster{n}")
 
 # --- Gebaeude je Geschoss ----------------------------------------------------------------
-BODEN = {"hoersaal": "holz", "seminar": "holz", "labor": "estrich", "buero": "holz", "bibliothek": "holz", "wc": "fliese", "offen": "terrazzo"}
+BODEN = {"hoersaal": "holz", "seminar": "holz", "labor": "estrich", "buero": "holz", "bibliothek": "teppich", "wc": "fliese", "offen": "terrazzo"}
 def bereich(r):
     return (r["x1"], r["x2"], 0.0, FL0) if r["seite"] == "n" else (r["x1"], r["x2"], FL1, T)
 
@@ -382,17 +383,28 @@ def monitor(n, x, z, ry):
     kiste(0.44, 0.02, 0.15, M["schwarz"], 0, 0.75, 0.2, E, basis=Bm, welt=False)
 
 def buecherregal(n, x, z, ry, laenge=1.8):
-    E = f"m{n}"; yb = y0(n); h = 2.1; t = 0.35; boeden = 6
+    """Halbhohes Regal (1,55 m), damit man im Puppenhaus-Blick von oben die Buecher sieht; obenauf Stapel."""
+    E = f"m{n}"; yb = y0(n); h = 1.55; t = 0.35; boeden = 4
     Bm = Matrix.Translation(bv(x, yb, z)) @ Matrix.Rotation(ry, 4, "Z")
     kiste(laenge, h, 0.02, M["regal"], 0, h / 2, -t / 2 + 0.01, E, basis=Bm, welt=False)
     for sx in (-laenge / 2, laenge / 2): kiste(0.03, h, t, M["regal"], sx, h / 2, 0, E, basis=Bm, welt=False)
     for i in range(boeden + 1):
         yy = 0.08 + i * (h - 0.1) / boeden
         kiste(laenge, 0.025, t, M["regal"], 0, yy, 0, E, basis=Bm, welt=False)
-        if i == boeden: break
+        if i == boeden:  # obenauf: liegende Stapel und ein paar Stuetzen-Reihen
+            px = -laenge / 2 + 0.12
+            while px < laenge / 2 - 0.3:
+                if random.random() < 0.55:
+                    yy2 = yy + 0.0125
+                    for _ in range(random.randint(2, 5)):
+                        dicke = random.uniform(0.025, 0.05)
+                        kiste(random.uniform(0.17, 0.24), dicke, random.uniform(0.13, 0.17), random.choice(BUCH), px + 0.1, yy2 + dicke / 2, 0.0, E, ry=random.uniform(-0.25, 0.25), basis=Bm, welt=False, ohne=(5,))
+                        yy2 += dicke
+                px += random.uniform(0.35, 0.6)
+            break
         px = -laenge / 2 + 0.05
         while px < laenge / 2 - 0.08:
-            bb = random.uniform(0.025, 0.05); hh = random.uniform(0.2, 0.29) if i else random.uniform(0.22, 0.3)
+            bb = random.uniform(0.025, 0.05); hh = random.uniform(0.2, 0.3)
             if random.random() < 0.06: px += 0.12; continue
             kiste(bb, hh, random.uniform(0.18, 0.24), random.choice(BUCH), px + bb / 2, yy + 0.0125 + hh / 2, 0.02, E, basis=Bm, welt=False, ohne=(1, 5))
             px += bb + 0.003
@@ -456,8 +468,8 @@ def einrichten(n, r):
             xr = x1 + 8.5 + c * 2.1
             if xr > x2 - 0.8: break
             for k in range(2):
-                buecherregal(n, xr - 0.18, z1 + 1.4 + k * 2.2, math.pi / 2, laenge=1.9)
-                buecherregal(n, xr + 0.18, z1 + 1.4 + k * 2.2, -math.pi / 2, laenge=1.9)
+                buecherregal(n, xr - 0.18, z1 + 1.4 + k * 2.2, -math.pi / 2, laenge=1.9)  # offen nach Westen
+                buecherregal(n, xr + 0.18, z1 + 1.4 + k * 2.2, math.pi / 2, laenge=1.9)   # offen nach Osten
         for zt in (2.6, 5.4):
             tisch(n, x1 + 4.0, zt, 2.2, 1.0)
             for dx in (-0.6, 0.6):

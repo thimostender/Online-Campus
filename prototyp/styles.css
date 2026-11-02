@@ -427,3 +427,5 @@ details > summary::-webkit-details-marker { display: none; }
 .c3-ortknopf { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rand); background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; }
 .c3-ortknopf:hover, .c3-ortknopf:focus-visible { border-color: #7c3aed; }
 @media (max-width: 640px) { .c3-buehne { height: 62vh; min-height: 360px; } .c3-geschosse button { padding: 6px 8px; font-size: 12px; } .c3-stift { font-size: 11px; padding: 4px 8px; } }
+.c3-raumname { position: absolute; left: 0; top: 0; pointer-events: none; background: rgba(255,255,255,.94); color: #1f1b2e; border-radius: 8px; padding: 4px 9px; font: 600 12px/1.3 inherit; box-shadow: 0 4px 12px rgba(0,0,0,.18); white-space: nowrap; }
+.c3-raumname[hidden] { display: none; }
