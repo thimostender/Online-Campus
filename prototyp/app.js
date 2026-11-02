@@ -299,7 +299,7 @@ function demoLeiste() {
   const knopf = (id, text) => `<button data-action="als" data-id="${id}" aria-pressed="${s === id}">${text}</button>`;
   return `<div class="demo"><b>Prototyp</b><span>Sicht wechseln:</span>
     ${knopf('s1', 'Lena · Studierende')}${knopf('l1', 'Prof. Brandt · Lehrende')}${knopf('v1', 'Petra Lange · Verwaltung')}
-    <span class="rechts"><button data-action="thema" title="Hell / Dunkel">Hell / Dunkel</button><button data-action="zuruecksetzen">Daten zurücksetzen</button></span></div>`;
+    <span class="rechts"><button data-action="thema" title="Hell / Dunkel">Hell / Dunkel</button><button data-action="vorfuehrung" title="Beispieldaten neu und eine Online-Vorlesung, die gerade läuft">Vorführung vorbereiten</button><button data-action="zuruecksetzen">Daten zurücksetzen</button></span></div>`;
 }
 
 function layout(aktiv, inhalt) {
@@ -425,6 +425,23 @@ Object.assign(AKTIONEN, {
       return;
     }
     db.sitzung = el.dataset.id; speichern(); fristErinnerungen(); location.hash = '#/uebersicht'; render();
+  },
+  // Für Präsentationen: frische Beispieldaten und eine Online-Vorlesung von Prof. Brandt, die jetzt läuft
+  // (Grundlagen Marketing, Lenas Gruppe). So zeigen Übersicht und 3D-Campus „Online-Vorlesung beitreten“.
+  async vorfuehrung() {
+    if (BACKEND.aktiv) {
+      if (db.sitzung !== 'v1') { toast('Nur als Verwaltung', 'Die Vorbereitung setzt die Daten aller zurück. Bitte als Petra Lange anmelden.'); return; }
+      if (!confirm('Daten für die Vorführung vorbereiten? Alle Daten in der gemeinsamen Datenbank werden durch frische Beispieldaten ersetzt, dazu kommt eine Online-Vorlesung, die gerade läuft.')) return;
+      try { await backendBefuellen(); } catch (e) { toast('Vorbereitung fehlgeschlagen', e.message); return; }
+    } else {
+      if (!confirm('Beispieldaten neu laden und eine laufende Online-Vorlesung anlegen?')) return;
+      await alleInhalteLoeschen(); neuAufsetzen(db.sitzung); assistent.verlauf = []; await beispielDateienErzeugen();
+    }
+    const kurs = db.kurs.find(k => db.modul.find(m => m.id === k.modul_id)?.kuerzel === 'GMA' && db.lehrauftrag.some(l => l.kurs_id === k.id && l.lehrender_id === 'l1'));
+    const beginn = new Date(Date.now() - 5 * 6e4); beginn.setSeconds(0, 0);
+    if (kurs) db.termin.push({ id: nextId('termin'), kurs_id: kurs.id, raum_id: null, vertretung_id: null, beginn: beginn.toISOString(), ende: new Date(beginn.getTime() + 90 * 6e4).toISOString(), art: 'Online', online_link: 'https://meet.example/gma-live', status: 'geplant', hinweis: 'Zusatztermin online' });
+    speichern(); fristErinnerungen(); render();
+    toast('Vorführung vorbereitet', kurs ? `Online-Vorlesung ${kursName(kurs.id)} läuft bis ${fmtZeit(new Date(beginn.getTime() + 90 * 6e4).toISOString())} Uhr.` : 'Beispieldaten neu geladen.');
   },
   async zuruecksetzen() {
     if (BACKEND.aktiv) {
