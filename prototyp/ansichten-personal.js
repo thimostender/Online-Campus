@@ -4,6 +4,7 @@
 ANSICHTEN.lehrend = (t, q) => {
   switch (t[0] || 'uebersicht') {
     case 'uebersicht': return lUebersicht();
+    case 'campus': return campusSeite(q);
     case 'kurse': return t[1] ? lKurs(Number(t[1]), t[2] || 'termine') : lKurse();
     case 'korrektur': return t[1] ? lKorrektur(Number(t[1])) : lKorrekturen();
     case 'stundenplan': return stundenplan(q);
@@ -18,6 +19,7 @@ ANSICHTEN.lehrend = (t, q) => {
 ANSICHTEN.verwaltung = (t, q) => {
   switch (t[0] || 'uebersicht') {
     case 'uebersicht': return vUebersicht();
+    case 'campus': return campusSeite(q);
     case 'antraege': return vAntraege(t[1], q);
     case 'evaluationen': return vEvaluationen();
     case 'anwesenheit-uebersicht': return vAnwesenheit(q);

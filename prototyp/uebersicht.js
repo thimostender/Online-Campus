@@ -149,7 +149,7 @@ function uebersichtSeite(unterzeile) {
   return `<div class="zeile dazwischen oben" style="flex-wrap:wrap;gap:10px">
       <div>${kopfzeile(`${gruss()}, ${esc(u.rolle === 'lehrend' ? name(u) : u.vorname)}`, unterzeile)}</div>
       ${bearb ? `<div class="zeile"><button class="knopf" data-action="kachel-standard">Standard</button><button class="knopf primaer" data-action="uebersicht-fertig">${I('check')} Fertig</button></div>`
-        : `<button class="knopf" data-action="uebersicht-anpassen">${I('stift')} Übersicht anpassen</button>`}
+        : `<div class="zeile" style="flex-wrap:wrap;gap:8px"><a class="knopf primaer" href="#/campus">${I('ort')} Campus in 3D</a><button class="knopf" data-action="uebersicht-anpassen">${I('stift')} Übersicht anpassen</button></div>`}
     </div>
     ${bearb ? `<div class="hinweis" style="margin-bottom:16px">${I('info')}<div class="klein">Karten ziehen oder mit den Pfeilen umsortieren, auf „Breit“ stellen oder ausblenden. Die Einstellung gilt auf allen deinen Geräten.</div></div>` : ''}
     <div class="raster raster-2 kacheln">${sichtbar.map(kachel).join('')}</div>

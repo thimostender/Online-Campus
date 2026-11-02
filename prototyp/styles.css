@@ -407,3 +407,23 @@ details > summary::-webkit-details-marker { display: none; }
 .person-kurse { max-height: 200px; overflow: auto; display: grid; gap: 6px; padding: 8px; border: 1px solid var(--rand); border-radius: 10px; }
 .startpasswort { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .startpasswort code { font-size: 20px; letter-spacing: .06em; padding: 8px 12px; border-radius: 8px; background: var(--flaeche-2, rgba(127,127,127,.12)); user-select: all; }
+
+/* Campus in 3D */
+.c3-buehne { position: relative; height: min(72vh, 760px); min-height: 420px; border-radius: 18px; overflow: hidden; background: #bcd3e6; border: 1px solid var(--rand); }
+.c3-buehne canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.c3-stifte { position: absolute; inset: 0; pointer-events: none; }
+.c3-stift { position: absolute; left: 0; top: 0; pointer-events: auto; margin: 0; transform-origin: 0 0; translate: -50% -100%; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: rgba(20, 17, 31, .82); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 12px; padding: 5px 10px; font: 600 13px/1.2 inherit; cursor: pointer; white-space: nowrap; backdrop-filter: blur(4px); }
+.c3-stift em { font-style: normal; font-size: 11px; background: #7c3aed; border-radius: 999px; padding: 1px 7px; }
+.c3-stift.aktiv, .c3-stift:hover { background: #6d28d9; }
+.c3-geschosse { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; background: rgba(255,255,255,.88); border-radius: 12px; padding: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.c3-geschosse button { border: 0; background: transparent; padding: 7px 11px; border-radius: 9px; font: 600 13px inherit; color: #1f1b2e; cursor: pointer; }
+.c3-geschosse button[aria-pressed="true"] { background: #6d28d9; color: #fff; }
+.c3-tafel { position: absolute; left: 12px; bottom: 12px; width: min(340px, calc(100% - 24px)); background: var(--flaeche); color: var(--text); border-radius: 14px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.c3-ziele { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.c3-laden { position: absolute; inset: 0; display: grid; place-items: center; color: #1f1b2e; font-weight: 600; background: #bcd3e6; }
+.c3-laden[hidden] { display: none; }
+.c3-liste { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.c3-ortknopf { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rand); background: var(--flaeche); color: var(--text); cursor: pointer; font: inherit; }
+.c3-ortknopf:hover, .c3-ortknopf:focus-visible { border-color: #7c3aed; }
+@media (max-width: 640px) { .c3-buehne { height: 62vh; min-height: 360px; } .c3-geschosse button { padding: 6px 8px; font-size: 12px; } .c3-stift { font-size: 11px; padding: 4px 8px; } }

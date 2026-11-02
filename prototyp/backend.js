@@ -149,6 +149,7 @@ function neuZeichnen(anzahl) {
     // Im Chat nur den Verlauf auffrischen, damit eine angefangene Nachricht nicht verloren geht
     if (/\/chat$/.test(location.hash) && chatAktualisieren()) { pushBenachrichtigen(); return; }
     if (location.hash.startsWith('#/service/lageplan3d')) return;
+    if (location.hash.startsWith('#/campus') && typeof campusAktualisieren === 'function' && campusAktualisieren()) { pushBenachrichtigen(); return; }
     if (beschaeftigt) { zeichnenGeplant = setTimeout(versuche, 1500); return; }
     render();
     pushBenachrichtigen();

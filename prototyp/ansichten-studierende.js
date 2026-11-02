@@ -7,6 +7,7 @@ const ANSICHTEN = {};
 ANSICHTEN.studierend = (t, q) => {
   switch (t[0] || 'uebersicht') {
     case 'uebersicht': return sUebersicht();
+    case 'campus': return campusSeite(q);
     case 'stundenplan': return stundenplan(q);
     case 'module': return t[1] ? sModul(Number(t[1]), t[2] || 'ueberblick') : sModule();
     case 'leistungen': return sLeistungen();

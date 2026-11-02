@@ -35,6 +35,7 @@ const GEBAEUDE = {
       { name: 'Raum 3.05', seite: 'n', x1: 3, x2: 16, tuer: 13, art: 'seminar' },
       { name: 'Raum 3.11', raum_id: 2, seite: 'n', x1: 38, x2: 51, tuer: 41, art: 'seminar' },
       { name: 'Gruppenräume 3.01', seite: 's', x1: 3, x2: 14, tuer: 11, art: 'seminar' },
+      { name: 'Verwaltung 3.03', seite: 's', x1: 14, x2: 24, tuer: 21, art: 'buero' },
       { name: 'WC', seite: 's', x1: 26, x2: 30, tuer: 28, art: 'wc' },
       { name: 'Lounge', seite: 's', x1: 36, x2: 57, art: 'offen' },
     ] },

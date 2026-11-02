@@ -1,0 +1,241 @@
+{
+ "breite": 60,
+ "tiefe": 20,
+ "flur": [
+  8,
+  12
+ ],
+ "kern": {
+  "x1": 26,
+  "x2": 34,
+  "z1": 0,
+  "z2": 8
+ },
+ "eingang": {
+  "x1": 28,
+  "x2": 32
+ },
+ "geschosse": [
+  {
+   "nr": 0,
+   "name": "Erdgeschoss",
+   "kurz": "EG",
+   "raeume": [
+    {
+     "name": "Hörsaal A",
+     "raum_id": 3,
+     "seite": "n",
+     "x1": 3,
+     "x2": 24,
+     "tuer": 21,
+     "art": "hoersaal"
+    },
+    {
+     "name": "Bibliothek",
+     "seite": "n",
+     "x1": 36,
+     "x2": 57,
+     "tuer": 39,
+     "art": "bibliothek"
+    },
+    {
+     "name": "Studienbüro",
+     "seite": "s",
+     "x1": 3,
+     "x2": 13,
+     "tuer": 10,
+     "art": "buero"
+    },
+    {
+     "name": "WC",
+     "seite": "s",
+     "x1": 13,
+     "x2": 17,
+     "tuer": 15,
+     "art": "wc"
+    },
+    {
+     "name": "Foyer und Eingang",
+     "seite": "s",
+     "x1": 24,
+     "x2": 36,
+     "art": "offen"
+    },
+    {
+     "name": "Cafeteria",
+     "seite": "s",
+     "x1": 40,
+     "x2": 57,
+     "art": "offen"
+    }
+   ]
+  },
+  {
+   "nr": 1,
+   "name": "1. Obergeschoss",
+   "kurz": "1. OG",
+   "raeume": [
+    {
+     "name": "PC-Labor 1.08",
+     "raum_id": 4,
+     "seite": "n",
+     "x1": 3,
+     "x2": 16,
+     "tuer": 13,
+     "art": "labor"
+    },
+    {
+     "name": "Medienlabor 1.12",
+     "raum_id": 5,
+     "seite": "n",
+     "x1": 38,
+     "x2": 51,
+     "tuer": 41,
+     "art": "labor"
+    },
+    {
+     "name": "IT-Support 1.02",
+     "seite": "s",
+     "x1": 3,
+     "x2": 11,
+     "tuer": 8,
+     "art": "buero"
+    },
+    {
+     "name": "Seminarraum 1.04",
+     "seite": "s",
+     "x1": 11,
+     "x2": 24,
+     "tuer": 21,
+     "art": "seminar"
+    },
+    {
+     "name": "WC",
+     "seite": "s",
+     "x1": 26,
+     "x2": 30,
+     "tuer": 28,
+     "art": "wc"
+    },
+    {
+     "name": "Lernzone",
+     "seite": "s",
+     "x1": 36,
+     "x2": 57,
+     "art": "offen"
+    }
+   ]
+  },
+  {
+   "nr": 2,
+   "name": "2. Obergeschoss",
+   "kurz": "2. OG",
+   "raeume": [
+    {
+     "name": "Raum 2.10",
+     "seite": "n",
+     "x1": 3,
+     "x2": 16,
+     "tuer": 13,
+     "art": "seminar"
+    },
+    {
+     "name": "Dozierendenzimmer 2.20",
+     "seite": "n",
+     "x1": 38,
+     "x2": 50,
+     "tuer": 41,
+     "art": "buero"
+    },
+    {
+     "name": "Raum 2.04",
+     "raum_id": 1,
+     "seite": "s",
+     "x1": 3,
+     "x2": 16,
+     "tuer": 13,
+     "art": "seminar"
+    },
+    {
+     "name": "Prüfungsamt 2.06",
+     "seite": "s",
+     "x1": 16,
+     "x2": 24,
+     "tuer": 19,
+     "art": "buero"
+    },
+    {
+     "name": "WC",
+     "seite": "s",
+     "x1": 26,
+     "x2": 30,
+     "tuer": 28,
+     "art": "wc"
+    },
+    {
+     "name": "Raum 2.14",
+     "seite": "s",
+     "x1": 36,
+     "x2": 49,
+     "tuer": 39,
+     "art": "seminar"
+    }
+   ]
+  },
+  {
+   "nr": 3,
+   "name": "3. Obergeschoss",
+   "kurz": "3. OG",
+   "raeume": [
+    {
+     "name": "Raum 3.05",
+     "seite": "n",
+     "x1": 3,
+     "x2": 16,
+     "tuer": 13,
+     "art": "seminar"
+    },
+    {
+     "name": "Raum 3.11",
+     "raum_id": 2,
+     "seite": "n",
+     "x1": 38,
+     "x2": 51,
+     "tuer": 41,
+     "art": "seminar"
+    },
+    {
+     "name": "Gruppenräume 3.01",
+     "seite": "s",
+     "x1": 3,
+     "x2": 14,
+     "tuer": 11,
+     "art": "seminar"
+    },
+    {
+     "name": "Verwaltung 3.03",
+     "seite": "s",
+     "x1": 14,
+     "x2": 24,
+     "tuer": 21,
+     "art": "buero"
+    },
+    {
+     "name": "WC",
+     "seite": "s",
+     "x1": 26,
+     "x2": 30,
+     "tuer": 28,
+     "art": "wc"
+    },
+    {
+     "name": "Lounge",
+     "seite": "s",
+     "x1": 36,
+     "x2": 57,
+     "art": "offen"
+    }
+   ]
+  }
+ ]
+}
