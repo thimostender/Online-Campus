@@ -28,8 +28,10 @@ const SCHLUESSEL = {
   evaluation_teilnahme: r => `${r.kurs_id}_${r.student_id}`,
   umfrage_teilnahme: r => `${r.umfrage_id}_${r.student_id}`,
   anwesenheit: r => `${r.termin_id}_${r.student_id}`,
+  lernkarten_freigabe: r => String(r.kurs_id),
+  lernstand: r => r.user_id,
 };
-const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung', 'evaluation_teilnahme', 'evaluation_antwort', 'umfrage', 'umfrage_teilnahme', 'umfrage_stimme', 'chat_nachricht', 'anwesenheit'];
+const TABELLEN = ['user', 'studiengang', 'studiengruppe', 'gruppenmitglied', 'schwerpunkt_wahl', 'semester', 'vorlesungsfreie_zeit', 'modul', 'kurs', 'lehrauftrag', 'raum', 'termin', 'datei', 'material', 'abschnitt', 'pruefung', 'abgabe', 'abgabe_mitglied', 'abgabeversion', 'note', 'pruefung_ausnahme', 'anerkennung', 'raum_reservierung', 'antrag', 'mitteilung', 'zustellung', 'evaluation_teilnahme', 'evaluation_antwort', 'umfrage', 'umfrage_teilnahme', 'umfrage_stimme', 'chat_nachricht', 'anwesenheit', 'lernkarten_freigabe', 'lernstand'];
 const docId = (tab, r) => SCHLUESSEL[tab] ? SCHLUESSEL[tab](r) : String(r.id);
 // JSON mit fester Feldreihenfolge: Firestore liefert Felder in eigener Reihenfolge zurück,
 // ein Vergleich ohne Sortierung hielte unveränderte Dokumente für geändert
@@ -99,6 +101,8 @@ async function abosStarten(uid) {
     if (tab === 'evaluation_antwort' && r === 'studierend') return null;
     if (tab === 'evaluation_teilnahme' && r === 'studierend') return c.where('student_id', '==', uid);
     if (tab === 'anwesenheit' && r === 'studierend') return c.where('student_id', '==', uid);
+    // Lernstand ist privat: jede Person liest nur den eigenen
+    if (tab === 'lernstand' && r !== 'verwaltung') return c.where('user_id', '==', uid);
     return c;
   };
   const ersteLadung = TABELLEN.map(tab => new Promise((ok, fehler) => {

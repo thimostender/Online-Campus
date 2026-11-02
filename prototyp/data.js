@@ -132,7 +132,7 @@ function erzeugeDaten(heute = new Date()) {
   // Kurse: Semester 1 und 2 abgeschlossen, Semester 3 aktuell. Kurs-ID = Modul-ID im aktuellen Semester,
   // frühere Kurse bekommen IDs ab 100. Kurse eines Schwerpunkts besuchen nur dessen Studierende.
   const kurs = [], lehrauftrag = [];
-  const lehrende = { AVM: ['l4'], MKO: ['l4'], DBK: ['l2'], MSP: ['l3'], RVD: ['l2', 'l3', 'l1'], GMA: ['l1'], GRW: ['l5'], PT3: ['l1'] };
+  const lehrende = { AVM: ['l4'], MKO: ['l4', 'l1'], DBK: ['l2'], MSP: ['l3'], RVD: ['l2', 'l3', 'l1'], GMA: ['l1'], GRW: ['l5'], PT3: ['l1'] };
   Object.entries(lehrende).forEach(([k, ls]) => {
     const m = modul.find(x => x.kuerzel === k);
     kurs.push({ id: m.id, modul_id: m.id, gruppe_id: 1, semester_id: 3, schwerpunkt: m.schwerpunkt });
@@ -341,7 +341,12 @@ function erzeugeDaten(heute = new Date()) {
     });
   });
 
-  return { version: 5, anwesenheit, evaluation_teilnahme, evaluation_antwort, umfrage, umfrage_teilnahme, umfrage_stimme, chat_nachricht, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
+  // Lernkarten (lernkarten.js): Medienkonzeption ist weitgehend freigegeben, die letzten drei Foliensätze warten als Vorschlag
+  const lernkarten_freigabe = typeof LERNKARTEN === 'undefined' ? [] : [{ kurs_id: M('MKO'), freigegeben: LERNKARTEN.MKO.karten.filter(k => !['09h', '09i', '10'].includes(k.nr)).map(k => k.id), abgelehnt: [] }];
+  // Lena hat schon angefangen: die ersten Foliensätze teils sicher, einige heute fällig
+  const datumIn = n => { const d = new Date(heute); d.setDate(d.getDate() + n); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const lernstand = typeof LERNKARTEN === 'undefined' ? [] : [{ user_id: 's1', karten: Object.fromEntries(LERNKARTEN.MKO.karten.filter(k => ['01', '02', '03'].includes(k.nr)).slice(0, 30).map((k, i) => [k.id, { box: 1 + (i % 4), faellig: datumIn(i % 3 === 0 ? 0 : (i % 4) + 1), zuletzt: tag(-2, 19, 30) }])) }];
+  return { version: 6, lernkarten_freigabe, lernstand, anwesenheit, evaluation_teilnahme, evaluation_antwort, umfrage, umfrage_teilnahme, umfrage_stimme, chat_nachricht, antrag, pruefung_ausnahme, anerkennung, raum_reservierung, user, studiengang, studiengruppe, gruppenmitglied, semester, vorlesungsfreie_zeit, modul, kurs, lehrauftrag, raum, termin, datei, material, abschnitt, pruefung, abgabe, abgabe_mitglied, abgabeversion, note, schwerpunkt_wahl, mitteilung, zustellung, einstellungen: {}, service };
 }
 
 // Zerlegt Text in Abschnitte von etwa 500 bis 900 Zeichen entlang der Absätze (für die Suche des Assistenten).

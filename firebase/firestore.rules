@@ -163,6 +163,17 @@ service cloud.firestore {
           || get(pfad('termin', string(request.resource.data.termin_id))).data.vertretung_id == request.auth.uid);
     }
 
+    // Lernkarten: Freigabe je Kurs (Schlüssel = kurs_id) setzen nur Lehrende des Kurses; lesen alle Angemeldeten
+    match /lernkarten_freigabe/{id} {
+      allow read: if angemeldet();
+      allow create, update: if schreibtEigenenKurs() && id == string(request.resource.data.kurs_id);
+    }
+    // Lernstand ist privat: jede Person liest und schreibt nur den eigenen (Schlüssel = user_id)
+    match /lernstand/{uid} {
+      allow read: if angemeldet() && resource.data.user_id == request.auth.uid;
+      allow create, update: if angemeldet() && uid == request.auth.uid && wirdEigenes('user_id');
+    }
+
     // Benachrichtigungs-Einstellungen: lesen alle (für die Zustellung), ändern nur die eigenen
     match /einstellungen/{uid} { allow read: if angemeldet(); allow write: if angemeldet() && request.auth.uid == uid; }
   }

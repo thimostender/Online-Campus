@@ -13,7 +13,7 @@ const mitternacht = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0
 function laden() {
   try {
     const s = JSON.parse(localStorage.getItem(SPEICHER));
-    if (!s || s.version !== 5) return null;
+    if (!s || s.version !== 6) return null;
     // Beispieldaten hängen am Erzeugungstag. An jedem neuen Tag wandern alle Zeitpunkte mit,
     // damit Fristen und Termine passen und eigene Änderungen trotzdem erhalten bleiben.
     const tage = Math.round((mitternacht() - s.stichtag) / 864e5);

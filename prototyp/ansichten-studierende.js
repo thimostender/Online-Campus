@@ -219,7 +219,7 @@ function sModul(kid, tab) {
   const m = modulVon(k), lehr = lehrendeVon(kid), p = persPruefung(db.pruefung.find(x => x.kurs_id === kid), u.id);
   const frueher = k.semester_id !== aktSem().id;
   const evalOffen = !frueher && evaluationStand(kid).offen && !hatEvaluiert(kid, u.id), umfragenOffen = db.umfrage.filter(x => x.kurs_id === kid && umfrageOffen(x) && !hatAbgestimmt(u.id, x.id)).length;
-  const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis'], ['chat', 'Chat'], ['umfragen', `Umfragen${umfragenOffen ? ` <span class="zahl-punkt">${umfragenOffen}</span>` : ''}`], ['evaluation', `Evaluation${evalOffen ? ' <span class="zahl-punkt">1</span>' : ''}`]];
+  const reiter = [['ueberblick', 'Überblick'], ['termine', 'Termine'], ['materialien', 'Materialien'], ['pruefung', 'Prüfung'], ['abgabe', 'Abgabe'], ['ergebnis', 'Ergebnis'], ['chat', 'Chat'], ['umfragen', `Umfragen${umfragenOffen ? ` <span class="zahl-punkt">${umfragenOffen}</span>` : ''}`], ['evaluation', `Evaluation${evalOffen ? ' <span class="zahl-punkt">1</span>' : ''}`], ...(lernSatz(kid) ? [['lernen', 'Lernen']] : [])];
   const inhalt = {
     ueberblick: () => `<div class="raster raster-2">
       <section class="karte"><h2>Worum es geht</h2><p>${esc(m.beschreibung)}</p><p class="klein leise">${esc(BEREICHE[m.bereich])} · ${m.ue} Unterrichtseinheiten · ${m.workload ? m.workload + ' Stunden Workload · ' : ''}${ectsText(m)} · Kürzel ${esc(m.kuerzel)}</p></section>
@@ -245,6 +245,7 @@ function sModul(kid, tab) {
     ergebnis: () => sErgebnis(p),
     chat: () => chatSeite(kid),
     umfragen: () => umfragenStudierend(kid),
+    lernen: () => sLernen(kid),
     evaluation: () => evaluationStudierend(kid),
   }[tab];
   if (!inhalt) throw new Error('unbekannter Reiter');

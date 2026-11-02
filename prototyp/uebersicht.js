@@ -46,6 +46,7 @@ const KACHELN = {
         <ul class="schritte">${schritte.map(x => { const inhalt = `<span class="schritt-haken ${x.fertig ? 'fertig' : ''}" aria-hidden="true">${x.fertig ? I('check') : ''}</span><span><b>${esc(x.titel)}</b><span class="klein leise">${esc(x.text)}</span></span><span class="visually-hidden">${x.fertig ? ', erledigt' : ''}</span>`;
           return `<li>${x.aktion ? `<button class="schritt" data-action="${x.aktion}">${inhalt}</button>` : `<a class="schritt" href="${x.link}">${inhalt}</a>`}</li>`; }).join('')}</ul>`;
     } },
+    { id: 'lernen', titel: 'Lernen', render: u => lernenKachel(u) },
     { id: 'fristen', titel: 'Nächste Abgaben und Prüfungen', render: u => {
       const fristen = pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).filter(p => D(p.frist) > new Date() && statusVon(p, u.id).code !== 'entschuldigt');
       return `${kachelKopf('Nächste Abgaben und Prüfungen', '#/leistungen', 'Alle')}<ul class="liste">${fristen.map(p => fristZeile(p, u.id)).join('') || '<li class="leer">Keine offenen Fristen</li>'}</ul>`;
