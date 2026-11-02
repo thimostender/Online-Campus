@@ -27,6 +27,25 @@ const KACHELN = {
         <ul class="liste" style="margin-top:6px">${liste.map(t => `<li style="padding:6px 0;border:0"><a class="textlink" href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul>`;
     } },
     { id: 'naechster', titel: 'Nächster Termin', render: u => { const kommend = termineVon(kurseVon(u.id).map(k => k.id)).filter(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); const t = kommend.find(x => !x.raum_id && D(x.beginn) - 10 * 6e4 <= Date.now() && typeof darfBeitreten === 'function' && darfBeitreten(x)) || kommend[0]; return `<h2>Nächster Termin</h2>${t ? terminGross(t) : '<p class="leer">Keine anstehenden Termine</p>'}`; } },
+    { id: 'einrichten', titel: 'Campus einrichten', breit: true, render: u => {
+      const e = db.einstellungen[u.id]?.schritte || {}, push = 'Notification' in window && Notification.permission === 'granted';
+      const ersterSemester = Math.max(...kurseVon(u.id).map(k => modulVon(k).plansemester)) <= 1;
+      const schritte = [
+        ['kalender', 'Stundenplan in den eigenen Kalender holen', 'Mit Erinnerungen vor jeder Frist', null, 'ical'],
+        ['push', 'Push-Nachrichten erlauben', 'Ausfälle und Raumänderungen sofort erfahren', null, 'push-erlauben', push],
+        ['benachrichtigungen', 'Benachrichtigungen einstellen', 'Je Anlass: Campus, Push oder E-Mail', '#/profil'],
+        ['campus', 'Den Campus in 3D erkunden', 'Wo ist was, und was gibt es dort', '#/campus'],
+        ['kontakt', 'Ansprechpersonen kennen', 'Studienbüro, Prüfungsamt, IT-Support', '#/service/kontakt'],
+        ['assistent', 'Den Hilfe-Assistenten fragen', 'Zum Beispiel: Wann ist meine nächste Abgabe?', null, 'assistent-auf'],
+        ...(ersterSemester ? [['wissenschaft', 'Vorlagen fürs wissenschaftliche Arbeiten', 'Zitieren, Gliederung, Deckblatt', '#/service/wissenschaft']] : []),
+      ].map(([id, titel, text, link, aktion, fertig]) => ({ id, titel, text, link, aktion, fertig: fertig || !!e[id] }));
+      const erledigt = schritte.filter(x => x.fertig).length;
+      if (erledigt === schritte.length) return null;
+      return `<div class="zeile dazwischen" style="flex-wrap:wrap"><h2 style="margin:0">Campus einrichten</h2><span class="klein leise">${erledigt} von ${schritte.length} erledigt</span></div>
+        <div class="fortschritt abstand" role="progressbar" aria-label="Campus einrichten" aria-valuemin="0" aria-valuemax="${schritte.length}" aria-valuenow="${erledigt}"><i style="width:${Math.round(erledigt / schritte.length * 100)}%"></i></div>
+        <ul class="schritte">${schritte.map(x => { const inhalt = `<span class="schritt-haken ${x.fertig ? 'fertig' : ''}" aria-hidden="true">${x.fertig ? I('check') : ''}</span><span><b>${esc(x.titel)}</b><span class="klein leise">${esc(x.text)}</span></span><span class="visually-hidden">${x.fertig ? ', erledigt' : ''}</span>`;
+          return `<li>${x.aktion ? `<button class="schritt" data-action="${x.aktion}">${inhalt}</button>` : `<a class="schritt" href="${x.link}">${inhalt}</a>`}</li>`; }).join('')}</ul>`;
+    } },
     { id: 'fristen', titel: 'Nächste Abgaben und Prüfungen', render: u => {
       const fristen = pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).filter(p => D(p.frist) > new Date() && statusVon(p, u.id).code !== 'entschuldigt');
       return `${kachelKopf('Nächste Abgaben und Prüfungen', '#/leistungen', 'Alle')}<ul class="liste">${fristen.map(p => fristZeile(p, u.id)).join('') || '<li class="leer">Keine offenen Fristen</li>'}</ul>`;

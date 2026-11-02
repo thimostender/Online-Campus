@@ -199,7 +199,7 @@ async function assistentFragen(frage) {
   frage = String(frage || '').trim();
   if (!frage) return;
   assistent.verlauf.push({ von: 'ich', html: esc(frage) });
-  assistent.denkt = true; assistentRendern();
+  assistent.denkt = true; assistentRendern(); if (ich()?.rolle === 'studierend') schrittErledigt('assistent');
   let antwort;
   try { antwort = await beantworte(frage); } catch (e) { console.error(e); antwort = { html: 'Da ist etwas schiefgelaufen. Versuch es bitte noch einmal.' }; }
   assistent.denkt = false;

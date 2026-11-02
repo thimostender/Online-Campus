@@ -211,10 +211,10 @@ function einstellungVon(uid, anlassId) {
   return e;
 }
 // Legt eine Mitteilung an und stellt sie je nach Einstellung der Empfänger zu.
-function sende({ absender = null, anlass, titel, text, kurs_id = null, gruppe_id = null, termin_id = null, pruefung_id = null, empfaenger, wichtig = false, link = null }) {
+function sende({ absender = null, anlass, titel, text, kurs_id = null, gruppe_id = null, termin_id = null, pruefung_id = null, empfaenger, wichtig = false, link = null, stufe = null }) {
   const id = nextId('mitteilung');
   const jetzt = new Date().toISOString();
-  db.mitteilung.push({ id, absender_id: absender, anlass, titel, text, kurs_id, gruppe_id, termin_id, pruefung_id, wichtig, link, erstellt_am: jetzt });
+  db.mitteilung.push({ id, absender_id: absender, anlass, titel, text, kurs_id, gruppe_id, termin_id, pruefung_id, wichtig, link, erstellt_am: jetzt, ...(stufe !== null ? { stufe } : {}) });
   const z = { campus: 0, push: 0, email: 0 };
   [...new Set(empfaenger)].forEach(uid => {
     const e = einstellungVon(uid, anlass);
@@ -253,21 +253,34 @@ function zielVon(m) {
 const FILTER = { alle: null, neuigkeiten: ['neuigkeit', 'material'], aenderungen: ['aenderung', 'frist'], noten: ['note', 'eingang'] };
 const filtere = (liste, f) => FILTER[f] ? liste.filter(m => FILTER[f].includes(m.anlass)) : liste;
 
-// Simuliert den nächtlichen Server-Job: erinnert an Fristen in den nächsten 7 Tagen ohne Abgabe.
+// Simuliert den nächtlichen Server-Job: erinnert in drei Stufen (7 Tage, 2 Tage, am letzten Tag) an Fristen
+// ohne Abgabe. Maßgeblich ist die persönliche Frist, also auch eine per Antrag verlängerte.
 // Studierende erinnern nur sich selbst (die Regeln erlauben Fristmitteilungen nur an die eigene Person),
 // die Verwaltung übernimmt den Job für alle.
 function fristErinnerungen() {
   const u0 = ich(); if (!u0 || u0.rolle === 'lehrend') return;
   db.user.filter(u => u.rolle === 'studierend' && (u0.rolle === 'verwaltung' || u.id === u0.id)).forEach(u => {
     pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).forEach(p => {
-      const tage = tagDiff(p.frist);
-      if (!p.mit_upload || tage < 0 || tage > 7 || abgabeVon(p.id, u.id) || ausnahmeFuer(p.id, u.id, 'ruecktritt')) return;
-      const schon = db.mitteilung.some(m => m.anlass === 'frist' && m.pruefung_id === p.id && db.zustellung.some(z => z.mitteilung_id === m.id && z.empfaenger_id === u.id));
+      const frist = fristFuer(p, u.id), tage = tagDiff(frist);
+      if (!p.mit_upload || D(frist) < new Date() || tage > 7 || abgabeVon(p.id, u.id) || ausnahmeFuer(p.id, u.id, 'ruecktritt')) return;
+      const stufe = tage <= 0 ? 0 : tage <= 2 ? 2 : 7;
+      // Ältere Erinnerungen ohne Stufe zählen als 7-Tage-Erinnerung
+      const schon = db.mitteilung.some(m => m.anlass === 'frist' && m.pruefung_id === p.id && (m.stufe ?? 7) === stufe && db.zustellung.some(z => z.mitteilung_id === m.id && z.empfaenger_id === u.id));
       if (schon) return;
-      sende({ anlass: 'frist', titel: `Frist ${relTag(p.frist)}: ${kursName(p.kurs_id)}`, text: `${p.titel}. Abgabe bis ${fmtDatum(p.frist)}, ${fmtZeit(p.frist)} Uhr. Bisher ist nichts hochgeladen.`, kurs_id: p.kurs_id, pruefung_id: p.id, empfaenger: [u.id] });
+      const wann = tage <= 0 ? 'heute' : relTag(frist);
+      sende({ anlass: 'frist', stufe, titel: `Frist ${wann}: ${kursName(p.kurs_id)}`, text: `${p.titel}. Abgabe bis ${fmtDatum(frist)}, ${fmtZeit(frist)} Uhr. Bisher ist nichts hochgeladen.`, kurs_id: p.kurs_id, pruefung_id: p.id, empfaenger: [u.id], link: `#/module/${p.kurs_id}/abgabe` });
     });
   });
 }
+
+// Schritte der Karte „Campus einrichten“ merken (in den eigenen Einstellungen, also auf jedem Gerät gleich)
+function schrittErledigt(id) {
+  const u = ich(); if (!u) return;
+  const e = (db.einstellungen[u.id] = db.einstellungen[u.id] || {}); e.schritte = e.schritte || {};
+  if (e.schritte[id]) return;
+  e.schritte[id] = new Date().toISOString(); speichern();
+}
+const SEITEN_SCHRITTE = { campus: 'campus', profil: 'benachrichtigungen', 'service/kontakt': 'kontakt', 'service/wissenschaft': 'wissenschaft' };
 
 // ---------- Router ----------
 function parseHash() {
@@ -289,6 +302,7 @@ function render() {
   let html;
   try { html = ANSICHTEN[rolle()](teile, q); }
   catch (e) { console.error(e); html = `<div class="karte leer"><h2>Seite nicht gefunden</h2><p><a href="#/uebersicht">Zur Übersicht</a></p></div>`; }
+  const schritt = SEITEN_SCHRITTE[teile.slice(0, 2).join('/')] || SEITEN_SCHRITTE[teile[0]]; if (schritt && ich().rolle === 'studierend') setTimeout(() => schrittErledigt(schritt), 0);
   app.innerHTML = '<button class="sprunglink" data-action="zum-inhalt">Zum Inhalt springen</button>' + demoLeiste() + layout(teile[0] || 'uebersicht', html);
   const h1 = app.querySelector('h1');
   document.title = (h1 ? h1.textContent + ' · ' : '') + 'Online-Campus';

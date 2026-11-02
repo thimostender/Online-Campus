@@ -166,22 +166,26 @@ AKTIONEN.ical = () => {
   dialog(`<div class="dialog-inhalt"><h2>Kalender abonnieren</h2>
     <p>Im fertigen Campus bekommst du eine persönliche Abo-Adresse. Outlook, Google oder Apple Kalender holen Änderungen dann automatisch ab, auch Raumänderungen und Ausfälle.</p>
     <p class="pruefsumme" style="background:var(--flaeche-2);padding:10px;border-radius:10px">webcal://campus.example/ical/${esc(u.id)}-${pseudoHash(u.id).slice(0, 16)}.ics</p>
-    <p class="klein leise">Im Prototyp gibt es statt des Abos eine Datei mit allen Terminen und Fristen, die du einmalig importieren kannst.</p></div>
+    <p class="klein leise">Im Prototyp gibt es statt des Abos eine Datei mit allen Terminen und Fristen, die du einmalig importieren kannst. Fristen und Klausuren bringen ihre Erinnerungen gleich mit: einen Tag vorher und zwei Stunden vorher, direkt vom Kalender auf dem Handy, auch ohne Campus-App.</p></div>
     <div class="dialog-fuss"><button class="knopf" data-action="dialog-zu">Schließen</button><button class="knopf primaer" data-action="ical-laden">${I('download')} Datei herunterladen</button></div>`);
 };
 AKTIONEN['ical-laden'] = () => {
   const u = ich(), kurse = kurseVon(u.id).map(k => k.id);
   const z = iso => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const txt = s => String(s).replace(/[,;\\]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  const alarm = (vorher, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', `TRIGGER:-${vorher}`, `DESCRIPTION:${txt(text)}`, 'END:VALARM'];
   const ev = [];
   termineVon(kurse, u.id).forEach(t => ev.push(['BEGIN:VEVENT', `UID:termin-${t.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`, `DTSTART:${z(t.beginn)}`, `DTEND:${z(t.ende)}`,
     `SUMMARY:${txt(kursName(t.kurs_id) + (t.art === 'Klausur' ? ' (Klausur)' : ''))}`, `LOCATION:${txt(raumName(t))}`, `STATUS:${t.status === 'ausgefallen' ? 'CANCELLED' : 'CONFIRMED'}`,
-    ...(t.hinweis ? [`DESCRIPTION:${txt(t.hinweis)}`] : []), 'END:VEVENT']));
-  if (u.rolle === 'studierend') pruefungenVon(kurse, u.id).filter(p => p.mit_upload).forEach(p => ev.push(['BEGIN:VEVENT', `UID:frist-${p.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`,
-    `DTSTART:${z(new Date(D(p.frist) - 30 * 6e4).toISOString())}`, `DTEND:${z(p.frist)}`, `SUMMARY:${txt('Abgabefrist ' + kursName(p.kurs_id))}`, `DESCRIPTION:${txt(p.titel)}`, 'END:VEVENT']));
+    ...(t.hinweis ? [`DESCRIPTION:${txt(t.hinweis)}`] : []), ...(t.art === 'Klausur' ? alarm('P1D', 'Morgen Klausur: ' + kursName(t.kurs_id)) : []), 'END:VEVENT']));
+  // Persönliche Frist (auch per Antrag verlängert), mit zwei Erinnerungen vom Kalender selbst
+  if (u.rolle === 'studierend') pruefungenVon(kurse, u.id).filter(p => p.mit_upload).forEach(p => { const f = fristFuer(p, u.id); ev.push(['BEGIN:VEVENT', `UID:frist-${p.id}@campus.example`, `DTSTAMP:${z(new Date().toISOString())}`,
+    `DTSTART:${z(new Date(D(f) - 30 * 6e4).toISOString())}`, `DTEND:${z(f)}`, `SUMMARY:${txt('Abgabefrist ' + kursName(p.kurs_id))}`, `DESCRIPTION:${txt(p.titel)}`,
+    ...alarm('P1D', 'Abgabe morgen: ' + kursName(p.kurs_id)), ...alarm('PT2H', 'Abgabe in 2 Stunden: ' + kursName(p.kurs_id)), 'END:VEVENT']); });
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Online-Campus//Prototyp//DE', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Online-Campus', ...ev.flat(), 'END:VCALENDAR'].join('\r\n');
   herunterladen('online-campus-stundenplan.ics', ics, 'text/calendar');
   dialogZu();
+  if (u.rolle === 'studierend') schrittErledigt('kalender');
   toast('Kalenderdatei heruntergeladen', `${ev.length} Einträge`);
 };
 
@@ -594,9 +598,17 @@ function profil() {
     ${ANLAESSE.map(a => { const e = einstellungVon(u.id, a.id); return `<tr><td>${esc(a.name)}${a.pflicht ? '<br><span class="klein leise">E-Mail ist hier Pflicht, sie dient als Nachweis</span>' : ''}</td>
       ${KANAELE.map(k => { const fest = k.id === 'campus' || (a.pflicht || []).includes(k.id); return `<td><input type="checkbox" aria-label="${esc(a.name)}: ${k.name}" data-change="einstellung" data-anlass="${a.id}" data-kanal="${k.id}" ${e[k.id] ? 'checked' : ''} ${fest ? 'disabled' : ''}></td>`; }).join('')}</tr>`; }).join('')}
     </tbody></table></div>
+    ${'Notification' in window ? `<div class="zeile abstand" style="flex-wrap:wrap;gap:10px"><button class="knopf" data-action="push-erlauben" ${Notification.permission === 'granted' ? 'disabled' : ''}>${I('glocke')} ${Notification.permission === 'granted' ? 'Push in diesem Browser ist an' : 'Push in diesem Browser erlauben'}</button>
+      <span class="klein leise">${Notification.permission === 'denied' ? 'Der Browser blockiert Benachrichtigungen. Erlauben lässt es sich in den Website-Einstellungen des Browsers.' : 'Im Prototyp kommen Push-Nachrichten, solange der Campus in einem Tab offen ist. Auf dem iPhone geht das, wenn der Campus über „Zum Home-Bildschirm“ als App angelegt ist.'}</span></div>` : ''}
     <div class="hinweis abstand">${I('info')}<div>Noten stehen nie im Text einer E-Mail oder Push-Nachricht, nur der Hinweis, dass eine Note vorliegt. Die Note selbst siehst du erst nach der Anmeldung.</div></div>
   </section>`;
 }
+AKTIONEN['push-erlauben'] = async () => {
+  const erlaubt = await Notification.requestPermission();
+  if (erlaubt === 'granted') { new Notification('Push ist eingeschaltet', { body: 'So sehen Benachrichtigungen aus dem Online-Campus aus.', tag: 'campus-test' }); if (ich().rolle === 'studierend') schrittErledigt('push'); toast('Push ist an', 'Neue Mitteilungen erscheinen jetzt als Benachrichtigung.'); }
+  else toast('Push bleibt aus', erlaubt === 'denied' ? 'Der Browser hat Benachrichtigungen blockiert.' : 'Die Anfrage wurde geschlossen.');
+  render();
+};
 AENDERUNGEN.einstellung = el => {
   const u = ich();
   db.einstellungen[u.id] = db.einstellungen[u.id] || {};

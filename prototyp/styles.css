@@ -437,3 +437,15 @@ details > summary::-webkit-details-marker { display: none; }
 @media (max-width: 640px) { .c3-buehne { height: 62vh; min-height: 360px; } .c3-geschosse button { padding: 6px 8px; font-size: 12px; } .c3-stift { font-size: 11px; padding: 4px 8px; } }
 .c3-raumname { position: absolute; left: 0; top: 0; pointer-events: none; background: rgba(255,255,255,.94); color: #1f1b2e; border-radius: 8px; padding: 4px 9px; font: 600 12px/1.3 inherit; box-shadow: 0 4px 12px rgba(0,0,0,.18); white-space: nowrap; }
 .c3-raumname[hidden] { display: none; }
+
+/* Karte „Campus einrichten“ */
+.fortschritt { height: 8px; border-radius: 99px; background: var(--flaeche-2); overflow: hidden; }
+.fortschritt i { display: block; height: 100%; background: var(--akzent); border-radius: 99px; }
+.schritte { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.schritt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--rand); border-radius: 12px; background: transparent; color: var(--text); font: inherit; cursor: pointer; text-decoration: none; }
+.schritt:hover { border-color: var(--akzent); }
+.schritt b { display: block; font-size: 14px; }
+.schritt-haken { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--rand); display: grid; place-items: center; margin-top: 1px; }
+.schritt-haken.fertig { background: var(--gut, #047857); border-color: var(--gut, #047857); color: #fff; }
+.schritt-haken svg { width: 14px; height: 14px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

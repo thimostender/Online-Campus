@@ -7,11 +7,12 @@ flowchart LR
   U --> U2["Nächste Abgaben<br/>mit Countdown"]
   U --> U3["Neue Noten und<br/>Mitteilungen"]
   U --> U4["Campus in 3D<br/>jeder Ort führt zur Funktion"]
+  U --> U5["Campus einrichten<br/>Kalender · Push · Ansprechpersonen"]
 
   C --> SP["2 · Stundenplan"]
   SP --> SP1["Woche · Liste<br/>Termine und Abgaben,<br/>passend zum Schwerpunkt"]
   SP --> SP2["Änderungen farbig markiert"]
-  SP --> SP3["Kalender-Abo (iCal)<br/>für Outlook, Google, Apple"]
+  SP --> SP3["Kalender-Abo (iCal)<br/>mit Erinnerungen vor Fristen"]
   SP --> SP4["Vorlesungsfreie Zeiten"]
 
   C --> M["3 · Module"]
@@ -63,5 +64,5 @@ flowchart LR
   class C root
   class U,SP,M,LE,SV main
   class MS,M1,SV3 sub
-  class U1,U2,U3,U4,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,MS7,MS8,MS9,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,SV5,LOGIN fn
+  class U1,U2,U3,U4,U5,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,MS7,MS8,MS9,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,SV5,LOGIN fn
   class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI,AS,AS1,AS2 head
