@@ -201,7 +201,7 @@ async function campusStarten(startOrt, zeit) {
     }
     runter = null;
   });
-  S.taste = e => { if (!C3.laeuft || e.target.closest('input, textarea')) return; if (/^[0-3]$/.test(e.key)) c3Geschoss(Number(e.key)); if (e.key === 'h' || e.key === 'H') c3Geschoss(4); if (e.key === 'Escape') c3TafelZu(); };
+  S.taste = e => { if (!C3.laeuft || e.target.closest('input, textarea')) return; if (/^[0-3hH]$/.test(e.key)) { C3.ortAbstand = null; c3Geschoss(/[hH]/.test(e.key) ? 4 : Number(e.key)); } if (e.key === 'Escape') c3TafelZu(); };
   document.addEventListener('keydown', S.taste);
 
   c3Anzeige();
@@ -213,8 +213,8 @@ async function campusStarten(startOrt, zeit) {
     // Ankommen: von der Straße auf das Haus zu, dann heben die oberen Geschosse ab. Einmal je Sitzung.
     try { sessionStorage.setItem('c3-intro', '1'); } catch { /* privates Fenster */ }
     c3Geschoss(4, true); kamera.position.set(30.5, 1.9, 78); steuer.target.set(30, 6, 20); S.intro = true;
-    c3Fahren([68, 40, 64], [30, 1, 9], { dauer: 3600, mitte: [76, 9, 74], fertig: () => { S.intro = false; c3Geschoss(0); } });
-  } else { c3Geschoss(0, true); kamera.position.set(68, 40, 64); steuer.target.set(30, 1, 9); }
+    c3Fahren([68, 40, 64], [30, 1, 9], { dauer: 3600, mitte: [76, 9, 74], fertig: () => { S.intro = false; } });
+  } else c3Uebersicht(true);
 
   // Bildrate messen (für die Gegenprobe), Schleife
   let letzte = performance.now(), bilder = 0, fensterStart = letzte;
@@ -344,6 +344,8 @@ function c3Animieren(dt, t) {
     if (p >= 1) { S.flug = null; f.fertig?.(); }
   }
   S.menschen?.tick(dt);
+  // Nach einem gewählten Ort: weit herausgezoomt = Gesamtübersicht (Kamera bleibt, wo der Nutzer sie hingezoomt hat)
+  if (S.ortAbstand && !S.flug && S.kamera.position.distanceTo(S.steuer.target) > Math.max(55, S.ortAbstand * 1.6)) c3Uebersicht(false, false);
   if (Math.abs(S.abend - S.abendZiel) > 0.002) { S.abend += (S.abendZiel - S.abend) * Math.min(1, dt * 3); c3AbendSetzen(S.abend); }
   else if (S.abend !== S.abendZiel) { S.abend = S.abendZiel; c3AbendSetzen(S.abend); }
   S.leuchte.material.opacity = S.leuchtet && S.geschoss === 0 ? 0.45 + 0.35 * Math.sin(t / 380) : 0;
@@ -365,6 +367,8 @@ function c3Oeffnen(k, sofort = false) {
   const neig = 1.0, hor = abstand * Math.cos(neig), richtung = [0.34, 0.94];
   const pos = [x + richtung[0] * hor, boden + abstand * Math.sin(neig), z + richtung[1] * hor], ziel = [x, boden, z];
   if (sofort) { S.kamera.position.set(...pos); S.steuer.target.set(...ziel); } else c3Fahren(pos, ziel);
+  // Merken: wer von hier weit genug herauszoomt, kommt zurück in die Gesamtübersicht
+  S.ortAbstand = abstand;
   const tafel = document.getElementById('c3-tafel'); if (!tafel) return;
   tafel.hidden = false;
   tafel.innerHTML = `<div class="zeile dazwischen"><div><b>${esc(o.name)}</b><br><span class="klein leise">${esc(o.ort)}</span></div><button class="knopf klein" data-action="c3-zu" aria-label="Schließen">✕</button></div>
@@ -372,11 +376,18 @@ function c3Oeffnen(k, sofort = false) {
     <div class="c3-ziele">${o.ziele.map(([text, ziel], i) => `<a class="knopf ${i ? '' : 'primaer'}" href="${ziel}">${esc(text)}</a>`).join('')}</div>`;
   tafel.querySelector('a')?.focus({ preventScroll: true });
 }
-// Schließen führt zurück zur Übersicht des Geschosses: Rauszoomen ist dann ein Klick
+// Gesamtübersicht: ganzes Haus, alle Orte sichtbar und anklickbar
+function c3Uebersicht(sofort = false, fliegen = true) {
+  const S = C3; S.ortAbstand = null;
+  const t = document.getElementById('c3-tafel'); if (t) t.hidden = true;
+  if (S.geschoss !== 4) c3Geschoss(4, sofort);
+  if (sofort) { S.kamera.position.set(68, 40, 64); S.steuer.target.set(30, 1, 9); }
+  else if (fliegen) c3Fahren([68, 40, 64], [30, 1, 9]);
+}
+// Schließen (✕, Esc) führt zurück zur Gesamtübersicht
 function c3TafelZu() {
   const t = document.getElementById('c3-tafel'); if (!t || t.hidden) return;
-  t.hidden = true;
-  if (C3.laeuft) { const h = c3y(Math.min(3, Math.max(0, C3.geschoss))); c3Fahren([68, 40 + h, 64], [30, h, 9]); }
+  if (C3.laeuft) c3Uebersicht(); else t.hidden = true;
 }
 
 // --- Tag und Abend ---------------------------------------------------------------------------
@@ -471,7 +482,7 @@ function campusBeenden() {
   S.renderer.dispose(); S.renderer = null; S.menschen = null; S.orte = {}; S.einheiten = {}; S.raumRahmen = null; S.raumAktuell = null;
 }
 
-AKTIONEN['c3-geschoss'] = el => c3Geschoss(Number(el.dataset.n));
+AKTIONEN['c3-geschoss'] = el => { C3.ortAbstand = null; c3Geschoss(Number(el.dataset.n)); };
 AKTIONEN['c3-zu'] = () => c3TafelZu();
 AKTIONEN['c3-zeit'] = () => { if (C3.laeuft) C3.abendZiel = C3.abendZiel ? 0 : 1; c3ZeitKnopf(); };
 AKTIONEN['c3-ort'] = el => {
