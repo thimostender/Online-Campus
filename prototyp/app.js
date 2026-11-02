@@ -128,7 +128,8 @@ const ANLASS_STIL = {
   neuigkeit: { icon: 'megafon', kl: 'm-akzent' },
   antrag: { icon: 'datei', kl: 'm-akzent' },
 };
-const FARBEN = ['#6d4ae6', '#0e9f6e', '#e0613a', '#2563eb', '#c2410c', '#be185d', '#0891b2'];
+// Kursfarben: weiße Schrift darauf erreicht mindestens 4,5:1 (WCAG AA)
+const FARBEN = ['#6d4ae6', '#047857', '#b9471f', '#2563eb', '#c2410c', '#be185d', '#0e7490'];
 
 // ---------- Datenzugriff (folgt dem ER-Modell) ----------
 const byId = (tab, id) => db[tab].find(x => x.id === id);
@@ -288,7 +289,7 @@ function render() {
   let html;
   try { html = ANSICHTEN[rolle()](teile, q); }
   catch (e) { console.error(e); html = `<div class="karte leer"><h2>Seite nicht gefunden</h2><p><a href="#/uebersicht">Zur Übersicht</a></p></div>`; }
-  app.innerHTML = demoLeiste() + layout(teile[0] || 'uebersicht', html);
+  app.innerHTML = '<button class="sprunglink" data-action="zum-inhalt">Zum Inhalt springen</button>' + demoLeiste() + layout(teile[0] || 'uebersicht', html);
   const h1 = app.querySelector('h1');
   document.title = (h1 ? h1.textContent + ' · ' : '') + 'Online-Campus';
   assistentRendern();
@@ -326,7 +327,7 @@ function layout(aktiv, inhalt) {
         </div>
         ${panelOffen ? mitteilungsPanel() : ''}
       </header>
-      <main class="inhalt" id="inhalt">${inhalt}</main>
+      <main class="inhalt" id="inhalt" tabindex="-1">${inhalt}</main>
     </div>
   </div>
   <nav class="unterleiste" aria-label="Hauptnavigation mobil">${unter}</nav>`;
@@ -362,7 +363,12 @@ function toast(titel, klein = '') {
   box.appendChild(t);
   setTimeout(() => t.remove(), 5200);
 }
-function dialog(html) { const d = document.getElementById('dialog'); d.innerHTML = html; d.showModal(); }
+// Der Dialog heißt wie seine erste Überschrift, damit Bildschirmleser ansagen, was sich geöffnet hat
+function dialog(html) {
+  const d = document.getElementById('dialog'); d.innerHTML = html;
+  const h = d.querySelector('h1, h2, h3'); if (h) { h.id ||= 'dialog-titel'; d.setAttribute('aria-labelledby', h.id); } else d.removeAttribute('aria-labelledby');
+  d.showModal();
+}
 function dialogZu() { const d = document.getElementById('dialog'); if (d.open) d.close(); }
 function herunterladen(dateiname, inhalt, typ) {
   const url = URL.createObjectURL(new Blob([inhalt], { type: typ }));
@@ -410,10 +416,16 @@ document.addEventListener('drop', e => {
   input.files = e.dataTransfer.files;
   input.dispatchEvent(new Event('change', { bubbles: true }));
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOffen) { panelOffen = false; render(); } });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (panelOffen) { panelOffen = false; render(); return; }
+  // Hilfe-Assistent schließen und den Fokus auf seinen Knopf zurückgeben
+  if (typeof assistent !== 'undefined' && assistent.offen && e.target.closest?.('#assistent')) { assistent.offen = false; assistentRendern(); document.querySelector('.assistent-knopf')?.focus(); }
+});
 window.addEventListener('hashchange', () => { panelOffen = false; if (typeof uebersichtBearbeiten !== 'undefined' && !/^#\/?(uebersicht)?$/.test(location.hash)) uebersichtBearbeiten = false; render(); window.scrollTo(0, 0); });
 
 Object.assign(AKTIONEN, {
+  'zum-inhalt'() { document.getElementById('inhalt')?.focus(); },
   async als(el) {
     letzteBestaetigung = null; assistent.verlauf = [];
     if (BACKEND.aktiv) {

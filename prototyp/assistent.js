@@ -207,7 +207,7 @@ async function assistentFragen(frage) {
   assistentRendern();
 }
 AKTIONEN['assistent-auf'] = () => { assistent.offen = true; assistentRendern(); };
-AKTIONEN['assistent-zu'] = () => { assistent.offen = false; assistentRendern(); };
+AKTIONEN['assistent-zu'] = () => { assistent.offen = false; assistentRendern(); document.querySelector('.assistent-knopf')?.focus(); };
 AKTIONEN['assistent-frage'] = el => assistentFragen(el.dataset.frage);
 AKTIONEN['assistent-link'] = () => { if (matchMedia('(max-width: 860px)').matches) { assistent.offen = false; setTimeout(assistentRendern, 0); } };
 FORMULARE.assistent = (f, fd) => assistentFragen(fd.get('frage'));

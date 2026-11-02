@@ -40,7 +40,7 @@ function terminGross(t) {
     <div style="min-width:0">
       <a href="${ziel}" class="fett" style="font-size:17px;color:var(--text)">${esc(kursName(t.kurs_id))}</a>
       <p class="leise" style="margin:2px 0 8px">${relTag(t.beginn)[0].toUpperCase() + relTag(t.beginn).slice(1)}, ${fmtZeit(t.beginn)}–${fmtZeit(t.ende)} Uhr · ${esc(t.art)}</p>
-      <div class="zeile klein">${I('ort')}<span>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>, ${esc(byId('raum', t.raum_id).standort)}` : 'Online per Videokonferenz'}</span></div>
+      <div class="zeile klein">${I('ort')}<span>${t.raum_id ? `<a class="textlink" href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>, ${esc(byId('raum', t.raum_id).standort)}` : 'Online per Videokonferenz'}</span></div>
       <div class="zeile klein" style="margin-top:4px">${I('user')}<span>${esc(name(lehr))}</span>${t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : ''}</div>
       ${t.status === 'verlegt' ? `<p class="marke-klein m-warn umbruch" style="margin-top:8px">${esc(t.hinweis)}</p>` : ''}
       ${!t.raum_id ? `<div style="margin-top:10px">${konferenzKnopf(t, false)}</div>` : ''}
@@ -224,7 +224,7 @@ function sModul(kid, tab) {
       <section class="karte"><h2>Nächster Termin</h2>${(() => { const t = termineVon([kid]).find(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); return t ? terminGross(t) : '<p class="leise">Keine weiteren Termine</p>'; })()}</section>
     </div>`,
     termine: () => `<section class="karte"><div class="tabelle-huelle"><table><thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Art</th><th>Status</th><th>Anwesenheit</th><th></th></tr></thead><tbody>
-      ${termineVon([kid]).map(t => `<tr style="${D(t.ende) < new Date() ? 'opacity:.55' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>` : 'Online'}</td><td>${esc(t.art)}</td>
+      ${termineVon([kid]).map(t => `<tr style="${D(t.ende) < new Date() ? 'color:var(--leise)' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${t.raum_id ? `<a href="#/service/lageplan?raum=${t.raum_id}">${esc(raumName(t))}</a>` : 'Online'}</td><td>${esc(t.art)}</td>
       <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : t.vertretung_id ? '<span class="marke-klein m-warn">Vertretung</span>' : '<span class="leise klein">wie geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td><td>${anwesenheitMarke(t, u.id)}</td><td style="text-align:right">${D(t.ende) > new Date() ? konferenzKnopf(t) : ''}</td></tr>`).join('')}
       </tbody></table></div></section>`,
     materialien: () => materialListe(kid, false),
@@ -449,7 +449,7 @@ function studienverlauf(u) {
   const zeile = m => { const st = modulStand(m, u.id); const inhalt = `<span class="kuerzel" style="width:34px;height:34px;font-size:10.5px;border-radius:9px;background:${FARBEN[(m.id - 1) % FARBEN.length]}">${esc(m.kuerzel)}</span>
       <span style="flex:1;min-width:0"><span class="klein fett" style="display:block">${esc(m.kurztitel)}${m.schwerpunkt ? ` <span class="marke-klein m-akzent">${m.schwerpunkt}</span>` : ''}</span><span class="klein leise">${m.ects ? m.ects + ' ECTS' : m.ue + ' UE, ohne eigene ECTS'}</span></span>
       <span class="marke-klein ${st.kl}">${esc(st.text)}</span>`;
-    return `<li>${st.kurs ? `<a class="zeile" href="#/module/${st.kurs.id}${st.note ? '/ergebnis' : ''}" style="color:var(--text);text-decoration:none">${inhalt}</a>` : `<div class="zeile" style="opacity:.75">${inhalt}</div>`}</li>`;
+    return `<li>${st.kurs ? `<a class="zeile" href="#/module/${st.kurs.id}${st.note ? '/ergebnis' : ''}" style="color:var(--text);text-decoration:none">${inhalt}</a>` : `<div class="zeile">${inhalt}</div>`}</li>`;
   };
   const karten = [1, 2, 3, 4, 5, 6].map(n => {
     // Module des eigenen Schwerpunkts plus alle gemeinsamen Module

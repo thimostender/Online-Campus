@@ -85,7 +85,7 @@ function lKurs(kid, tab) {
   const inhalt = {
     termine: () => `${terminFormular(kid)}<section class="karte"><p class="leise">Legst du einen Termin an oder änderst ihn, bekommt ${esc(g.name)} automatisch eine Mitteilung.</p><div class="tabelle-huelle"><table>
       <thead><tr><th>Datum</th><th>Zeit</th><th>Ort</th><th>Status</th><th></th></tr></thead><tbody>
-      ${termineVon([kid]).map(t => { const vorbei = D(t.ende) < new Date(); return `<tr style="${vorbei ? 'opacity:.72' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${esc(raumName(t))}</td>
+      ${termineVon([kid]).map(t => { const vorbei = D(t.ende) < new Date(); return `<tr style="${vorbei ? 'color:var(--leise)' : ''}"><td>${fmtDatum(t.beginn)}</td><td>${fmtZeit(t.beginn)}–${fmtZeit(t.ende)}</td><td>${esc(raumName(t))}</td>
         <td>${t.status === 'ausgefallen' ? '<span class="marke-klein m-fehler">fällt aus</span>' : t.status === 'verlegt' ? '<span class="marke-klein m-warn">geändert</span>' : '<span class="klein leise">geplant</span>'} <span class="klein leise">${esc(t.hinweis || '')}</span></td>
         <td style="text-align:right;white-space:nowrap">${anwesenheitKnopf(t)} ${vorbei ? '' : `${konferenzKnopf(t)} <button class="knopf klein" data-action="termin-aendern" data-id="${t.id}">${I('stift')} Ändern</button>`}</td></tr>`; }).join('')}
       </tbody></table></div></section>`,

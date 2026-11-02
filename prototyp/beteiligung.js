@@ -142,7 +142,7 @@ AKTIONEN['umfrage-beenden'] = el => { const x = db.umfrage.find(y => String(y.id
 // ---------- Chat im Modul ----------
 function chatSeite(kid) {
   return `<section class="karte chat"><div class="zeile dazwischen"><h2 style="margin:0">Chat ${esc(kursName(kid))}</h2><span class="klein leise">${plural(studisVon(kid).length, 'Person', 'Personen')} und ${lehrendeVon(kid).map(l => esc(name(l))).join(', ')}</span></div>
-    <div class="chat-verlauf" id="chat-verlauf" data-kid="${kid}" aria-live="polite">${chatNachrichten(kid)}</div>
+    <div class="chat-verlauf" id="chat-verlauf" data-kid="${kid}" role="log" aria-live="polite" aria-label="Chatverlauf" tabindex="0">${chatNachrichten(kid)}</div>
     <form class="chat-eingabe" data-form="chat" data-kid="${kid}"><input name="text" placeholder="Nachricht an den Kurs …" autocomplete="off" maxlength="1000" aria-label="Nachricht" required><button class="knopf primaer" aria-label="Senden">${I('pfeil')}</button></form>
     <p class="klein leise" style="margin:6px 0 0">Sichtbar für alle im Kurs. Für Persönliches bitte die E-Mail der Lehrenden nutzen.</p></section>`;
 }

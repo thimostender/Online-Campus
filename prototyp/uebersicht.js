@@ -24,7 +24,7 @@ const KACHELN = {
       const liste = termineVon(kurseVon(u.id).map(k => k.id)).filter(t => (t.status !== 'geplant' || t.vertretung_id) && D(t.ende) > new Date() && tagDiff(t.beginn) <= 14);
       if (!liste.length) return null;
       return `<div class="zeile" style="gap:8px;color:var(--warn)">${I('warn')}<h2 style="margin:0;color:var(--text)">${plural(liste.length, 'Änderung', 'Änderungen')} in deinem Stundenplan</h2></div>
-        <ul class="liste" style="margin-top:6px">${liste.map(t => `<li style="padding:6px 0;border:0"><a href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul>`;
+        <ul class="liste" style="margin-top:6px">${liste.map(t => `<li style="padding:6px 0;border:0"><a class="textlink" href="#/stundenplan?w=${wochenVersatz(t.beginn)}">${fmtDatum(t.beginn)}, ${fmtZeit(t.beginn)} · ${esc(kursName(t.kurs_id))}</a>: ${esc(t.hinweis || t.status)}</li>`).join('')}</ul>`;
     } },
     { id: 'naechster', titel: 'Nächster Termin', render: u => { const kommend = termineVon(kurseVon(u.id).map(k => k.id)).filter(x => D(x.ende) > new Date() && x.status !== 'ausgefallen'); const t = kommend.find(x => !x.raum_id && D(x.beginn) - 10 * 6e4 <= Date.now() && typeof darfBeitreten === 'function' && darfBeitreten(x)) || kommend[0]; return `<h2>Nächster Termin</h2>${t ? terminGross(t) : '<p class="leer">Keine anstehenden Termine</p>'}`; } },
     { id: 'fristen', titel: 'Nächste Abgaben und Prüfungen', render: u => {

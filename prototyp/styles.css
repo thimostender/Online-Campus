@@ -42,19 +42,25 @@ html, body { margin: 0; }
 body { background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--akzent); text-decoration: none; }
 a:hover { text-decoration: underline; }
+/* Links im Fließtext nicht nur über die Farbe erkennbar (WCAG 1.4.1) */
+:is(p, .unterzeile, .hinweis div, td) a:not(.knopf):not(.c3-ortknopf), a.textlink { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.01em; }
 h2 { font-size: 18px; margin: 0 0 12px; }
 h3 { font-size: 15px; margin: 0 0 8px; }
 p { margin: 0 0 10px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--akzent); outline-offset: 2px; border-radius: 6px; }
+/* Sprunglink: unsichtbar, bis er per Tastatur den Fokus bekommt (WCAG 2.4.1) */
+.sprunglink { position: fixed; top: 8px; left: 8px; z-index: 1000; transform: translateY(-160%); background: #6d4ae6; color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; font: 700 14px inherit; cursor: pointer; }
+.sprunglink:focus { transform: none; }
+main.inhalt:focus { outline: none; }
 .svg { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Demo-Leiste */
 .demo { background: #1c1b29; color: #d9d6ea; font-size: 13px; padding: 6px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .demo b { color: #fff; }
 .demo button { background: #34314a; border: 0; color: #fff; padding: 3px 10px; border-radius: 999px; cursor: pointer; font-size: 12.5px; }
-.demo button[aria-pressed="true"] { background: var(--akzent); color: #fff; }
+.demo button[aria-pressed="true"] { background: #6d4ae6; color: #fff; }
 .demo .rechts { margin-left: auto; display: flex; gap: 6px; }
 
 /* Grundgerüst */
