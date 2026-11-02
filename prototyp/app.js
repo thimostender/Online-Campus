@@ -253,8 +253,11 @@ const FILTER = { alle: null, neuigkeiten: ['neuigkeit', 'material'], aenderungen
 const filtere = (liste, f) => FILTER[f] ? liste.filter(m => FILTER[f].includes(m.anlass)) : liste;
 
 // Simuliert den nächtlichen Server-Job: erinnert an Fristen in den nächsten 7 Tagen ohne Abgabe.
+// Studierende erinnern nur sich selbst (die Regeln erlauben Fristmitteilungen nur an die eigene Person),
+// die Verwaltung übernimmt den Job für alle.
 function fristErinnerungen() {
-  db.user.filter(u => u.rolle === 'studierend').forEach(u => {
+  const u0 = ich(); if (!u0 || u0.rolle === 'lehrend') return;
+  db.user.filter(u => u.rolle === 'studierend' && (u0.rolle === 'verwaltung' || u.id === u0.id)).forEach(u => {
     pruefungenVon(kurseVon(u.id).map(k => k.id), u.id).forEach(p => {
       const tage = tagDiff(p.frist);
       if (!p.mit_upload || tage < 0 || tage > 7 || abgabeVon(p.id, u.id) || ausnahmeFuer(p.id, u.id, 'ruecktritt')) return;

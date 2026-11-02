@@ -376,7 +376,7 @@ FORMULARE.abgabe = async (form, fd) => {
   const kid = p.kurs_id;
   let a = abgabeVon(p.id, u.id);
   if (!a) {
-    a = { id: nextId('abgabe'), pruefung_id: p.id, status: 'eingereicht', eingereicht_am: jetzt, verspaetet: false, erklaerung_am: jetzt };
+    a = { id: nextId('abgabe'), pruefung_id: p.id, angelegt_von: u.id, status: 'eingereicht', eingereicht_am: jetzt, verspaetet: false, erklaerung_am: jetzt };
     db.abgabe.push(a);
     [u.id, ...fd.getAll('mitglied')].forEach(s => db.abgabe_mitglied.push({ abgabe_id: a.id, student_id: s }));
   }
