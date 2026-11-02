@@ -4,7 +4,8 @@
 // Zusätzlicher Einstieg, kein Ersatz: ohne WebGL oder bei "Bewegung reduzieren" gibt es dieselben Orte als Liste.
 
 const C3 = { laeuft: false };
-const C3_ORDNER = 'campus3d/', C3_TEILER = 8, C3_GH = 3.6;
+const C3_ORDNER = 'campus3d/', C3_TEILER = 8, C3_GH = 3.6, C3_STAND = '?v=202611021420';
+const C3_DATEIEN = ['campus.glb', ...['g0', 'g1', 'g2', 'g3', 'aussen', 'dach', 'anzeige'].map(n => `licht_${n}.jpg`)];
 const c3y = n => n * C3_GH + 0.3;
 const c3Raum = name => { for (const g of GEBAEUDE.geschosse) { const r = g.raeume.find(x => x.name.startsWith(name)); if (r) return { g: g.nr, r, b: raumBereich(r) }; } return null; };
 
@@ -100,14 +101,14 @@ async function campusStarten(startOrt) {
   steuer.maxPolarAngle = 1.38; steuer.screenSpacePanning = false;
   steuer.zoomSpeed = 2.4; steuer.rotateSpeed = 0.8; steuer.panSpeed = 1.2;
   // Eigene Bewegung hat Vorrang: eine laufende Kamerafahrt bricht sofort ab
-  steuer.addEventListener('start', () => { C3.flug = null; });
-  leinwand.addEventListener('wheel', () => { C3.flug = null; }, { passive: true });
+  steuer.addEventListener('start', () => { C3.flug = null; C3.intro = false; });
+  leinwand.addEventListener('wheel', () => { C3.flug = null; C3.intro = false; }, { passive: true });
   Object.assign(S, { renderer, szene, kamera, steuer });
 
   // Modell und Lichtkarten laden; Fortschritt aus den Bytes des GLB
   const lader = new THREE.TextureLoader(), draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
   const gl = new GLTFLoader().setDRACOLoader(draco);
-  const stand = '?v=202611021420';
+  const stand = C3_STAND;
   let gltf;
   try {
     gltf = await gl.loadAsync(C3_ORDNER + 'campus.glb' + stand, e => { if (e.total && prozent) prozent.textContent = Math.round(e.loaded / e.total * 100) + ' %'; });
@@ -188,7 +189,12 @@ async function campusStarten(startOrt) {
   c3Anzeige();
   const lade = document.getElementById('c3-laden'); if (lade) lade.hidden = true;
   if (startOrt && S.orte[startOrt]) c3Oeffnen(startOrt, true);
-  else { c3Geschoss(0, true); kamera.position.set(68, 40, 64); steuer.target.set(30, 1, 9); }
+  else if (!sessionStorage.getItem('c3-intro')) {
+    // Ankommen: von der Straße auf das Haus zu, dann heben die oberen Geschosse ab. Einmal je Sitzung.
+    try { sessionStorage.setItem('c3-intro', '1'); } catch { /* privates Fenster */ }
+    c3Geschoss(4, true); kamera.position.set(30.5, 1.9, 78); steuer.target.set(30, 6, 20); S.intro = true;
+    c3Fahren([68, 40, 64], [30, 1, 9], { dauer: 3600, mitte: [76, 9, 74], fertig: () => { S.intro = false; c3Geschoss(0); } });
+  } else { c3Geschoss(0, true); kamera.position.set(68, 40, 64); steuer.target.set(30, 1, 9); }
 
   // Bildrate messen (für die Gegenprobe), Schleife
   let letzte = performance.now(), bilder = 0, fensterStart = letzte;
@@ -278,7 +284,7 @@ function c3StifteSetzen() {
   const w = el.clientWidth, h = el.clientHeight, v = new S.THREE.Vector3();
   for (const o of Object.values(S.orte)) {
     v.copy(o.anker).project(S.kamera);
-    const zeigen = c3OrtSichtbar(o) && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+    const zeigen = !S.intro && c3OrtSichtbar(o) && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
     o.stift.style.display = zeigen ? '' : 'none';
     if (zeigen) o.stift.style.transform = `translate(${(v.x + 1) / 2 * w}px, ${(1 - v.y) / 2 * h}px)`;
   }
@@ -309,21 +315,26 @@ function c3Animieren(dt, t) {
     }
   }
   if (S.flug) {
-    const f = S.flug, p = Math.min(1, (t - f.start) / f.dauer), e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
-    S.kamera.position.lerpVectors(f.von, f.nach, e); S.steuer.target.lerpVectors(f.vonZ, f.nachZ, e);
-    if (p >= 1) S.flug = null;
+    const f = S.flug, p = Math.min(1, (performance.now() - f.start) / f.dauer), e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+    if (f.mitte) {  // Bogen statt gerader Linie (quadratische Bézierkurve)
+      const a = (1 - e) ** 2, b = 2 * (1 - e) * e, c = e * e;
+      S.kamera.position.set(a * f.von.x + b * f.mitte.x + c * f.nach.x, a * f.von.y + b * f.mitte.y + c * f.nach.y, a * f.von.z + b * f.mitte.z + c * f.nach.z);
+    } else S.kamera.position.lerpVectors(f.von, f.nach, e);
+    S.steuer.target.lerpVectors(f.vonZ, f.nachZ, e);
+    if (p >= 1) { S.flug = null; f.fertig?.(); }
   }
   S.menschen?.tick(dt);
   S.leuchte.material.opacity = S.leuchtet && S.geschoss === 0 ? 0.45 + 0.35 * Math.sin(t / 380) : 0;
 }
 
-function c3Fahren(pos, ziel) {
+function c3Fahren(pos, ziel, { dauer = 850, mitte = null, fertig = null } = {}) {
   const S = C3, THREE = S.THREE;
-  S.flug = { von: S.kamera.position.clone(), nach: new THREE.Vector3(...pos), vonZ: S.steuer.target.clone(), nachZ: new THREE.Vector3(...ziel), start: performance.now(), dauer: 850 };
+  S.flug = { von: S.kamera.position.clone(), nach: new THREE.Vector3(...pos), vonZ: S.steuer.target.clone(), nachZ: new THREE.Vector3(...ziel), start: performance.now(), dauer, mitte: mitte && new THREE.Vector3(...mitte), fertig };
 }
 
 function c3Oeffnen(k, sofort = false) {
   const S = C3, o = S.orte[k]; if (!o) return;
+  S.intro = false;
   const n = o.geschoss === 'aussen' ? Math.max(0, S.geschoss) : o.geschoss;
   if (n !== S.geschoss) c3Geschoss(n, sofort);
   // Blick steil von schräg oben (rund 58°), Abstand nach Raumgröße: so sieht man den ganzen Raum und nicht die Fassade darunter
@@ -384,4 +395,13 @@ AKTIONEN['c3-ort'] = el => {
   if (C3.laeuft && C3.orte[el.dataset.ort]) { document.getElementById('c3-buehne')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); c3Oeffnen(el.dataset.ort); return; }
   const o = c3Orte().orte[el.dataset.ort]; if (o) location.hash = o.ziele[0][1];
 };
+// Vorladen, sobald jemand den Weg in den Campus ansteuert (Zeiger, Finger, Tastatur): Modell und Lichtkarten
+// liegen dann schon im Browser-Speicher, wenn die Seite öffnet. Nicht bei "Datensparen".
+function campusVorladen() {
+  if (C3.vorgeladen || navigator.connection?.saveData || !c3Moeglich()) return;
+  C3.vorgeladen = true;
+  import('three').catch(() => {});
+  for (const d of C3_DATEIEN) fetch(C3_ORDNER + d + C3_STAND, { priority: 'low' }).catch(() => {});
+}
+for (const art of ['pointerover', 'touchstart', 'focusin']) document.addEventListener(art, e => { if (e.target.closest?.('a[href^="#/campus"]')) campusVorladen(); }, { passive: true });
 window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/campus')) campusBeenden(); });
