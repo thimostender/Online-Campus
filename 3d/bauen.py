@@ -101,7 +101,17 @@ M = {
     "tuerschild": material("tuerschild", karte="schilder/tuerschilder.png", rauh=0.4),
     "geschossschild": material("geschossschild", karte="schilder/geschoss.png", rauh=0.4),
     "anzeige": material("anzeige", karte="schilder/anzeige.png", strahlt=1.0, rauh=0.3),
+    # Umgebung
+    "klinker": material("klinker", "brick_wall_001", kachel=1.2),
+    "dachziegel": material("dachziegel", "grey_roof_01", farbe=rgb(0x8c5a48), kachel=2.0),
+    "dachgrau": material("dachgrau", "grey_roof_01", farbe=rgb(0x6a6d73), kachel=2.0),
+    "scheibe": material("scheibe", farbe=rgb(0x2b3540), metall=0.3, rauh=0.12),
+    "markierung": material("markierung", farbe=rgb(0xf2f2ee), rauh=0.6),
+    "platz": material("platz", "concrete_floor_02", farbe=rgb(0x3f6f8f), kachel=3.0, normalstaerke=0.3),
+    "reifen": material("reifen", farbe=rgb(0x1a1b1d), rauh=0.8),
 }
+HAUSPUTZ = [material(f"hausputz{i}", "plastered_wall_02", farbe=rgb(c), kachel=2.5, normalstaerke=0.5) for i, c in enumerate((0xe9dcc4, 0xd7e0e4, 0xf1e8d6, 0xd2dbc9, 0xe6d2c8))]
+LACK = [material(f"lack{i}", farbe=rgb(c), metall=0.45, rauh=0.28) for i, c in enumerate((0xe8e8e6, 0x1b1c20, 0x9aa0a6, 0x1f3a6b, 0x9b1c1c, 0x4a4f57, 0x2f5a46, 0xd8d2c4))]
 BUCH = [material(f"buch{i}", farbe=rgb(c), rauh=0.7) for i, c in enumerate((0x7f1d1d, 0x1e3a8a, 0x14532d, 0x78350f, 0x4c1d95, 0x334155, 0xa16207, 0x0f766e, 0xb45309, 0x9f1239, 0x1d4ed8, 0xe7e2d6, 0xd97706, 0x065f46))]
 
 # --- Sammelnetze ---------------------------------------------------------------------
@@ -551,15 +561,15 @@ def belauben(wolken, pro, groesse, einheit="laub"):
             tiefe = max(0.0, min(1.0, (q3[1] - (y - r)) / (2 * r)))
             e.setdefault("licht", []).append((1.34 * sicht * random.uniform(0.55, 1.0) + 0.42 + 0.33 * tiefe) * random.uniform(0.88, 1.12))
 
-def baum(x, z, s):
-    zylinder(0.3 * s, 4.2 * s, M["rinde"], x, 2.1 * s, z, oben=0.18 * s, n=9)
+def baum(x, z, s, einheit="aussen", pro=150):
+    zylinder(0.3 * s, 4.2 * s, M["rinde"], x, 2.1 * s, z, oben=0.18 * s, n=9, einheit=einheit)
     wolken = []
     for i in range(22):
         a, d, y = random.uniform(0, 6.28), random.uniform(0.3, 3.0) * s, random.uniform(3.6, 8.0) * s
         wolken.append((x + math.cos(a) * d, y, z + math.sin(a) * d, random.uniform(0.7, 1.3) * s))
         if i % 3 == 0:
-            zylinder(0.06 * s, d + 0.8, M["rinde"], x + math.cos(a) * d / 2, (y + 4 * s) / 2, z + math.sin(a) * d / 2, oben=0.03 * s, n=5)
-    belauben(wolken, 150, 0.3 * s)
+            zylinder(0.06 * s, d + 0.8, M["rinde"], x + math.cos(a) * d / 2, (y + 4 * s) / 2, z + math.sin(a) * d / 2, oben=0.03 * s, n=5, einheit=einheit)
+    belauben(wolken, pro, 0.3 * s)
 
 # --- Aussenanlage ----------------------------------------------------------------------
 def aussenanlage():
@@ -573,7 +583,8 @@ def aussenanlage():
     boden(8, 52, T + 1.5, 36, 0.01, M["pflaster"])         # Vorplatz
     boden(27, 33, 36, 52, 0.01, M["pflaster"])             # Weg zur Strasse
     boden(-45, 105, 52, 60, 0.012, M["asphalt"])           # Strasse
-    for z in (51.85, 60.0): kasten(-45, 105, 0.0, 0.14, z, z + 0.15, M["beton"], E)
+    kasten(-45, 105, 0.0, 0.14, 60.0, 60.15, M["beton"], E)
+    for a_, b_ in ((-45, 78), (84, 105)): kasten(a_, b_, 0.0, 0.14, 51.85, 52.0, M["beton"], E)  # Luecke: Parkplatzzufahrt
     # Eingangspodest mit Stufe und Vordach
     kasten(25.5, 34.5, 0.0, 0.3, T + 0.31, T + 3.2, M["terrazzo"], E, ohne=(5,))
     kasten(25.5, 34.5, 0.0, 0.15, T + 3.2, T + 3.6, M["terrazzo"], E, ohne=(5,))
@@ -615,7 +626,146 @@ def dach():
     for x in (8, 14, 46): kasten(x, x + 3.2, yt + 0.3, yt + 1.6, 6, 9.5, M["stahl"], E)
 
 for g in G["geschosse"]: geschoss(g)
-aussenanlage(); dach()
+# --- Umgebung: Nachbarhaus, Parkplatz, Haeuser gegenueber, Haltestelle, Sportplatz ------------
+def satteldach(x1, x2, z1, z2, y, h, mat, giebel, E):
+    """Satteldach mit First in x-Richtung; Ueberstand 0.4 m, Giebeldreiecke in Wandfarbe."""
+    zm = (z1 + z2) / 2; u = 0.4; mitte = bv((x1 + x2) / 2, y, zm)
+    def nach_aussen(pk):  # Flaechen zeigen immer vom Hausinneren weg (im Browser wird nur die Vorderseite gezeichnet)
+        n = (pk[1] - pk[0]).cross(pk[2] - pk[0])
+        return pk if n.dot(pk[0] - mitte) > 0 else pk[::-1]
+    for za in (z2 + u, z1 - u):
+        pk = nach_aussen([bv(x1 - u, y - 0.2, za), bv(x2 + u, y - 0.2, za), bv(x2 + u, y + h, zm), bv(x1 - u, y + h, zm)])
+        flaeche(netz(E), pk, [(0, 0), ((x2 - x1 + 2 * u) / 2, 0), ((x2 - x1 + 2 * u) / 2, 3.2), (0, 3.2)], mat)
+        unten = [bv(x1 - u, y - 0.2, za), bv(x2 + u, y - 0.2, za), bv(x2 + u, y + h - 0.12, zm), bv(x1 - u, y + h - 0.12, zm)]
+        flaeche(netz(E), nach_aussen(unten)[::-1], [(0, 0), (1, 0), (1, 1), (0, 1)], M["weiss"])  # Untersicht
+    for x in (x1, x2):
+        pk = nach_aussen([bv(x, y, z1), bv(x, y, z2), bv(x, y + h - 0.05, zm)])
+        flaeche(netz(E), pk, welt_uv(pk, giebel), giebel)
+
+def wohnhaus(x1, x2, z1, z2, putz, dachmat):
+    E = "umgebung"; H = 6.0
+    kasten(x1, x2, 0.0, H, z1, z2, putz, E, ohne=(4, 5))
+    kasten(x1 - 0.05, x2 + 0.05, 0.0, 0.45, z1 - 0.05, z2 + 0.05, M["sockel"], E, ohne=(4, 5))
+    satteldach(x1, x2, z1, z2, H, 3.2, dachmat, putz, E)
+    n = max(2, int((x2 - x1) // 3.2))
+    for st, yu in ((0, 1.0), (1, 3.9)):
+        for i in range(n):
+            x = x1 + (x2 - x1) * (i + 0.5) / n
+            if st == 0 and i == n // 2:  # Haustuer zur Strasse (Norden)
+                kasten(x - 0.55, x + 0.55, 0.0, 2.2, z1 - 0.06, z1 + 0.02, M["rahmen"], E); continue
+            for z_, s in ((z1, -1), (z2, 1)):
+                kasten(x - 0.6, x + 0.6, yu, yu + 1.4, z_ + s * 0.02, z_ + s * 0.06, M["weiss"], E)
+                kasten(x - 0.5, x + 0.5, yu + 0.1, yu + 1.3, z_ + s * 0.06, z_ + s * 0.08, M["scheibe"], "nfenster" if random.random() < 0.55 else "nfenster2")
+                kasten(x - 0.65, x + 0.65, yu - 0.06, yu, z_ + s * 0.02, z_ + s * 0.14, M["weiss"], E)
+    kasten(x1 + 0.6, x1 + 1.2, H + 1.6, H + 3.4, (z1 + z2) / 2 + 0.6, (z1 + z2) / 2 + 1.2, M["klinker"], E)  # Schornstein
+
+def auto(x, z, ry, lack):
+    E = "autos"; Bm = Matrix.Translation(bv(x, 0.0, z)) @ Matrix.Rotation(ry, 4, "Z")
+    kiste(1.78, 0.62, 4.35, lack, 0, 0.6, 0, E, basis=Bm, welt=False)
+    kiste(1.62, 0.12, 4.1, lack, 0, 0.97, -0.05, E, basis=Bm, welt=False)
+    kiste(1.5, 0.48, 2.25, M["scheibe"], 0, 1.27, 0.2, E, basis=Bm, welt=False)
+    kiste(1.46, 0.07, 1.9, lack, 0, 1.54, 0.25, E, basis=Bm, welt=False)
+    for dx in (-0.78, 0.78):
+        for dz in (-1.35, 1.35): kiste(0.26, 0.64, 0.64, M["reifen"], dx, 0.32, dz, E, basis=Bm, welt=False)
+    for dx in (-0.62, 0.62):
+        kiste(0.32, 0.12, 0.04, M["weiss"], dx, 0.72, -2.18, E, basis=Bm, welt=False)
+
+def laterne(x, z):
+    modell("street_lamp_01", "aussen", x, z, ry=0, max_dreiecke=1200)
+
+def umgebung():
+    E = "umgebung"
+    def boden(x1, x2, z1, z2, y, mat, e=E):
+        ob = [bv(x1, y, z2), bv(x2, y, z2), bv(x2, y, z1), bv(x1, y, z1)]
+        flaeche(netz(e), ob, welt_uv(ob, mat), mat)
+    # Gelaende bis zum Horizont, Strasse durchgehend
+    for x1, x2, z1, z2 in ((-75, 135, -70, -40), (-75, 135, 70, 105), (-75, -45, -40, 70), (105, 135, -40, 70)): boden(x1, x2, z1, z2, 0.0, M["rasen"])
+    for x1, x2 in ((-75, -45), (105, 135)):
+        boden(x1, x2, 52, 60, 0.012, M["asphalt"])
+        for z in (51.85, 60.0): kasten(x1, x2, 0.0, 0.14, z, z + 0.15, M["beton"], E)
+    # Gehwege an der Strasse, beidseitig (Luecken am Campusweg und an der Zufahrt)
+    for x1, x2 in ((-75, 27), (33, 78), (84, 135)): boden(x1, x2, 49.6, 51.85, 0.02, M["pflaster"])
+    boden(-75, 135, 60.15, 63.0, 0.02, M["pflaster"])
+    for x in range(-40, 106, 2):  # Fahrbahnmarkierung
+        boden(x, x + 1.0, 55.92, 56.08, 0.016, M["markierung"])
+    # Parkplatz oestlich mit Zufahrt
+    boden(63, 97, 21.5, 48.5, 0.012, M["asphalt"]); boden(78, 84, 48.5, 51.85, 0.012, M["asphalt"])
+    boden(52, 63, 28.5, 31.0, 0.02, M["pflaster"])  # Fussweg zum Vorplatz
+    reihen = [(23.0, 28.0, 0.0), (34.0, 39.0, math.pi), (39.0, 44.0, 0.0)]
+    plaetze = []
+    for z1, z2, ry in reihen:
+        for i in range(12):
+            x = 64.5 + i * 2.6
+            boden(x - 0.05, x + 0.05, z1, z2, 0.018, M["markierung"])
+            if i < 11: plaetze.append((x + 1.3, (z1 + z2) / 2, ry))
+        boden(64.45, 93.15, z1 - 0.05 if ry == 0 else z2 - 0.05, z1 + 0.05 if ry == 0 else z2 + 0.05, 0.018, M["markierung"])
+    for x, z, ry in plaetze:
+        if random.random() < 0.68: auto(x + random.uniform(-0.12, 0.12), z, ry + random.uniform(-0.04, 0.04), random.choice(LACK))
+    for x in (66, 80, 95): baum(x, 47.0 if x != 80 else 21.0, 0.85, E, 90)
+    for x in (70, 90): laterne(x, 31.0)
+    # Nachbargebaeude "Haus B": Klinker, drei Geschosse mit Fensterbaendern
+    hx1, hx2, hz1, hz2, hh = -44.0, -20.0, -6.0, 22.0, 11.4
+    kasten(hx1, hx2, 0.0, hh, hz1, hz2, M["klinker"], E, ohne=(5,))
+    kasten(hx1 - 0.2, hx2 + 0.2, hh, hh + 0.5, hz1 - 0.2, hz2 + 0.2, M["band"], E, ohne=(5,))
+    for st in range(3):
+        yu = 1.0 + st * 3.6
+        for (a_, b_, c_, achse) in ((hx1, hx2, hz2, "z"), (hx1, hx2, hz1, "z"), (hz1, hz2, hx2, "x"), (hz1, hz2, hx1, "x")):
+            s = 1 if c_ in (hz2, hx2) else -1
+            if achse == "z":
+                kasten(a_ + 1.0, b_ - 1.0, yu, yu + 1.7, c_ + s * 0.01, c_ + s * 0.04, M["scheibe"], "nfenster" if (st + int(a_)) % 2 else "nfenster2")
+                for k in range(int((b_ - a_ - 2) // 1.6) + 1): xx = a_ + 1.0 + k * 1.6; kasten(xx - 0.05, xx + 0.05, yu, yu + 1.7, c_ + s * 0.02, c_ + s * 0.08, M["weiss"], E)
+                kasten(a_ + 0.9, b_ - 0.9, yu - 0.12, yu, c_ + s * 0.01, c_ + s * 0.16, M["weiss"], E)
+            else:
+                if st == 0 and c_ == hx2: continue  # Eingangsseite unten offen fuer Tuer und Vordach
+                kasten(c_ + s * 0.01, c_ + s * 0.04, yu, yu + 1.7, a_ + 1.0, b_ - 1.0, M["scheibe"], "nfenster" if st % 2 == 0 else "nfenster2")
+                for k in range(int((b_ - a_ - 2) // 1.6) + 1): zz = a_ + 1.0 + k * 1.6; kasten(c_ + s * 0.02, c_ + s * 0.08, yu, yu + 1.7, zz - 0.05, zz + 0.05, M["weiss"], E)
+                kasten(c_ + s * 0.01, c_ + s * 0.16, yu - 0.12, yu, a_ + 0.9, b_ - 0.9, M["weiss"], E)
+    kasten(hx2 + 0.01, hx2 + 0.05, 0.0, 2.6, 6.0, 10.0, M["scheibe"], "nfenster")  # Eingang
+    kasten(hx2, hx2 + 3.0, 2.9, 3.1, 4.8, 11.2, M["beton"], E)
+    boden(-20, -6, 7.0, 9.6, 0.02, M["pflaster"]); boden(-8.6, -6, 9.6, 24.5, 0.02, M["pflaster"]); boden(-8.6, 8, 24.5, 27.0, 0.02, M["pflaster"])  # Weg zum Vorplatz
+    for x, z in ((-46.5, 2), (-46.5, 16), (-30, 26.5), (-12, 0)): baum(x, z, 1.0, E, 100)
+    # Picknicktische auf der Wiese zwischen den Haeusern
+    for x, z, ry in ((-13.0, 18.0, 0.3), (-12.5, 24.5, -0.2), (-16.0, 30.5, 1.4)):
+        modell("wooden_picnic_table", "aussen", x, z, ry=ry, max_dreiecke=1200)
+    # Sportplatz hinter dem Campus
+    px1, px2, pz1, pz2 = 8.0, 38.0, -38.0, -22.0
+    boden(px1, px2, pz1, pz2, 0.015, M["platz"])
+    for a_, b_, c_, d_ in ((px1 + 1, px2 - 1, pz1 + 1, pz1 + 1.1), (px1 + 1, px2 - 1, pz2 - 1.1, pz2 - 1), (px1 + 1, px1 + 1.1, pz1 + 1, pz2 - 1), (px2 - 1.1, px2 - 1, pz1 + 1, pz2 - 1), ((px1 + px2) / 2 - 0.05, (px1 + px2) / 2 + 0.05, pz1 + 1, pz2 - 1)):
+        boden(a_, b_, c_, d_, 0.02, M["markierung"])
+    for x, s in ((px1 + 1.6, 1), (px2 - 1.6, -1)):
+        zylinder(0.06, 3.3, M["stahl"], x - s * 0.6, 1.65, (pz1 + pz2) / 2, n=8, einheit=E)
+        kasten(x - 0.03, x + 0.03, 2.75, 3.8, (pz1 + pz2) / 2 - 0.9, (pz1 + pz2) / 2 + 0.9, M["weiss"], E)
+        kasten(x - s * 0.02, x + s * 0.45, 3.02, 3.06, (pz1 + pz2) / 2 - 0.23, (pz1 + pz2) / 2 + 0.23, M["lila"], E)
+    for x in range(int(px1), int(px2) + 1, 3):  # Zaun
+        for z in (pz1 - 0.5, pz2 + 0.5): zylinder(0.035, 2.2, M["stahl"], x, 1.1, z, n=6, einheit=E)
+    for z in (pz1 - 0.5, pz2 + 0.5): kasten(px1, px2, 2.15, 2.22, z - 0.03, z + 0.03, M["stahl"], E)
+    for x, z, s in ((2, -30, 1.1), (44, -30, 1.0), (24, -46, 1.3), (-6, -42, 1.2), (52, -44, 1.1), (80, -10, 1.2), (96, 6, 1.0), (90, -28, 1.3), (-30, -24, 1.2), (-52, -14, 1.1)):
+        baum(x, z, s, E, 95)
+    # Bushaltestelle am Campus-Gehweg
+    kasten(39.5, 44.5, 2.45, 2.55, 48.3, 49.9, M["beton"], E)
+    kasten(39.5, 44.5, 0.1, 2.4, 48.3, 48.36, M["scheibe"], "nfenster2")
+    for x in (39.6, 44.4): kasten(x - 0.05, x + 0.05, 0.0, 2.45, 48.3, 49.8, M["stahl"], E)
+    kasten(40.2, 43.8, 0.42, 0.47, 48.45, 48.8, M["holz"], E)
+    zylinder(0.04, 2.6, M["stahl"], 45.6, 1.3, 50.6, n=8, einheit=E)
+    kasten(45.35, 45.85, 2.3, 2.8, 50.58, 50.62, M["lila"], E)
+    # Strassenbaeume am Campus
+    for x in (-36, -22, -8, 6, 18, 48, 60, 72, 92):
+        baum(x, 48.6, 0.8, E, 80)
+    # Haeuserzeile gegenueber, Luecke mit kleinem Platz gegenueber dem Campusweg
+    reihe = [(-42, -30), (-27, -16), (-13, -2), (2, 13), (47, 58), (61, 72), (75, 86), (89, 100)]
+    for i, (x1, x2) in enumerate(reihe):
+        wohnhaus(x1, x2, 66.0, 75.0, HAUSPUTZ[i % len(HAUSPUTZ)], M["dachziegel"] if i % 3 else M["dachgrau"])
+        boden(x1, x2, 63.0, 66.0, 0.015, M["kies"] if i % 2 else M["rasen"])
+        belauben([(x + 0.5, 0.55, 64.6, 0.6) for x in (x1 + 0.8, x1 + 2.0)], 50, 0.3)
+    for x in (17.5, 43.5): baum(x, 69, 1.1, E, 100)
+    boden(22, 38, 63.0, 72.0, 0.015, M["pflaster"])
+    for x in (25.5, 34.5): modell("painted_wooden_bench", "aussen", x, 70.5, ry=0, max_dreiecke=600)
+    # Baumguertel am Horizont (Norden, Osten, Westen), lockerer und mit weniger Blaettern
+    for i in range(20): baum(-60 + i * 9.2 + random.uniform(-2, 2), -54 + random.uniform(-5, 5), random.uniform(1.0, 1.5), E, 55)
+    for i in range(9): baum(118 + random.uniform(-3, 3), -38 + i * 10 + random.uniform(-2, 2), random.uniform(1.0, 1.4), E, 55)
+    for i in range(7): baum(-62 + random.uniform(-3, 3), -36 + i * 12 + random.uniform(-2, 2), random.uniform(1.0, 1.4), E, 55)
+
+aussenanlage(); umgebung(); dach()
 
 # Sammelnetze in Blender-Objekte wandeln
 for name, e in EINHEITEN.items():
@@ -644,6 +794,7 @@ ANSICHTEN = {
     "eg": ((52, 34, 52), (30, 0, 10)), "og1": ((52, 38, 52), (30, 3.6, 10)), "og2": ((52, 42, 52), (30, 7.2, 10)), "og3": ((52, 46, 52), (30, 10.8, 10)),
     "eingang": ((40, 6, 40), (30, 2, 20)), "foyer": ((36, 14, 30), (30, 0.3, 15)), "hoersaal": ((22, 16, 18), (12, 0.3, 4)),
     "bibliothek": ((52, 14, 18), (46, 0.3, 4)),
+    "umgebung": ((120, 75, 120), (30, 0, 10)), "strasse": ((30.5, 4, 82), (30, 4, 20)), "parkplatz": ((100, 25, 60), (78, 0, 34)),
 }
 ansicht = opt("--ansicht", "haus")
 p_, z_ = ANSICHTEN[ansicht]
@@ -788,7 +939,7 @@ def backen(ziel):
     os.makedirs(ziel, exist_ok=True)
     moebel_zusammenfassen()
     for ob in bpy.data.objects:
-        if ob.name.startswith(("fenster", "laub")):
+        if ob.name.startswith(("fenster", "laub", "nfenster")):
             ob.visible_shadow = ob.name.startswith("laub"); ob.visible_diffuse = False; ob.visible_glossy = False; ob.visible_transmission = False
     klein = "--klein" in ARG
     teile = lambda b: b // 2 if klein else b
@@ -798,7 +949,8 @@ def backen(ziel):
         licht_backen(bpy.data.objects[f"g{n}"], teile(2048), ziel)
         eckpunkt_licht(bpy.data.objects[f"m{n}"])
     geschosse_ab(9)
-    for name, breite in (("aussen", 4096), ("dach", 1024), ("anzeige", 256)):
+    eckpunkt_licht(bpy.data.objects["autos"])
+    for name, breite in (("aussen", 4096), ("umgebung", 4096), ("dach", 1024), ("anzeige", 256)):
         licht_backen(bpy.data.objects[name], teile(breite), ziel)
     for o in bpy.data.objects:
         if o.name.startswith("laub"): laub_licht(o)

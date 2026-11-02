@@ -4,9 +4,9 @@
 // Zusätzlicher Einstieg, kein Ersatz: ohne WebGL oder bei "Bewegung reduzieren" gibt es dieselben Orte als Liste.
 
 const C3 = { laeuft: false };
-const C3_ORDNER = 'campus3d/', C3_TEILER = 8, C3_GH = 3.6, C3_STAND = '?v=202611021420';
+const C3_ORDNER = 'campus3d/', C3_TEILER = 8, C3_GH = 3.6, C3_STAND = '?v=202611022000';
 const C3_ABEND = { value: 0 };  // 0 = Tag, 1 = Abend; gemeinsam für alle Gebäudematerialien
-const C3_DATEIEN = ['campus.glb', ...['g0', 'g1', 'g2', 'g3', 'aussen', 'dach', 'anzeige'].map(n => `licht_${n}.jpg`)];
+const C3_DATEIEN = ['campus.glb', ...['g0', 'g1', 'g2', 'g3', 'aussen', 'umgebung', 'dach', 'anzeige'].map(n => `licht_${n}.jpg`)];
 const c3y = n => n * C3_GH + 0.3;
 const c3Raum = name => { for (const g of GEBAEUDE.geschosse) { const r = g.raeume.find(x => x.name.startsWith(name)); if (r) return { g: g.nr, r, b: raumBereich(r) }; } return null; };
 
@@ -127,7 +127,7 @@ async function campusStarten(startOrt, zeit) {
   if (S.lauf !== lauf) return;
   const namen = new Set(); gltf.scene.traverse(o => { if (o.isMesh) namen.add(c3Einheit(o, gltf.scene)); });
   const karten = {};
-  await Promise.all([...namen].filter(n => !/^(laub|fenster|m\d)/.test(n)).map(async n => {
+  await Promise.all([...namen].filter(n => !/^(laub|fenster|nfenster|autos|m\d)/.test(n)).map(async n => {
     try {
       const t = await lader.loadAsync(`${C3_ORDNER}licht_${n}.jpg${stand}`);
       t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.channel = 1; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter;
@@ -141,21 +141,24 @@ async function campusStarten(startOrt, zeit) {
   const tafelT = new THREE.CanvasTexture(tafelBild); tafelT.colorSpace = THREE.SRGBColorSpace; tafelT.flipY = false;
   S.tafelBild = tafelBild; S.tafelT = tafelT;
 
-  S.einheiten = {}; S.glas = new Set(); S.punktMats = new Set();
+  S.einheiten = {}; S.glas = new Set(); S.punktMats = new Set(); S.nachbarGlas = new Set();
   gltf.scene.traverse(o => {
     if (!o.isMesh) return;
     const name = c3Einheit(o, gltf.scene), alt = o.material;
     (S.einheiten[name] ||= []).push(o);
     for (const k of ['map', 'normalMap', 'roughnessMap']) if (alt[k]) alt[k].anisotropy = 8;
     if (name.startsWith('fenster')) { o.material = new THREE.MeshPhysicalMaterial({ color: 0x9fb4bd, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.3, envMapIntensity: 1.6, depthWrite: false }); S.glas.add(o.material); }
+    else if (name.startsWith('nfenster')) { o.material = new THREE.MeshStandardMaterial({ color: 0x2b3540, roughness: 0.12, metalness: 0.35, envMapIntensity: 1.4 }); o.material.userData.licht = name === 'nfenster'; S.nachbarGlas.add(o.material); }
     else if (name === 'anzeige') o.material = new THREE.MeshBasicMaterial({ map: tafelT, toneMapped: false });
     else if (o.geometry.attributes.color) {
       o.material = new THREE.MeshBasicMaterial({ map: alt.map, color: new THREE.Color(alt.color).multiplyScalar(C3_TEILER), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide });
-      o.material.userData = { basis: o.material.color.clone(), draussen: name === 'laub' || name === 'aussen' }; S.punktMats.add(o.material);
+      o.material.userData = { basis: o.material.color.clone(), draussen: ['laub', 'aussen', 'umgebung', 'autos'].includes(name) }; S.punktMats.add(o.material);
+      // Blätter: in der Ferne mittelt das verkleinerte Blattbild die Deckkraft unter 0,5, dann wären Bäume kahl
+      if (name.startsWith('laub')) { o.material.alphaTest = 0.18; o.material.alphaToCoverage = true; }
     } else if (karten[name]) {
       const m = alt.clone(); m.lightMap = karten[name]; m.lightMapIntensity = C3_TEILER * Math.PI; m.side = THREE.FrontSide;
       if (m.emissiveMap) m.emissiveIntensity = 0.6;
-      c3AbendShader(m, name === 'aussen' || name === 'dach');
+      c3AbendShader(m, ['aussen', 'umgebung', 'dach'].includes(name));
       o.material = m;
     }
   });
@@ -405,9 +408,9 @@ function c3Laternen() {
   const fleck = (innen, aussen) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), v = x.createRadialGradient(64, 64, 0, 64, 64, 64); v.addColorStop(0, innen); v.addColorStop(1, aussen); x.fillStyle = v; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); };
   const boden = new THREE.MeshBasicMaterial({ map: fleck('rgba(255,196,120,.55)', 'rgba(255,170,90,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
   const kopf = new THREE.SpriteMaterial({ map: fleck('rgba(255,236,190,1)', 'rgba(255,190,110,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
-  for (const x of [10, 22, 38, 50]) {
-    const b = new THREE.Mesh(new THREE.PlaneGeometry(9, 9).rotateX(-Math.PI / 2), boden); b.position.set(x, 0.03, 37.5); b.renderOrder = 2; g.add(b);
-    const k = new THREE.Sprite(kopf); k.scale.setScalar(1.6); k.position.set(x, 3.75, 37.5); g.add(k);
+  for (const [x, z] of [[10, 37.5], [22, 37.5], [38, 37.5], [50, 37.5], [70, 31], [90, 31]]) {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(9, 9).rotateX(-Math.PI / 2), boden); b.position.set(x, 0.03, z); b.renderOrder = 2; g.add(b);
+    const k = new THREE.Sprite(kopf); k.scale.setScalar(1.6); k.position.set(x, 3.75, z); g.add(k);
   }
   // Licht aus dem Eingang auf das Podest
   const e = new THREE.Mesh(new THREE.PlaneGeometry(12, 7).rotateX(-Math.PI / 2), boden); e.position.set(30, 0.32, GEBAEUDE.tiefe + 2.6); e.renderOrder = 2; g.add(e);
@@ -422,6 +425,8 @@ function c3AbendSetzen(a) {
   S.weit.material.color.set(0x8aa86a).lerp(new THREE.Color(0x1c2620), a);
   const warm = new THREE.Color(1.0, 0.86, 0.68), dunkel = new THREE.Color(0.03, 0.035, 0.06);
   for (const m of S.punktMats) m.color.copy(m.userData.basis).multiply(new THREE.Color(1, 1, 1).lerp(m.userData.draussen ? dunkel : warm, a));
+  // Nachbarhäuser: gut die Hälfte der Fenster wird abends hell
+  for (const m of S.nachbarGlas) { m.color.set(0x2b3540).lerp(new THREE.Color(m.userData.licht ? 0xffd08a : 0x141a24), a); m.emissive.set(m.userData.licht ? 0xffb860 : 0x000000).multiplyScalar(0.9 * a); m.envMapIntensity = 1.4 - a; }
   for (const m of S.glas) { m.color.set(0x9fb4bd).lerp(new THREE.Color(0xffc47a), a); m.emissive.set(0xffb85c).multiplyScalar(0.55 * a); m.opacity = 0.3 + 0.35 * a; }
   if (S.laternen) { S.laternen.g.visible = a > 0.02; S.laternen.boden.opacity = a; S.laternen.kopf.opacity = a; }
   S.menschen?.abend(a);

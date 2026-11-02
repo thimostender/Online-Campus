@@ -13,7 +13,7 @@ function c3Menschen(THREE, verschmelzen) {
   const HAAR = [0x2a1d14, 0x4a3020, 0x7a5532, 0x1a1a1a, 0xb38b5a, 0xc9a26b, 0x8c8c8c];
   const OBEN = [0x7c3aed, 0x2f5a46, 0xb33a3a, 0xd9a441, 0x3b6ea8, 0xe8e4da, 0x22252a, 0x5e6b7a, 0x8a5a2b, 0xf2f0ea, 0x1f2a44, 0x9c4f7a];
   const HOSE = [0x2c3e5c, 0x22252a, 0x4a4f55, 0x3a3226, 0x2b3a52, 0x6b5b45];
-  const GH = 3.6, boden = n => n * GH + 0.3;
+  const GH = 3.6, boden = n => n === 'A' ? 0 : n * GH + 0.3;
 
   // Licht: Himmel von oben, eine Hauptrichtung; drinnen gedämpfter als draußen
   const material = (luft, sonne) => {
@@ -223,6 +223,14 @@ function c3Menschen(THREE, verschmelzen) {
   for (const [x, z] of [[14.6, 25.8], [15.5, 26.6], [14.2, 26.9]]) steht('A', x, z, zu(x, z, 14.8, 26.45) + rund(-0.25, 0.25), typ({ rucksack: ja(0.5) ? 0x22252a : null }), ja(0.4) ? 1 : 0);
   steht('A', 36.5, T + 3.7, Math.PI, typ());                     // am Briefkasten
   steht('A', 42.5, T + 5.2, -0.6, typ(), 2);                     // telefoniert am Fahrradständer
+  // Umgebung: Haltestelle, Weg vom Parkplatz, Nachbarhaus, Gehweg gegenüber, Picknickwiese
+  steht('A', 41.2, 49.1, 0.1, typ()); steht('A', 42.6, 49.3, -0.2, typ(), 2); sitzt('A', 43.3, 48.7, Math.PI, { sitzH: 0.47 });
+  laeufer('A', [[74, 31.3], [62, 29.8], [52, 29.6], [44, 27.5], [33, T + 5]], { tempo: 1.25, warten: 5 });
+  laeufer('A', [[-19.5, 8.3], [-7.3, 8.3], [-7.3, 25.7], [8, 25.7], [22, 27.5]], { tempo: 1.2, warten: 6 });
+  laeufer('A', [[-35, 61.6], [105, 61.6]], { tempo: 1.1, warten: 2 });
+  laeufer('A', [[100, 50.7], [-30, 50.7]], { tempo: 1.3, warten: 2 });
+  steht('A', 75.5, 31.6, Math.PI / 2, typ());                     // am Auto
+  for (const [x, z, b] of [[-11.6, 17.4, 2.2], [-14.2, 18.8, -0.9], [-11.4, 25.2, 2.6]]) steht('A', x, z, b, typ({ rucksack: null }), ja(0.5) ? 1 : 0);
 
   // Verschmelzen je Gruppe: ein Netz für alle Ruhenden, ein Instanznetz für ihre Schatten
   for (const [k, { geos, flecken }] of Object.entries(ruhend)) {

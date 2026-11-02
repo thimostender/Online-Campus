@@ -14,6 +14,7 @@ Texturen
 - brick_wall_001: https://polyhaven.com/a/brick_wall_001
 - asphalt_02: https://polyhaven.com/a/asphalt_02
 - leafy_grass: https://polyhaven.com/a/leafy_grass
+- grey_roof_01: https://polyhaven.com/a/grey_roof_01
 - gehwegplatten: selbst erzeugt (Fliesen-Generator aus dem Kassencapitano-Bauskript), keine fremde Quelle
 - Himmel zum Backen: autumn_field_puresky, https://polyhaven.com/a/autumn_field_puresky (wird nicht ausgeliefert)
 
@@ -25,7 +26,8 @@ Modelle
 - drawer_cabinet: https://polyhaven.com/a/drawer_cabinet
 - painted_wooden_bench: https://polyhaven.com/a/painted_wooden_bench
 - street_lamp_01: https://polyhaven.com/a/street_lamp_01
+- wooden_picnic_table: https://polyhaven.com/a/wooden_picnic_table
 
-Eigene Bauteile (Tische, Regale mit Büchern, Monitore, Sofas, Bäume, Treppe, Fahrradbügel) und alle Schilder sind
+Eigene Bauteile (Tische, Regale mit Büchern, Monitore, Sofas, Bäume, Treppe, Fahrradbügel, Autos, Wohnhäuser, Nachbargebäude, Haltestelle, Sportplatz) und alle Schilder sind
 selbst erstellt; die Schildertexte sind erfunden. Die Menschen (`prototyp/campus3d-menschen.js`) entstehen im Browser
 aus Grundformen, ohne fremde Vorlage.
