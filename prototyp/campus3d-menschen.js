@@ -18,8 +18,9 @@ function c3Menschen(THREE, verschmelzen) {
   // Licht: Himmel von oben, eine Hauptrichtung; drinnen gedämpfter als draußen
   const material = (luft, sonne) => {
     const m = new THREE.MeshBasicMaterial({ vertexColors: true }), richtung = new THREE.Vector3(0.45, 0.8, 0.4).normalize();
+    m.userData = { luft: { value: new THREE.Vector3(...luft) }, sonneF: { value: new THREE.Vector3(...sonne) }, tag: [luft, sonne] };
     m.onBeforeCompile = s => {
-      Object.assign(s.uniforms, { sonneR: { value: richtung }, luft: { value: new THREE.Vector3(...luft) }, sonneF: { value: new THREE.Vector3(...sonne) } });
+      Object.assign(s.uniforms, { sonneR: { value: richtung }, luft: m.userData.luft, sonneF: m.userData.sonneF });
       s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vNw;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvNw = normalize(mat3(modelMatrix) * normal);');
       s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vNw; uniform vec3 sonneR, luft, sonneF;')
         .replace('#include <color_fragment>', '#include <color_fragment>\nvec3 nw = normalize(vNw); diffuseColor.rgb *= luft * (0.72 + 0.28 * nw.y) + sonneF * max(dot(nw, sonneR), 0.0);');
@@ -232,5 +233,14 @@ function c3Menschen(THREE, verschmelzen) {
       inst.renderOrder = 1; gruppen[k].add(inst);
     }
   }
-  return { gruppen, tick(dt) { for (const f of ticks) f(dt); } };
+  // Abend (0 = Tag, 1 = dunkel): drinnen wärmeres Lampenlicht, draußen nur noch Himmel und Laternen
+  const abendFarbe = { innen: [[1.0, 0.86, 0.68], [0.25, 0.2, 0.12]], aussen: [[0.3, 0.33, 0.48], [0.18, 0.15, 0.1]] };
+  function abend(a) {
+    for (const [m, k] of [[innen, 'innen'], [aussen, 'aussen']]) {
+      const [luft, sonne] = m.userData.tag, [l2, s2] = abendFarbe[k];
+      m.userData.luft.value.set(...luft.map((v, i) => v + (v * l2[i] - v) * a));
+      m.userData.sonneF.value.set(...sonne.map((v, i) => v + (s2[i] - v) * a));
+    }
+  }
+  return { gruppen, abend, tick(dt) { for (const f of ticks) f(dt); } };
 }

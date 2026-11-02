@@ -5,6 +5,7 @@
 
 const C3 = { laeuft: false };
 const C3_ORDNER = 'campus3d/', C3_TEILER = 8, C3_GH = 3.6, C3_STAND = '?v=202611021420';
+const C3_ABEND = { value: 0 };  // 0 = Tag, 1 = Abend; gemeinsam für alle Gebäudematerialien
 const C3_DATEIEN = ['campus.glb', ...['g0', 'g1', 'g2', 'g3', 'aussen', 'dach', 'anzeige'].map(n => `licht_${n}.jpg`)];
 const c3y = n => n * C3_GH + 0.3;
 const c3Raum = name => { for (const g of GEBAEUDE.geschosse) { const r = g.raeume.find(x => x.name.startsWith(name)); if (r) return { g: g.nr, r, b: raumBereich(r) }; } return null; };
@@ -56,12 +57,13 @@ function c3Moeglich() {
 function campusSeite(q) {
   const { orte } = c3Orte(), drei = c3Moeglich();
   const liste = Object.entries(orte).map(([k, o]) => `<li><button class="c3-ortknopf" data-action="c3-ort" data-ort="${k}"><b>${esc(o.name)}</b><span class="klein leise">${esc(o.ort)}</span>${o.hinweis ? `<span class="marke-klein m-akzent">${esc(o.hinweis)}</span>` : ''}</button></li>`).join('');
-  if (drei) setTimeout(() => campusStarten(q.get('ort')), 0);
+  if (drei) setTimeout(() => campusStarten(q.get('ort'), q.get('zeit')), 0);
   return `${kopfzeile('Campus in 3D', 'Klicke einen Ort an. Geschosse lassen sich abheben, um hineinzusehen.')}
   ${drei ? `<div class="c3-buehne" id="c3-buehne">
     <canvas id="c3-leinwand" aria-hidden="true"></canvas>
     <div class="c3-stifte" id="c3-stifte"></div>
     <div class="c3-raumname" id="c3-raumname" hidden></div>
+    <button class="c3-zeit" data-action="c3-zeit" aria-pressed="false" title="Zwischen Tag und Abend wechseln">Abend</button>
     <div class="c3-geschosse" role="group" aria-label="Geschoss wählen">${['Haus', 'EG', '1. OG', '2. OG', '3. OG'].map((t, i) => `<button data-action="c3-geschoss" data-n="${i === 0 ? 4 : i - 1}" aria-pressed="false">${t}</button>`).join('')}</div>
     <div class="c3-tafel" id="c3-tafel" hidden></div>
     <div class="c3-laden" id="c3-laden">Campus wird geladen … <span id="c3-prozent"></span></div>
@@ -69,7 +71,7 @@ function campusSeite(q) {
   <section class="karte abstand"><h2>Orte im Campus</h2><ul class="c3-liste">${liste}</ul></section>`;
 }
 
-async function campusStarten(startOrt) {
+async function campusStarten(startOrt, zeit) {
   campusBeenden();
   const leinwand = document.getElementById('c3-leinwand'); if (!leinwand) return;
   // geschoss -1: noch keins gesetzt, damit das erste Setzen (auch per Direktlink) immer greift
@@ -130,25 +132,29 @@ async function campusStarten(startOrt) {
   const tafelT = new THREE.CanvasTexture(tafelBild); tafelT.colorSpace = THREE.SRGBColorSpace; tafelT.flipY = false;
   S.tafelBild = tafelBild; S.tafelT = tafelT;
 
-  S.einheiten = {};
+  S.einheiten = {}; S.glas = new Set(); S.punktMats = new Set();
   gltf.scene.traverse(o => {
     if (!o.isMesh) return;
     const name = c3Einheit(o, gltf.scene), alt = o.material;
     (S.einheiten[name] ||= []).push(o);
     for (const k of ['map', 'normalMap', 'roughnessMap']) if (alt[k]) alt[k].anisotropy = 8;
-    if (name.startsWith('fenster')) o.material = new THREE.MeshPhysicalMaterial({ color: 0x9fb4bd, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.3, envMapIntensity: 1.6, depthWrite: false });
+    if (name.startsWith('fenster')) { o.material = new THREE.MeshPhysicalMaterial({ color: 0x9fb4bd, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.3, envMapIntensity: 1.6, depthWrite: false }); S.glas.add(o.material); }
     else if (name === 'anzeige') o.material = new THREE.MeshBasicMaterial({ map: tafelT, toneMapped: false });
-    else if (o.geometry.attributes.color) o.material = new THREE.MeshBasicMaterial({ map: alt.map, color: new THREE.Color(alt.color).multiplyScalar(C3_TEILER), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide });
-    else if (karten[name]) {
+    else if (o.geometry.attributes.color) {
+      o.material = new THREE.MeshBasicMaterial({ map: alt.map, color: new THREE.Color(alt.color).multiplyScalar(C3_TEILER), vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide });
+      o.material.userData = { basis: o.material.color.clone(), draussen: name === 'laub' || name === 'aussen' }; S.punktMats.add(o.material);
+    } else if (karten[name]) {
       const m = alt.clone(); m.lightMap = karten[name]; m.lightMapIntensity = C3_TEILER * Math.PI; m.side = THREE.FrontSide;
       if (m.emissiveMap) m.emissiveIntensity = 0.6;
+      c3AbendShader(m, name === 'aussen' || name === 'dach');
       o.material = m;
     }
   });
   szene.add(gltf.scene);
   // Hintergrundgelände bis zum Horizont, damit der Rand des Modells nicht sichtbar wird
   const weit = new THREE.Mesh(new THREE.CircleGeometry(400, 48), new THREE.MeshBasicMaterial({ color: 0x8aa86a }));
-  weit.rotation.x = -Math.PI / 2; weit.position.set(30, -0.05, 10); szene.add(weit);
+  weit.rotation.x = -Math.PI / 2; weit.position.set(30, -0.05, 10); szene.add(weit); S.weit = weit;
+  c3Laternen();
   // Menschen (campus3d-menschen.js): je Geschoss eine Gruppe, die wie die Möbel mit abhebt
   if (typeof c3Menschen === 'function') {
     S.menschen = c3Menschen(THREE, mergeGeometries);
@@ -187,6 +193,8 @@ async function campusStarten(startOrt) {
   document.addEventListener('keydown', S.taste);
 
   c3Anzeige();
+  S.abendZiel = zeit === 'abend' ? 1 : zeit === 'tag' ? 0 : c3IstAbend(new Date()) ? 1 : 0;
+  S.abend = S.abendZiel; c3AbendSetzen(S.abend);
   const lade = document.getElementById('c3-laden'); if (lade) lade.hidden = true;
   if (startOrt && S.orte[startOrt]) c3Oeffnen(startOrt, true);
   else if (!sessionStorage.getItem('c3-intro')) {
@@ -324,6 +332,8 @@ function c3Animieren(dt, t) {
     if (p >= 1) { S.flug = null; f.fertig?.(); }
   }
   S.menschen?.tick(dt);
+  if (Math.abs(S.abend - S.abendZiel) > 0.002) { S.abend += (S.abendZiel - S.abend) * Math.min(1, dt * 3); c3AbendSetzen(S.abend); }
+  else if (S.abend !== S.abendZiel) { S.abend = S.abendZiel; c3AbendSetzen(S.abend); }
   S.leuchte.material.opacity = S.leuchtet && S.geschoss === 0 ? 0.45 + 0.35 * Math.sin(t / 380) : 0;
 }
 
@@ -351,6 +361,59 @@ function c3Oeffnen(k, sofort = false) {
   tafel.querySelector('a')?.focus({ preventScroll: true });
 }
 function c3TafelZu() { const t = document.getElementById('c3-tafel'); if (t) t.hidden = true; }
+
+// --- Tag und Abend ---------------------------------------------------------------------------
+// Grob für Norddeutschland: Sonnenaufgang und -untergang je Monat (Ortszeit, Sommerzeit eingerechnet)
+function c3IstAbend(d) {
+  const auf = [8.5, 7.8, 6.9, 6.6, 5.6, 5.0, 5.2, 5.9, 6.9, 7.6, 7.4, 8.3], unter = [16.4, 17.3, 18.3, 20.2, 21.0, 21.8, 21.7, 20.9, 19.8, 18.6, 16.6, 16.1];
+  const h = d.getHours() + d.getMinutes() / 60, m = d.getMonth();
+  return h < auf[m] || h > unter[m] + 0.4;
+}
+// Gebäude mit Lichtkarten: drinnen wird das Licht wärmer (Lampen), Fassade, Gelände und Dach werden dunkel.
+// Fassade = Flächen auf der Außenhaut des Baukörpers mit waagerechter Normale.
+function c3AbendShader(m, draussen) {
+  const G = GEBAEUDE;
+  m.onBeforeCompile = s => {
+    s.uniforms.abend = C3_ABEND; s.uniforms.draussen = { value: draussen ? 1 : 0 };
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; varying vec3 vWn;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vWn = normalize(mat3(modelMatrix) * objectNormal);');
+    s.fragmentShader = s.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp; varying vec3 vWn; uniform float abend, draussen;')
+      .replace('#include <opaque_fragment>', `bool haut = (vWp.x < 0.12 || vWp.x > ${(G.breite - 0.12).toFixed(2)} || vWp.z < 0.12 || vWp.z > ${(G.tiefe - 0.12).toFixed(2)}) && abs(vWn.y) < 0.6;
+float fassade = max(draussen, haut ? 1.0 : 0.0);
+// Selbstleuchtendes (Schilder) bleibt hell; die gebackenen Werte sind stark überbelichtet, daher kräftige Faktoren
+outgoingLight = (outgoingLight - totalEmissiveRadiance) * mix(vec3(1.0), mix(vec3(1.0, 0.86, 0.68), vec3(0.012, 0.015, 0.028), fassade), abend) + totalEmissiveRadiance;
+#include <opaque_fragment>`);
+  };
+}
+// Laternen am Vorplatz (Positionen wie in 3d/bauen.py): Leuchtkopf und Lichtkegel auf dem Pflaster, nur abends sichtbar
+function c3Laternen() {
+  const S = C3, THREE = S.THREE, g = new THREE.Group();
+  const fleck = (innen, aussen) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), v = x.createRadialGradient(64, 64, 0, 64, 64, 64); v.addColorStop(0, innen); v.addColorStop(1, aussen); x.fillStyle = v; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); };
+  const boden = new THREE.MeshBasicMaterial({ map: fleck('rgba(255,196,120,.55)', 'rgba(255,170,90,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const kopf = new THREE.SpriteMaterial({ map: fleck('rgba(255,236,190,1)', 'rgba(255,190,110,0)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  for (const x of [10, 22, 38, 50]) {
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(9, 9).rotateX(-Math.PI / 2), boden); b.position.set(x, 0.03, 37.5); b.renderOrder = 2; g.add(b);
+    const k = new THREE.Sprite(kopf); k.scale.setScalar(1.6); k.position.set(x, 3.75, 37.5); g.add(k);
+  }
+  // Licht aus dem Eingang auf das Podest
+  const e = new THREE.Mesh(new THREE.PlaneGeometry(12, 7).rotateX(-Math.PI / 2), boden); e.position.set(30, 0.32, GEBAEUDE.tiefe + 2.6); e.renderOrder = 2; g.add(e);
+  g.visible = false; S.szene.add(g); S.laternen = { g, boden, kopf };
+}
+function c3AbendSetzen(a) {
+  const S = C3, THREE = S.THREE; if (!THREE) return;
+  C3_ABEND.value = a;
+  const tag = new THREE.Color(0xbcd3e6), nacht = new THREE.Color(0x1a2236);
+  S.szene.background.copy(tag).lerp(nacht, a); S.szene.fog.color.copy(S.szene.background);
+  S.szene.environmentIntensity = 0.35 - 0.22 * a;
+  S.weit.material.color.set(0x8aa86a).lerp(new THREE.Color(0x1c2620), a);
+  const warm = new THREE.Color(1.0, 0.86, 0.68), dunkel = new THREE.Color(0.03, 0.035, 0.06);
+  for (const m of S.punktMats) m.color.copy(m.userData.basis).multiply(new THREE.Color(1, 1, 1).lerp(m.userData.draussen ? dunkel : warm, a));
+  for (const m of S.glas) { m.color.set(0x9fb4bd).lerp(new THREE.Color(0xffc47a), a); m.emissive.set(0xffb85c).multiplyScalar(0.55 * a); m.opacity = 0.3 + 0.35 * a; }
+  if (S.laternen) { S.laternen.g.visible = a > 0.02; S.laternen.boden.opacity = a; S.laternen.kopf.opacity = a; }
+  S.menschen?.abend(a);
+  c3ZeitKnopf();
+}
+function c3ZeitKnopf() { const b = document.querySelector('[data-action="c3-zeit"]'); if (b) { const abend = !!C3.abendZiel; b.setAttribute('aria-pressed', String(abend)); } }
 
 // Anzeigetafel im Foyer: Termine von heute, wie auf der Übersicht
 function c3Anzeige() {
@@ -391,6 +454,7 @@ function campusBeenden() {
 
 AKTIONEN['c3-geschoss'] = el => c3Geschoss(Number(el.dataset.n));
 AKTIONEN['c3-zu'] = () => c3TafelZu();
+AKTIONEN['c3-zeit'] = () => { if (C3.laeuft) C3.abendZiel = C3.abendZiel ? 0 : 1; c3ZeitKnopf(); };
 AKTIONEN['c3-ort'] = el => {
   if (C3.laeuft && C3.orte[el.dataset.ort]) { document.getElementById('c3-buehne')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); c3Oeffnen(el.dataset.ort); return; }
   const o = c3Orte().orte[el.dataset.ort]; if (o) location.hash = o.ziele[0][1];
