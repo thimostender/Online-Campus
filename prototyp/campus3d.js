@@ -104,7 +104,16 @@ async function campusStarten(startOrt, zeit) {
   steuer.zoomSpeed = 2.4; steuer.rotateSpeed = 0.8; steuer.panSpeed = 1.2;
   // Eigene Bewegung hat Vorrang: eine laufende Kamerafahrt bricht sofort ab
   steuer.addEventListener('start', () => { C3.flug = null; C3.intro = false; });
-  leinwand.addEventListener('wheel', () => { C3.flug = null; C3.intro = false; }, { passive: true });
+  // Mausrad und Trackpad: eigener Zoom statt OrbitControls. Dessen Schritt ist an die Rad-Weite gekoppelt und war
+  // gemessen viel zu klein (eine Raste +7 %, eine ganze Trackpad-Wischbewegung ebenfalls +7 %). Hier: eine Raste
+  // rund ×1,3, eine Wischbewegung bis ×3. Abfangen in der Einfangphase am Rahmen, damit OrbitControls es nicht sieht.
+  leinwand.parentElement.addEventListener('wheel', e => {
+    if (e.target !== leinwand) return;
+    e.preventDefault(); e.stopPropagation(); C3.flug = null; C3.intro = false;
+    const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1) * (e.ctrlKey ? 3 : 1);  // ctrlKey: Zwei-Finger-Zoom am Trackpad
+    const v = kamera.position.clone().sub(steuer.target), d = THREE.MathUtils.clamp(v.length() * Math.exp(Math.max(-0.6, Math.min(0.6, px * 0.0026))), steuer.minDistance, steuer.maxDistance);
+    kamera.position.copy(steuer.target).add(v.setLength(d));
+  }, { passive: false, capture: true });
   Object.assign(S, { renderer, szene, kamera, steuer });
 
   // Modell und Lichtkarten laden; Fortschritt aus den Bytes des GLB
@@ -360,7 +369,12 @@ function c3Oeffnen(k, sofort = false) {
     <div class="c3-ziele">${o.ziele.map(([text, ziel], i) => `<a class="knopf ${i ? '' : 'primaer'}" href="${ziel}">${esc(text)}</a>`).join('')}</div>`;
   tafel.querySelector('a')?.focus({ preventScroll: true });
 }
-function c3TafelZu() { const t = document.getElementById('c3-tafel'); if (t) t.hidden = true; }
+// Schließen führt zurück zur Übersicht des Geschosses: Rauszoomen ist dann ein Klick
+function c3TafelZu() {
+  const t = document.getElementById('c3-tafel'); if (!t || t.hidden) return;
+  t.hidden = true;
+  if (C3.laeuft) { const h = c3y(Math.min(3, Math.max(0, C3.geschoss))); c3Fahren([68, 40 + h, 64], [30, h, 9]); }
+}
 
 // --- Tag und Abend ---------------------------------------------------------------------------
 // Grob für Norddeutschland: Sonnenaufgang und -untergang je Monat (Ortszeit, Sommerzeit eingerechnet)
