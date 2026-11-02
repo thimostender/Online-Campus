@@ -70,7 +70,8 @@ function campusSeite(q) {
 async function campusStarten(startOrt) {
   campusBeenden();
   const leinwand = document.getElementById('c3-leinwand'); if (!leinwand) return;
-  const S = C3; S.laeuft = true; S.geschoss = 0; S.lauf = Symbol('lauf'); const lauf = S.lauf;
+  // geschoss -1: noch keins gesetzt, damit das erste Setzen (auch per Direktlink) immer greift
+  const S = C3; S.laeuft = true; S.geschoss = -1; S.lauf = Symbol('lauf'); const lauf = S.lauf;
   const prozent = document.getElementById('c3-prozent');
   let THREE, OrbitControls, GLTFLoader, DRACOLoader, RoomEnvironment;
   try {
@@ -104,7 +105,7 @@ async function campusStarten(startOrt) {
   // Modell und Lichtkarten laden; Fortschritt aus den Bytes des GLB
   const lader = new THREE.TextureLoader(), draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
   const gl = new GLTFLoader().setDRACOLoader(draco);
-  const stand = '?v=202611021221';
+  const stand = '?v=202611021408';
   let gltf;
   try {
     gltf = await gl.loadAsync(C3_ORDNER + 'campus.glb' + stand, e => { if (e.total && prozent) prozent.textContent = Math.round(e.loaded / e.total * 100) + ' %'; });
@@ -273,7 +274,7 @@ function c3Fahren(pos, ziel) {
 
 function c3Oeffnen(k, sofort = false) {
   const S = C3, o = S.orte[k]; if (!o) return;
-  const n = o.geschoss === 'aussen' ? S.geschoss : o.geschoss;
+  const n = o.geschoss === 'aussen' ? Math.max(0, S.geschoss) : o.geschoss;
   if (n !== S.geschoss) c3Geschoss(n, sofort);
   // Blick steil von schräg oben (rund 58°), Abstand nach Raumgröße: so sieht man den ganzen Raum und nicht die Fassade darunter
   const [b, , t, x, y, z] = o.flaeche, boden = y - 1.2;
