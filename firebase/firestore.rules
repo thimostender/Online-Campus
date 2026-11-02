@@ -15,6 +15,18 @@ service cloud.firestore {
     function istStudierend() { return angemeldet() && rolle() == 'studierend'; }
     function eigenes(feld) { return request.auth.uid == resource.data[feld]; }
     function wirdEigenes(feld) { return request.auth.uid == request.resource.data[feld]; }
+    function pfad(tab, id) { return /databases/$(database)/documents/$(tab)/$(id); }
+    // Lehrauftrag hat den Schlüssel kurs_id + '_' + lehrender_id
+    function lehrtKurs(kid) { return exists(pfad('lehrauftrag', string(kid) + '_' + request.auth.uid)); }
+    function lehrendIn(kid) { return istLehrend() && lehrtKurs(kid); }
+    // Schreiben in einen Kurs: neuer und (bei Änderung) alter Kurs gehören zum eigenen Lehrauftrag
+    function schreibtEigenenKurs() { return lehrendIn(request.resource.data.kurs_id) && (resource == null || lehrtKurs(resource.data.kurs_id)); }
+    function kursDerPruefung(pid) { return getAfter(pfad('pruefung', string(pid))).data.kurs_id; }
+    function istMitglied(abgabeId) { return exists(pfad('abgabe_mitglied', string(abgabeId) + '_' + request.auth.uid)); }
+    function wirdMitglied(abgabeId) { return existsAfter(pfad('abgabe_mitglied', string(abgabeId) + '_' + request.auth.uid)); }
+    function gehoertZuKurs(kid) {
+      return lehrtKurs(kid) || exists(pfad('gruppenmitglied', request.auth.uid + '_' + string(get(pfad('kurs', string(kid))).data.gruppe_id)));
+    }
 
     // Verwaltung darf alles (Pflege, Prüfungsamt, Zurücksetzen der Beispieldaten)
     match /{document=**} { allow read, write: if istVerwaltung(); }
@@ -34,16 +46,42 @@ service cloud.firestore {
     match /service/{id} { allow read: if angemeldet(); }
     match /raum_reservierung/{id} { allow read: if angemeldet(); }
 
-    // Termine, Prüfungen, Material: lesen alle, schreiben Lehrende
-    match /termin/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
-    match /pruefung/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
-    match /material/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
-    match /abschnitt/{id} { allow read: if angemeldet(); allow write: if istLehrend(); }
+    // Termine, Prüfungen, Material: lesen alle, schreiben nur Lehrende mit Lehrauftrag für den Kurs
+    match /termin/{id} {
+      allow read: if angemeldet();
+      allow create, update: if schreibtEigenenKurs();
+      allow delete: if lehrendIn(resource.data.kurs_id);
+    }
+    match /pruefung/{id} {
+      allow read: if angemeldet();
+      allow create, update: if schreibtEigenenKurs();
+      allow delete: if lehrendIn(resource.data.kurs_id);
+    }
+    match /material/{id} {
+      allow read: if angemeldet();
+      allow create, update: if schreibtEigenenKurs();
+      allow delete: if lehrendIn(resource.data.kurs_id);
+    }
+    match /abschnitt/{id} {
+      allow read: if angemeldet();
+      allow create, update: if lehrendIn(getAfter(pfad('material', string(request.resource.data.material_id))).data.kurs_id);
+      allow delete: if lehrendIn(get(pfad('material', string(resource.data.material_id))).data.kurs_id);
+    }
 
-    // Abgaben: Metadaten lesen alle Angemeldeten, anlegen Studierende, Status setzen auch Lehrende
-    match /abgabe/{id} { allow read: if angemeldet(); allow create, update: if istStudierend() || istLehrend(); }
-    match /abgabe_mitglied/{id} { allow read: if angemeldet(); allow create: if istStudierend(); }
-    match /abgabeversion/{id} { allow read: if angemeldet(); allow create: if istStudierend(); }
+    // Abgaben: Metadaten lesen alle Angemeldeten. Studierende legen neue an und ändern nur eigene
+    // (Mitglied); Lehrende setzen den Status nur in Kursen mit Lehrauftrag.
+    match /abgabe/{id} {
+      allow read: if angemeldet();
+      allow create: if istStudierend() && wirdEigenes('angelegt_von');
+      allow update: if (istStudierend() && istMitglied(id)) || lehrendIn(kursDerPruefung(resource.data.pruefung_id));
+    }
+    // Mitglieder eintragen darf, wer die Abgabe angelegt hat oder schon Mitglied ist: kein Einschleichen in fremde Abgaben
+    match /abgabe_mitglied/{id} {
+      allow read: if angemeldet();
+      allow create: if istStudierend() && id == string(request.resource.data.abgabe_id) + '_' + request.resource.data.student_id
+        && (istMitglied(request.resource.data.abgabe_id) || getAfter(pfad('abgabe', string(request.resource.data.abgabe_id))).data.get('angelegt_von', null) == request.auth.uid);
+    }
+    match /abgabeversion/{id} { allow read: if angemeldet(); allow create: if istStudierend() && wirdMitglied(request.resource.data.abgabe_id); }
     match /datei/{id} { allow read: if angemeldet(); allow create: if angemeldet() && wirdEigenes('hochgeladen_von'); allow update: if angemeldet() && eigenes('hochgeladen_von'); }
 
     // Dateiinhalte: nur die eingetragenen Lesenden (leer = alle Angemeldeten)
@@ -60,8 +98,9 @@ service cloud.firestore {
     // Noten: Studierende nur eigene und erst nach Freigabe; Lehrende bewerten und geben frei
     match /note/{id} {
       allow read: if istLehrend() || (istStudierend() && eigenes('student_id') && resource.data.freigegeben == true);
-      allow create: if istLehrend();
-      allow update: if istLehrend() && resource.data.freigegeben != true;
+      allow create: if lehrendIn(kursDerPruefung(request.resource.data.pruefung_id));
+      allow update: if lehrendIn(kursDerPruefung(resource.data.pruefung_id)) && resource.data.freigegeben != true
+        && request.resource.data.pruefung_id == resource.data.pruefung_id && request.resource.data.student_id == resource.data.student_id;
     }
     match /pruefung_ausnahme/{id} { allow read: if angemeldet(); }
     match /anerkennung/{id} { allow read: if angemeldet(); }
@@ -72,11 +111,20 @@ service cloud.firestore {
       allow create: if istStudierend() && wirdEigenes('antragsteller_id') && request.resource.data.status == 'eingereicht';
     }
 
-    // Mitteilungen: alle Angemeldeten dürfen senden; Zustellungen liest nur, wer sie bekommt
-    match /mitteilung/{id} { allow read, create: if angemeldet(); }
+    // Mitteilungen: senden nur unter eigenem Namen. Ohne Absender (Systemmeldung) nur Eingangsbestätigungen und
+    // Fristerinnerungen. Zustellen darf, wer die Mitteilung verfasst hat; Systemmeldungen gehen an sich selbst,
+    // Eingangsbestätigungen einer Abgabe auch an die Mitabgebenden.
+    match /mitteilung/{id} {
+      allow read: if angemeldet();
+      allow create: if angemeldet() && (wirdEigenes('absender_id') || (request.resource.data.absender_id == null && request.resource.data.anlass in ['eingang', 'frist']));
+    }
+    function mitteilungNach(mid) { return getAfter(pfad('mitteilung', string(mid))).data; }
     match /zustellung/{id} {
       allow read: if angemeldet() && eigenes('empfaenger_id');
-      allow create: if angemeldet();
+      allow create: if angemeldet() && id == string(request.resource.data.mitteilung_id) + '_' + request.resource.data.empfaenger_id + '_' + request.resource.data.kanal
+        && (mitteilungNach(request.resource.data.mitteilung_id).absender_id == request.auth.uid
+          || (mitteilungNach(request.resource.data.mitteilung_id).absender_id == null
+            && (wirdEigenes('empfaenger_id') || (istStudierend() && mitteilungNach(request.resource.data.mitteilung_id).anlass == 'eingang'))));
       allow update: if angemeldet() && eigenes('empfaenger_id') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gelesen_am']);
     }
     // Evaluation: anonym. Teilnahme (wer) und Antwort (was) getrennt; eine Antwort nur zusammen mit einer
@@ -92,7 +140,7 @@ service cloud.firestore {
         && !exists(/databases/$(database)/documents/evaluation_teilnahme/$(string(request.resource.data.kurs_id) + '_' + request.auth.uid));
     }
     // Umfragen: Lehrende erstellen und beenden; Stimmen anonym nach demselben Prinzip
-    match /umfrage/{id} { allow read: if angemeldet(); allow create, update: if istLehrend(); }
+    match /umfrage/{id} { allow read: if angemeldet(); allow create, update: if schreibtEigenenKurs(); }
     match /umfrage_teilnahme/{id} {
       allow read: if angemeldet();
       allow create: if istStudierend() && wirdEigenes('student_id') && id == request.resource.data.umfrage_id + '_' + request.auth.uid;
@@ -104,10 +152,16 @@ service cloud.firestore {
         && !exists(/databases/$(database)/documents/umfrage_teilnahme/$(request.resource.data.umfrage_id + '_' + request.auth.uid));
     }
     // Chat im Modul: lesen alle Angemeldeten, schreiben nur unter eigenem Namen
-    match /chat_nachricht/{id} { allow read: if angemeldet(); allow create: if angemeldet() && wirdEigenes('autor_id'); }
+    match /chat_nachricht/{id} { allow read: if angemeldet(); allow create: if angemeldet() && wirdEigenes('autor_id') && gehoertZuKurs(request.resource.data.kurs_id); }
 
     // Anwesenheit: Lehrende erfassen, Studierende lesen nur die eigene, Verwaltung alles (Regel oben)
-    match /anwesenheit/{id} { allow read: if istLehrend() || (angemeldet() && eigenes('student_id')); allow create, update: if istLehrend(); }
+    // Schreiben nur für Termine eigener Kurse oder als eingetragene Vertretung
+    match /anwesenheit/{id} {
+      allow read: if istLehrend() || (angemeldet() && eigenes('student_id'));
+      allow create, update: if istLehrend() && id == string(request.resource.data.termin_id) + '_' + request.resource.data.student_id
+        && (lehrtKurs(get(pfad('termin', string(request.resource.data.termin_id))).data.kurs_id)
+          || get(pfad('termin', string(request.resource.data.termin_id))).data.vertretung_id == request.auth.uid);
+    }
 
     // Benachrichtigungs-Einstellungen: lesen alle (für die Zustellung), ändern nur die eigenen
     match /einstellungen/{uid} { allow read: if angemeldet(); allow write: if angemeldet() && request.auth.uid == uid; }
