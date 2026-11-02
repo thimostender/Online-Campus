@@ -1,0 +1,72 @@
+---
+title: Teil 5: Beteiligung und Anwesenheit
+---
+erDiagram
+  EVALUATION_TEILNAHME {
+    int kurs_id FK
+    uuid student_id FK
+    date am "nur: hat teilgenommen"
+  }
+  EVALUATION_ANTWORT {
+    int id PK
+    int kurs_id FK
+    json werte "6 Aussagen, je 1 bis 5"
+    string gut "Freitext"
+    string besser "Freitext"
+    date am
+  }
+  UMFRAGE {
+    int id PK
+    int kurs_id FK
+    uuid ersteller_id FK
+    string frage
+    json optionen "2 bis 6"
+    datetime erstellt_am
+    datetime endet_am "leer = offen"
+    bool beendet
+  }
+  UMFRAGE_TEILNAHME {
+    int umfrage_id FK
+    uuid student_id FK
+    date am
+  }
+  UMFRAGE_STIMME {
+    int id PK
+    int umfrage_id FK
+    int option "Index der Antwort"
+  }
+  CHAT_NACHRICHT {
+    int id PK
+    int kurs_id FK
+    uuid autor_id FK
+    string text
+    datetime erstellt_am
+  }
+  ANWESENHEIT {
+    int termin_id FK
+    uuid student_id FK
+    string status "anwesend, verspätet, entschuldigt, fehlt"
+    uuid erfasst_von FK
+    datetime erfasst_am
+  }
+  USER {
+    uuid id PK "Details in Teil 1"
+  }
+  KURS {
+    int id PK "Details in Teil 1"
+  }
+  TERMIN {
+    int id PK "Details in Teil 1"
+  }
+  KURS ||--o{ EVALUATION_TEILNAHME : "evaluiert von"
+  USER ||--o{ EVALUATION_TEILNAHME : "nimmt teil"
+  KURS ||--o{ EVALUATION_ANTWORT : "erhält anonym"
+  KURS ||--o{ UMFRAGE : "startet"
+  USER ||--o{ UMFRAGE : "erstellt"
+  UMFRAGE ||--o{ UMFRAGE_TEILNAHME : "beantwortet von"
+  USER ||--o{ UMFRAGE_TEILNAHME : "stimmt ab"
+  UMFRAGE ||--o{ UMFRAGE_STIMME : "erhält anonym"
+  KURS ||--o{ CHAT_NACHRICHT : "Kurs-Chat"
+  USER ||--o{ CHAT_NACHRICHT : "schreibt"
+  TERMIN ||--o{ ANWESENHEIT : "erfasst für"
+  USER ||--o{ ANWESENHEIT : "betrifft"

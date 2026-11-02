@@ -6,6 +6,7 @@ flowchart LR
   U --> U1["Heute: nächste Vorlesung<br/>mit Raum und Änderung"]
   U --> U2["Nächste Abgaben<br/>mit Countdown"]
   U --> U3["Neue Noten und<br/>Mitteilungen"]
+  U --> U4["Campus in 3D<br/>jeder Ort führt zur Funktion"]
 
   C --> SP["2 · Stundenplan"]
   SP --> SP1["Woche · Liste<br/>Termine und Abgaben,<br/>passend zum Schwerpunkt"]
@@ -22,6 +23,9 @@ flowchart LR
   MS --> MS4["Prüfung<br/>Art · Frist · Anforderungen"]
   MS --> MS5["Abgabe<br/>Upload · Versionen · Eingangsbestätigung"]
   MS --> MS6["Ergebnis und Feedback"]
+  MS --> MS7["Umfragen<br/>anonym abstimmen"]
+  MS --> MS8["Kurs-Chat"]
+  MS --> MS9["Evaluation<br/>anonym, einmal je Kurs"]
 
   C --> LE["4 · Leistungen"]
   LE --> LE1["Alle Abgaben<br/>offen · eingereicht · bewertet"]
@@ -30,7 +34,7 @@ flowchart LR
   LE --> LE4["Studienverlauf<br/>6 Semester · Schwerpunkt M / I"]
 
   C --> SV["5 · Service"]
-  SV --> SV1["Lageplan und Räume"]
+  SV --> SV1["Lageplan und Räume<br/>auch als 3D-Rundgang"]
   SV --> SV2["Ansprechpersonen"]
   SV --> SV3["Wissenschaftliches Arbeiten"]
   SV3 --> SV3a["Vorlagen zum Herunterladen"]
@@ -59,5 +63,5 @@ flowchart LR
   class C root
   class U,SP,M,LE,SV main
   class MS,M1,SV3 sub
-  class U1,U2,U3,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,SV5,LOGIN fn
+  class U1,U2,U3,U4,SP1,SP2,SP3,SP4,MS1,MS2,MS3,MS4,MS5,MS6,MS7,MS8,MS9,LE1,LE2,LE3,SV1,SV2,SV3a,SV4,SV5,LOGIN fn
   class K,MI,MI1,MI2,MI3,PR,PR1,PR2,PR3,HI,AS,AS1,AS2 head

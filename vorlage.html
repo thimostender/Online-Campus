@@ -97,6 +97,8 @@
 <tr><td>Dateien und Material</td><td>DATEI, MATERIAL, MATERIAL_ABSCHNITT</td><td>Eine gemeinsame Tabelle für alle Dateien, mit Prüfsumme; die Dateien selbst liegen im Objektspeicher. Hochgeladene Lehrmaterialien werden ausgelesen und in Abschnitte mit Seitenzahl zerlegt, aus denen der Hilfe-Assistent antwortet.</td></tr>
 <tr><td>Studienverlauf und Schwerpunkt</td><td>MODUL (mit Nr., Bereich, Plansemester, UE, Workload, Schwerpunkt), SCHWERPUNKT_WAHL, KURS.schwerpunkt</td><td>Bildet die Modulstruktur Medien- und IT-Management (B.A.) ab: 6 Semester, 180 ECTS, ab dem 2. Semester Schwerpunkt Medien (M) oder IT (I). Parallelmodule wie Medienkonzeption (M) und Datenbanken (I) laufen zur selben Zeit; ein Kurs mit Schwerpunkt erscheint nur bei dessen Studierenden.</td></tr>
 <tr><td>Kommunikation</td><td>MITTEILUNG, ZUSTELLUNG, BENACHRICHTIGUNG_EINSTELLUNG</td><td>Was wurde gesendet, an wen, über welchen Kanal, und wurde es gelesen?</td></tr>
+<tr><td>Beteiligung</td><td>EVALUATION_TEILNAHME, EVALUATION_ANTWORT, UMFRAGE, UMFRAGE_TEILNAHME, UMFRAGE_STIMME, CHAT_NACHRICHT</td><td>Lehrevaluation und kurze Umfragen je Kurs, dazu ein Chat je Kurs. Teilnahme und Antwort liegen in getrennten Tabellen: So lässt sich eine doppelte Abgabe verhindern, ohne dass eine Antwort einer Person zugeordnet werden kann.</td></tr>
+<tr><td>Anwesenheit</td><td>ANWESENHEIT</td><td>Lehrende erfassen je Termin anwesend, verspätet, entschuldigt oder fehlt. Daraus entstehen Quoten je Person, Kurs und Gruppe; entschuldigte Termine zählen nicht gegen die Quote.</td></tr>
 <tr><td>Anträge</td><td>ANTRAG, PRUEFUNG_AUSNAHME, ANERKENNUNG, RAUM_RESERVIERUNG</td><td>Online gestellte Anträge mit PDF-Nachweis. Die Genehmigung wirkt sofort: eine verlängerte Frist nur für diese Person, eine entschuldigte Prüfung, ein angerechnetes Modul oder ein reservierter Schnittplatz.</td></tr>
 </table>
 
@@ -111,6 +113,8 @@
 <li><b>Nur eigene Daten</b>: Studierende sehen ausschließlich ihre eigenen Abgaben und Noten. Lehrende sehen nur Abgaben aus Kursen mit Lehrauftrag.</li>
 <li><b>Große Dateien</b> werden in Teilen hochgeladen und bei Abbruch fortgesetzt. Das ist das Problem, das heute zu fremden Plattformen führt.</li>
 <li><b>Bewertet wird erst ab Fristende.</b> Vorher können Studierende noch neue Versionen hochladen, danach steht fest, welche zählt.</li>
+<li><b>Evaluationen und Umfragen sind anonym.</b> Die Antwort hat keinen Bezug zur Person, nur die Teilnahme wird vermerkt. Lehrende sehen das Evaluationsergebnis erst ab drei Antworten, damit niemand aus einer kleinen Gruppe erkennbar ist.</li>
+<li><b>Anwesenheit sehen nur die Betroffenen:</b> Studierende ihre eigene, Lehrende die ihrer Kurse, die Verwaltung alle.</li>
 <li><b>Der Assistent sieht nur, was die Person sehen darf:</b> Material der eigenen Kurse, erst ab dem Freigabedatum. Abgaben von Studierenden werden nie ausgelesen.</li>
 </ol>
 
@@ -129,9 +133,9 @@
 <h3>Hilfe-Assistent</h3>
 <p>Persönliche Fragen („Wann ist meine nächste Abgabe?“, „Was habe ich morgen?“) beantwortet er direkt aus den Daten. Fachfragen beantwortet er aus Lehrmaterialien, FAQ und Service-Texten: Eine Suche (BM25) findet die passenden Abschnitte, die Antwort nennt immer Quelle und Seite. Im Prototyp besteht die Antwort aus den passendsten Sätzen. Mit einem Sprachmodell (zum Beispiel Claude) auf dem eigenen Server formuliert er frei, bekommt aber nur die gefundenen Abschnitte, keine anderen Daten. Das Feld <code>embedding</code> ist für eine spätere Suche nach Bedeutung statt nach Wörtern vorgesehen.</p>
 <h3>Technische Umsetzung im Prototyp</h3>
-<p>Der Prototyp läuft als statische Web-App (GitHub Pages) mit <b>Firebase</b> als Server: Firebase Authentication für die Anmeldung, Firestore als gemeinsame Datenbank mit Echtzeit-Aktualisierung. Das Rollen- und Rechtekonzept ist als Firestore-Sicherheitsregeln umgesetzt: Studierende lesen zum Beispiel nur eigene und freigegebene Noten, Dateiinhalte nur die eingetragenen Personen. Online-Vorlesungen nutzen eine eingebettete <b>Jitsi-Meet</b>-Konferenz mit eigenem Raum je Termin. Vereinfachungen für den Prototyp: Dateien liegen in Stücken in Firestore statt in einem Dateispeicher, E-Mails werden nur protokolliert, Metadaten von Abgaben sind für alle Angemeldeten lesbar.</p>
+<p>Der Prototyp läuft als statische Web-App (GitHub Pages) mit <b>Firebase</b> als Server: Firebase Authentication für die Anmeldung, Firestore als gemeinsame Datenbank mit Echtzeit-Aktualisierung. Das Rollen- und Rechtekonzept ist als Firestore-Sicherheitsregeln umgesetzt: Studierende lesen zum Beispiel nur eigene und freigegebene Noten, Dateiinhalte nur die eingetragenen Personen. Online-Vorlesungen nutzen eine eingebettete <b>Jitsi-Meet</b>-Konferenz mit eigenem Raum je Termin. Der <b>Campus in 3D</b> ist ein zusätzlicher Einstieg: ein begehbares Modell des Gebäudes (Blender, three.js), in dem jeder Ort zur passenden Funktion führt und Hinweise live aus den Daten zeigt, etwa offene Anträge oder eine laufende Online-Vorlesung. Ohne 3D-Grafik oder bei „Bewegung reduzieren“ stehen dieselben Orte als Liste bereit. Vereinfachungen für den Prototyp: Dateien liegen in Stücken in Firestore statt in einem Dateispeicher, E-Mails werden nur protokolliert, Metadaten von Abgaben sind für alle Angemeldeten lesbar.</p>
 <h3>Bewusst weggelassen</h3>
-<p>Nachrichten zwischen Personen (Messenger). Er ist im Briefing optional; dafür kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Erst nach dem MVP.</p>
+<p>Direkte Nachrichten zwischen einzelnen Personen (Messenger). Sie sind im Briefing optional. Umgesetzt ist nur ein Chat je Kurs, weil er an den Lehrbetrieb gebunden ist und sich so leicht moderieren lässt; für Einzelunterhaltungen kämen zwei Tabellen dazu (Unterhaltung, Nachricht). Erst nach dem MVP.</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>

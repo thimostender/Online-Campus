@@ -8,6 +8,13 @@ flowchart LR
   L2 --> L2b["Termine anlegen, ändern, absagen<br/>(löst Mitteilung aus)"]
   L2 --> L2c["Prüfung anlegen<br/>Art · Frist · Formate · Gruppe ja/nein"]
   L2 --> L2d["Mitteilung an die Gruppe"]
+  L2 --> L2e["Umfrage starten<br/>Ergebnis live"]
+  L2 --> L2f["Kurs-Chat"]
+  L2 --> L2g["Evaluationsergebnis<br/>ab 3 Antworten"]
+  L --> L4["Anwesenheit"]
+  L4 --> L4a["Je Termin erfassen<br/>anwesend · verspätet · entschuldigt · fehlt"]
+  L4 --> L4b["Quote je Person"]
+  L1 --> L1c["Campus in 3D"]
   L --> L3["Korrektur"]
   L3 --> L3a["Abgaben-Liste<br/>pünktlich · verspätet · fehlt"]
   L3 --> L3b["Alle Dateien als ZIP"]
@@ -19,5 +26,5 @@ flowchart LR
   classDef main fill:#ddd6fe,stroke:#7c3aed,color:#111,font-weight:bold
   classDef fn fill:#dcfce7,stroke:#16a34a,color:#111
   class L root
-  class L1,L2,L3 main
-  class L1a,L1b,L2a,L2b,L2c,L2d,L3a,L3b,L3c,L3d fn
+  class L1,L2,L3,L4 main
+  class L1a,L1b,L2a,L2b,L2c,L2d,L2e,L2f,L2g,L4a,L4b,L1c,L3a,L3b,L3c,L3d fn
